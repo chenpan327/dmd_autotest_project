@@ -1,0 +1,7 @@
+web:
+  base_url: "https://cloud-uat.dmduav.com/index"
+  API_url: "https://test.dmduav.com:38080"
+  test_user: "alan"
+  test_pwd: "dmd@2025"
+  third_user: "测试客户1"
+  third_pwd: "123456"
