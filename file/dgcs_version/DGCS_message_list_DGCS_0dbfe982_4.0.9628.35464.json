@@ -1,0 +1,241 @@
+[
+  {
+    "DGCS_version": "DGCS_0dbfe982_4.0.9628.35464",
+    "DGCS_mavlink_version": "39",
+    "mavlink_version": "41"
+  },
+  {
+    "msg_id": 40,
+    "message_name": "MAVLink_mission_request_start_message",
+    "commandValue": null,
+    "commandEnum": null
+  },
+  {
+    "msg_id": 41,
+    "message_name": "MAVLink_mission_request_verify_message",
+    "commandValue": null,
+    "commandEnum": null
+  },
+  {
+    "msg_id": 63,
+    "message_name": "MAVLink_net_file_command_message",
+    "commandValue": null,
+    "commandEnum": null
+  },
+  {
+    "msg_id": 76,
+    "message_name": "MAVLink_command_long_message",
+    "commandValue": "40045",
+    "commandEnum": "MAV_CMD_UPDATE_COMPANION"
+  },
+  {
+    "msg_id": 76,
+    "message_name": "MAVLink_command_long_message",
+    "commandValue": "400",
+    "commandEnum": "MAV_CMD_COMPONENT_ARM_DISARM"
+  },
+  {
+    "msg_id": 11,
+    "message_name": "MAVLink_set_mode_message",
+    "commandValue": null,
+    "commandEnum": null
+  },
+  {
+    "msg_id": 55,
+    "message_name": "MAVLink_light_data_message",
+    "commandValue": null,
+    "commandEnum": null
+  },
+  {
+    "msg_id": 76,
+    "message_name": "MAVLink_command_long_message",
+    "commandValue": "22",
+    "commandEnum": "MAV_CMD_NAV_TAKEOFF"
+  },
+  {
+    "msg_id": 76,
+    "message_name": "MAVLink_command_long_message",
+    "commandValue": "40023",
+    "commandEnum": "MAV_CMD_SET_RADIO_CTRL"
+  },
+  {
+    "msg_id": 20,
+    "message_name": "MAVLink_param_request_read_message",
+    "commandValue": null,
+    "commandEnum": null
+  },
+  {
+    "msg_id": 21,
+    "message_name": "MAVLink_param_request_list_message",
+    "commandValue": null,
+    "commandEnum": null
+  },
+  {
+    "msg_id": 50,
+    "message_name": "MAVLink_swarm_flight_start_message",
+    "commandValue": null,
+    "commandEnum": null
+  },
+  {
+    "msg_id": 121,
+    "message_name": "MAVLink_log_erase_message",
+    "commandValue": null,
+    "commandEnum": null
+  },
+  {
+    "msg_id": 76,
+    "message_name": "MAVLink_command_long_message",
+    "commandValue": "40007",
+    "commandEnum": "MAV_CMD_TEST_SENSORS"
+  },
+  {
+    "msg_id": 48,
+    "message_name": "MAVLink_console_message",
+    "commandValue": null,
+    "commandEnum": null
+  },
+  {
+    "msg_id": 49,
+    "message_name": "MAVLink_euler_network_message",
+    "commandValue": null,
+    "commandEnum": null
+  },
+  {
+    "msg_id": 76,
+    "message_name": "MAVLink_command_long_message",
+    "commandValue": "40046",
+    "commandEnum": "MAV_CMD_STANDBY"
+  },
+  {
+    "msg_id": 76,
+    "message_name": "MAVLink_command_long_message",
+    "commandValue": "40047",
+    "commandEnum": "MAV_CMD_STANDBY_READY"
+  },
+  {
+    "msg_id": 76,
+    "message_name": "MAVLink_command_long_message",
+    "commandValue": "40040",
+    "commandEnum": "MAV_CMD_CALIB_SENSOR"
+  },
+  {
+    "msg_id": 76,
+    "message_name": "MAVLink_command_long_message",
+    "commandValue": "40041",
+    "commandEnum": "MAV_CMD_SET_RC_GROUP"
+  },
+  {
+    "msg_id": 228,
+    "message_name": "MAVLink_differential_location_packet_32_message",
+    "commandValue": null,
+    "commandEnum": null
+  },
+  {
+    "msg_id": 117,
+    "message_name": "MAVLink_log_request_list_message",
+    "commandValue": null,
+    "commandEnum": null
+  },
+  {
+    "msg_id": 119,
+    "message_name": "MAVLink_log_request_data_message",
+    "commandValue": null,
+    "commandEnum": null
+  },
+  {
+    "msg_id": 46,
+    "message_name": "MAVLink_calib_time_message",
+    "commandValue": null,
+    "commandEnum": null
+  },
+  {
+    "msg_id": 35,
+    "message_name": "MAVLink_rc_channels_raw_message",
+    "commandValue": null,
+    "commandEnum": null
+  },
+  {
+    "msg_id": 25,
+    "message_name": "MAVLink_set_serial_number_message",
+    "commandValue": null,
+    "commandEnum": null
+  },
+  {
+    "msg_id": 28,
+    "message_name": "MAVLink_set_code_number_message",
+    "commandValue": null,
+    "commandEnum": null
+  },
+  {
+    "msg_id": 92,
+    "message_name": "MAVLink_submod_firmware_info_message",
+    "commandValue": null,
+    "commandEnum": null
+  },
+  {
+    "msg_id": 94,
+    "message_name": "MAVLink_submod_update_package_message",
+    "commandValue": null,
+    "commandEnum": null
+  },
+  {
+    "msg_id": 76,
+    "message_name": "MAVLink_command_long_message",
+    "commandValue": "401",
+    "commandEnum": "MAV_CMD_CAN_ARM"
+  },
+  {
+    "msg_id": 39,
+    "message_name": "MAVLink_drama_switch_message",
+    "commandValue": null,
+    "commandEnum": null
+  },
+  {
+    "msg_id": 76,
+    "message_name": "MAVLink_command_long_message",
+    "commandValue": "40008",
+    "commandEnum": "MAV_CMD_SET_UWB_ANCHOR"
+  },
+  {
+    "msg_id": 76,
+    "message_name": "MAVLink_command_long_message",
+    "commandValue": "180",
+    "commandEnum": "MAV_CMD_DO_SET_FENCE"
+  },
+  {
+    "msg_id": 76,
+    "message_name": "MAVLink_command_long_message",
+    "commandValue": "40048",
+    "commandEnum": "MAV_CMD_RETURN_TYPE"
+  },
+  {
+    "msg_id": 76,
+    "message_name": "MAVLink_command_long_message",
+    "commandValue": "40003",
+    "commandEnum": "MAV_CMD_FLIGHT_STOP"
+  },
+  {
+    "msg_id": 76,
+    "message_name": "MAVLink_command_long_message",
+    "commandValue": "40051",
+    "commandEnum": "MAV_CMD_UPDATE_BOOT"
+  },
+  {
+    "msg_id": 38,
+    "message_name": "MAVLink_drama_return_message",
+    "commandValue": null,
+    "commandEnum": null
+  },
+  {
+    "msg_id": 76,
+    "message_name": "MAVLink_command_long_message",
+    "commandValue": "40053",
+    "commandEnum": "MAV_CMD_RID_CTRL"
+  },
+  {
+    "msg_id": 210,
+    "message_name": "MAVLink_rid_system_info_message",
+    "commandValue": null,
+    "commandEnum": null
+  }
+]

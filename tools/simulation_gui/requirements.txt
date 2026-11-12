@@ -1,0 +1,11 @@
+# MAVLink UDP Monitor — Dependencies
+# Python >= 3.10
+
+# GUI
+PySide6>=6.5
+
+# NIC sniffing (optional)
+scapy>=2.5
+
+# Testing
+pytest>=8.0

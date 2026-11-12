@@ -1,0 +1,328 @@
+test_get_token:
+  - name: 登录失败
+    args:
+      username: alan
+      password: dd@2025
+
+    expected:
+      - [ "$.code", "eq", 400 ]
+      - [ "$.data", "is_none" ]
+      - [ "$.message", "contains", "incorrect" ]
+
+  - name: 登录成功
+    args:
+      username: alan
+      password: dmd@2025
+
+    expected:
+      - [ "$.code", "eq", 200 ]
+      - [ "$.data.expiresIn", "gt", 123 ]
+      - [ "$.data.token", "not_none" ]
+      - [ "$.message", "contains", "success" ]
+
+test_search_device:
+  - name: 查找成功
+    args:
+      registerCode: WV43210X1111
+
+    expected:
+      - [ "$.code", "eq", 200 ]
+      - [ "$.success","eq",true ]
+      - [ "$.result.records", "len_eq",1 ]
+      - [ "$.result.records[0].registerCode", "eq","WV43210X1111" ]
+      - [ "$.message", "eq", "" ]
+
+  - name: 查找失败
+    args:
+      registerCode: WV43210X1111111
+
+    expected:
+      - [ "$.code", "eq", 200 ]
+      - [ "$.success","eq",true ]
+      - [ "$.result.records", "len_eq",0 ]
+      - [ "$.message", "eq", "" ]
+
+test_add_project:
+  - name: 添加成功
+    args:
+      projectName: null
+      expectedStartDate: null
+      expectedEndDate: null
+      address: test
+      longitude: 114
+      latitude: 22
+
+    jsonpath_args:
+      - [ "$.projectDeviceRequireList[0].deviceType", '2' ]
+      - [ "$.projectDeviceRequireList[0].quantity", 99 ]
+
+    expected:
+      - [ "$.code", "eq", 200 ]
+      - [ "$.success","eq",true ]
+      - [ "$.message", "eq", "添加成功" ]
+
+test_add_dgcs:
+  - name: 新增
+    args:
+      name: test
+      ename: test
+      type: 99
+      remark: 自动化测试
+    expected:
+      - [ "$.code", "eq", 200 ]
+      - [ "$.success","eq",true ]
+      - [ "$.message", "eq", "add successfully！" ]
+
+test_delete_dgcs:
+  - name: 地面站-删除
+    args:
+      id: null
+
+    expected:
+      - [ "$.code", "eq", 200 ]
+      - [ "$.success","eq",true ]
+      - [ "$.message", "eq", "delete successfully！" ]
+
+test_dgcs_search:
+  - name: 查找全部
+
+    expected:
+      - [ "$.code", "eq", 200 ]
+      - [ "$.success","eq",true ]
+      - [ "$.result.records", "len_gt",1 ]
+      - [ "$.result.records[*].name", "contains", "4.0" ]
+
+  - name: 查找单个
+    args:
+      name: "4.0"
+
+    expected:
+      - [ "$.code", "eq", 200 ]
+      - [ "$.success","eq",true ]
+      - [ "$.result.records", "len_eq",1 ]
+      - [ "$.result.records[0].name", "eq","4.0" ]
+
+  - name: 查找为空
+    args:
+      name: "test999"
+
+    expected:
+      - [ "$.code", "eq", 200 ]
+      - [ "$.success","eq",true ]
+      - [ "$.result.records", "len_eq",0 ]
+
+test_dgcs_user_list:
+  - name: 查询全部
+    args:
+      stationId: "1898908753699323905"
+    expected:
+      - [ "$.code", "eq", 200 ]
+      - [ "$.success","eq",true ]
+      - [ "$.result.records", "len_gt",0 ]
+      - [ "$.result.records[*].username", "contains", "alan" ]
+
+  - name: 查询单个
+    args:
+      stationId: "1898908753699323905"
+      username: "alan"
+    expected:
+      - [ "$.code", "eq", 200 ]
+      - [ "$.success","eq",true ]
+      - [ "$.result.records", "len_gt",0 ]
+      - [ "$.result.records[0].username", "contains", "alan" ]
+
+test_dgcs_func_list:
+  - name: 地面站V4功能列表
+    args:
+      stationId: "1898908753699323905"
+
+    expected:
+      - [ "$.code", "eq", 200 ]
+      - [ "$.success","eq",true ]
+      - [ "$.result.records", "len_gt",1 ]
+      - [ "$.result.records[*].stationId", "contains", "1898908753699323905" ]
+
+test_calculate_price:
+  - name: 计算成功
+    args:
+      rentTime: null
+      rentTimeEnd: null
+    jsonpath_args:
+      - [ "$.uavEquipmentRentItemList[0].type", '1' ]
+      - [ "$.uavEquipmentRentItemList[0].rentCount", 10 ]
+
+    expected:
+      - [ "$.code", "eq", 200 ]
+      - [ "$.success","eq",true ]
+      - [ "$.result.items[0].type", "eq","1" ]
+      - [ "$.result.amount", "eq",800.00 ]
+
+  - name: 计算失败
+    args:
+      rentTime: null
+      rentTimeEnd: null
+    jsonpath_args:
+      - [ "$.uavEquipmentRentItemList[0].type", '10' ]
+      - [ "$.uavEquipmentRentItemList[0].rentCount", 1 ]
+    expected:
+      - [ "$.code", "eq", 500 ]
+      - [ "$.success","eq",false ]
+      - [ "$.message","eq","费用价格缺失，请联系平台方处理！" ]
+      - [ "$.result", "is_none" ]
+
+test_dgcs_add_user:
+  - name: 添加新用户
+    args:
+      stationId: "1898908753699323905"
+      username: alan
+      expired: null
+    expected:
+      - [ "$.code", "eq", 200 ]
+      - [ "$.success","eq",true ]
+      - [ "$.message","eq","add successfully！" ]
+
+  - name: 添加重复用户
+    args:
+      stationId: "1898908753699323905"
+      username: alan
+      expired: null
+    expected:
+      - [ "$.code", "eq", 500 ]
+      - [ "$.success","eq",false ]
+      - [ "$.message","contains","用户名已存在" ]
+
+test_activation_records:
+  - name: 激活成功
+    args:
+      machineNumber: e7bf2af441b1aeeab1f766bf684f3e31
+      groundStationType: 99
+      name: alan
+    expected:
+      - [ "$.code", "eq", 200 ]
+      - [ "$.message","eq","success" ]
+      - [ "$.data.machineNumber","eq",e7bf2af441b1aeeab1f766bf684f3e31 ]
+      - [ "$.data.status","eq",1 ]
+  - name: 激活失败
+    args:
+      machineNumber: e7bf2af441b1aeeab1f766bf684f3e31
+      groundStationType: 99
+      name: alan
+    expected:
+      - [ "$.code", "eq", 200 ]
+      - [ "$.message","eq","success" ]
+      - [ "$.data.machineNumber","is_none" ]
+      - [ "$.data.status","eq",1 ]
+
+test_user_details:
+  - name: 允许登录
+    args:
+      machineNumber: e7bf2af441b1aeeab1f766bf684f3e31
+      groundStationType: "99"
+    expected:
+      - [ "$.code", "eq", 200 ]
+      - [ "$.message","eq","success" ]
+      - [ "$.data.status","eq",1 ]
+  - name: 未授权
+    args:
+      machineNumber: aaaaaaaaaaaaaaaaaaaaaaaaa
+      groundStationType: "99"
+    expected:
+      - [ "$.code", "eq", 200 ]
+      - [ "$.message","eq","success" ]
+      - [ "$.data.status","eq",3 ]
+test_dgcs_del_user:
+  - name: 删除成功
+    args:
+      id: "2063804122366742529"
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.message","eq","delete successfully！" ]
+
+test_project_list:
+  - name: 获取完整项目列表
+    expected:
+      - [ "$.code", "eq", 200 ]
+      - [ "$.message","eq","success" ]
+      - [ "$.data","len_gt",0 ]
+
+test_send_repair:
+  - name: 新增送修
+    args:
+      projectId: "2061718228239933441"
+      projectName: test2026-06-02
+      returnWarehouseId: B03
+    jsonpath_args:
+      - [ "$.breakdownRecords[0].deviceId", 'WV3000000083' ]
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.message","eq","操作成功" ]
+      - [ "$.result.orderNo","not_none" ]
+      - [ "$.result.status","eq",0 ]
+
+  - name: 重复送修
+    args:
+      projectId: "2061718228239933441"
+      projectName: test2026-06-02
+      returnWarehouseId: B03
+    jsonpath_args:
+      - [ "$.breakdownRecords[0].deviceId", 'WV3000000083' ]
+      - [ "$.uavEquipmentRentItemList[0].rentCount", 1 ]
+    expected:
+      - [ "$.success","eq",false ]
+      - [ "$.message","eq","存在设备正在维修中，请核实后再提交" ]
+      - [ "$.result","len_gt",0 ]
+
+test_cancel_order:
+  - name: 取消成功
+    args:
+      id: null
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.message","eq","操作成功" ]
+
+test_flight_project_dashboard:
+  - name: 查询成功
+    args:
+      projectId: "2063790488186540033"
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.result.returnSelfDeviceNum","eq",1 ]
+      - [ "$.result.returnRentDeviceNum","eq",1 ]
+
+test_equipment_out_item:
+  - name: 查询成功
+    args:
+      projectId: "2063790488186540033"
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.result.records","len_gt",0 ]
+      - [ "$.result.records[0].outType","eq",1 ]
+      - [ "$.result.records[1].outType","eq",0 ]
+
+test_device_count_status:
+  - name: 查询成功
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.result","len_gt",0 ]
+
+test_device_usage_rate:
+  - name: 查询成功
+    args:
+      startDate: "2026-05-08"
+      endDate: "2026-06-08"
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.result","len_gt",0 ]
+
+test_device_count_type:
+  - name: 查询成功
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.result","len_gt",0 ]
+

@@ -1,0 +1,17 @@
+{
+  "_comment": "MAVLink UDP Monitor — 默认配置",
+  "search_paths": [
+    "../../../file/mavlink_version",
+    "D:/Work/dmd_autotest_project_ycl/file/mavlink_version"
+  ],
+  "buffer_capacity": 40960000,
+  "payload_max_chars": 26,
+  "tooltip_delay_seconds": 0.3,
+  "log_dir": "./logs",
+  "gui": {
+    "left_panel_width": 280,
+    "detail_panel_height": 200,
+    "filter_bar_height": 58,
+    "default_time_mode": "dual"
+  }
+}

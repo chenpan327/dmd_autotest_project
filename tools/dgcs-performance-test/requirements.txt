@@ -1,0 +1,9 @@
+# DGCS 地面站压力测试工具 依赖
+# ==================================
+# 基础运行: 只需要 Python 3.7+ (tkinter 随 Python 安装)
+#
+# IP/MAC 伪造模式 (推荐): 需要安装 Npcap + scapy
+#   1. 下载安装 Npcap: https://npcap.com/#download
+#   2. pip install scapy
+
+scapy>=2.5.0

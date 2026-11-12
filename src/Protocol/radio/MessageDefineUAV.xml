@@ -1,0 +1,4530 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<dict>
+	<key>Files</key>
+	<array>
+		<dict>
+			<key>suffix</key>
+			<string>C</string>
+			<key>StructRename</key>
+			<string>CType</string>
+		</dict>
+		<dict>
+			<key>suffix</key>
+			<string>CSharp</string>
+			<key>StructRename</key>
+			<string>CSharpType</string>
+		</dict>
+	</array>
+
+	<key>Enums</key>
+	<dict>
+		<key>Uint32Value</key>
+		<dict>
+			<key>description</key>
+			<string>通常在universalCommand中赋值，或者其他uint32赋值</string>
+			<key>values</key>
+			<dict>
+
+				<key>DAV_NO_ERROR</key>
+				<dict>
+					<key>value</key>
+					<integer>0</integer>
+					<key>description</key>
+					<string>无错误</string>
+				</dict>
+
+				<key>DAV_COMMAND_ACK_BOOTLOADER_VERSION</key>
+				<dict>
+					<key>value</key>
+					<integer>1</integer>
+					<key>description</key>
+					<string>在GET_FIRMWARE_VERSION命令码中 询问boot的版本</string>
+				</dict>
+
+				<key>DAV_COMMAND_ACK_APP_VERSION</key>
+				<dict>
+					<key>value</key>
+					<integer>2</integer>
+					<key>description</key>
+					<string>在GET_FIRMWARE_VERSION命令码中 询问app的版本</string>
+				</dict>
+
+				<key>DAV_COMMAND_RETURN_TO_BOOTLOADER</key>
+				<dict>
+					<key>value</key>
+					<integer>3</integer>
+					<key>description</key>
+					<string>在 READY_TO_BOOTLOADER 命令码中 使设备从app跳转boot</string>
+				</dict>
+
+				<key>DAV_COMMAND_MESSAGE_DISABLE_BROADCAST</key>
+				<dict>
+					<key>value</key>
+					<integer>4</integer>
+					<key>description</key>
+					<string>在 CONTROL_MESSAGE_IN_BOOT 命令码中 使设备的广播接口失效</string>
+				</dict>
+
+				<key>DAV_COMMAND_MESSAGE_ENABLE_BROADCAST</key>
+				<dict>
+					<key>value</key>
+					<integer>5</integer>
+					<key>description</key>
+					<string>在 CONTROL_MESSAGE_IN_BOOT 命令码中 使设备的广播接口恢复</string>
+				</dict>
+
+				<key>DAV_COMMAND_BOOT_ERASE_FLASH_ADDRESS</key>
+				<dict>
+					<key>value</key>
+					<integer>6</integer>
+					<key>description</key>
+					<string>在 ERASE_FLASH_ADDRESS 命令码中 让固件写入区域擦除</string>
+				</dict>
+
+				<key>DAV_COMMAND_ASK_DAV_ADDRESS</key>
+				<dict>
+					<key>value</key>
+					<integer>7</integer>
+					<key>description</key>
+					<string>在 ASK_DAV_ADDRESS 命令码中 询问地址</string>
+				</dict>
+
+				<key>DAV_COMMAND_ENABLE_REMOTE_CONTROL_FREQ_MATCH</key>
+				<dict>
+					<key>value</key>
+					<integer>8</integer>
+					<key>description</key>
+					<string>在 REMOTE_CONTROL_FREQ_MATCHING 命令码中 使能接收机对频</string>
+				</dict>
+
+				<key>DAV_COMMAND_DISABLE_REMOTE_CONTROL_FREQ_MATCH</key>
+				<dict>
+					<key>value</key>
+					<integer>9</integer>
+					<key>description</key>
+					<string>在 REMOTE_CONTROL_FREQ_MATCHING 命令码中 失能接收机对频</string>
+				</dict>
+
+				<key>DAV_COMMAND_ASK_CHIP_UID</key>
+				<dict>
+					<key>value</key>
+					<integer>10</integer>
+					<key>description</key>
+					<string>在 ASK_CHIP_UID 命令码中 询问设备UID</string>
+				</dict>
+
+				<key>DAV_COMMAND_ASK_PRODUCT_SERIAL_NUMBER</key>
+				<dict>
+					<key>value</key>
+					<integer>11</integer>
+					<key>description</key>
+					<string>在 ASK_PRODUCT_SERIAL_NUMBER 命令码中 询问设备SN码</string>
+				</dict>
+
+				<key>DAV_COMMAND_SET_850M_V3_RECEIVE_MODE</key>
+				<dict>
+					<key>value</key>
+					<integer>12</integer>
+					<key>description</key>
+					<string>在 SET_RADIO_RECEIVER_MODE 命令码中 设置接收机850M 接收V3电台</string>
+				</dict>
+
+				<key>DAV_COMMAND_SET_850M_R2_RECEIVE_MODE</key>
+				<dict>
+					<key>value</key>
+					<integer>13</integer>
+					<key>description</key>
+					<string>在 SET_RADIO_RECEIVER_MODE 命令码中 设置接收机850M 接收R2电台</string>
+				</dict>
+
+				<key>DAV_COMMAND_SET_24G_REMOTE_CONTROL_MODE</key>
+				<dict>
+					<key>value</key>
+					<integer>14</integer>
+					<key>description</key>
+					<string>在 SET_RADIO_RECEIVER_MODE 命令码中 设置接收机2.4G 接收遥控器</string>
+				</dict>
+
+				<key>DAV_COMMAND_SET_24G_RTCM_MODE</key>
+				<dict>
+					<key>value</key>
+					<integer>15</integer>
+					<key>description</key>
+					<string>在 SET_RADIO_RECEIVER_MODE 命令码中 设置接收机2.4G 接收R2电台</string>
+				</dict>
+
+				<key>DAV_COMMAND_ASK_BOOTLOADER_SHA256</key>
+				<dict>
+					<key>value</key>
+					<integer>16</integer>
+					<key>description</key>
+					<string>在 ASK_VERSION_SHA 命令码中 询问BOOT固件的SHA256签名</string>
+				</dict>
+
+				<key>DAV_COMMAND_ASK_APP_SHA256</key>
+				<dict>
+					<key>value</key>
+					<integer>17</integer>
+					<key>description</key>
+					<string>在 ASK_VERSION_SHA 命令码中 询问APP固件的SHA256签名</string>
+				</dict>
+
+				<key>DAV_COMMAND_ASK_PROTOCOL_SHA256</key>
+				<dict>
+					<key>value</key>
+					<integer>18</integer>
+					<key>description</key>
+					<string>在 ASK_VERSION_SHA 命令码中 询问使用的dav protocol_c仓库的SHA256签名</string>
+				</dict>
+
+				<key>DAV_COMMAND_ASK_PROTO_VERSION_INT</key>
+				<dict>
+					<key>value</key>
+					<integer>19</integer>
+					<key>description</key>
+					<string>在 ASK_DAV_PROTO_VERSION_INT 命令码中 询问protobuf的proto文件版本</string>
+				</dict>
+
+				<key>DAV_COMMAND_ASK_REMOTE_CONTROL_MATCHING_CODE</key>
+				<dict>
+					<key>value</key>
+					<integer>20</integer>
+					<key>description</key>
+					<string>在GET_REMOTE_CONTROL_MATCHING_CODE 命令码中 获取接收机的遥控器对频码</string>
+				</dict>
+
+				<key>DAV_COMMAND_ASK_RADIO_R2_850M_MATCHING_CODE</key>
+				<dict>
+					<key>value</key>
+					<integer>21</integer>
+					<key>description</key>
+					<string>在GET_REMOTE_CONTROL_MATCHING_CODE 命令码中 获取接收机的R2电台850M对频码</string>
+				</dict>
+
+				<key>DAV_COMMAND_ASK_RADIO_R2_24G_MATCHING_CODE</key>
+				<dict>
+					<key>value</key>
+					<integer>22</integer>
+					<key>description</key>
+					<string>在GET_REMOTE_CONTROL_MATCHING_CODE 命令码中 获取接收机的R2电台2.4G对频码</string>
+				</dict>
+
+				<key>DAV_COMMAND_ACK_HEARTBEAT</key>
+				<dict>
+					<key>value</key>
+					<integer>23</integer>
+					<key>description</key>
+					<string></string>
+				</dict>
+
+				<key>DAV_COMMAND_SET_850M_V3_LOW_RATE_RECEIVE_MODE</key>
+				<dict>
+					<key>value</key>
+					<integer>24</integer>
+					<key>description</key>
+					<string>在 SET_RADIO_RECEIVER_MODE 命令码中 设置接收机850M 接收V3低空速电台</string>
+				</dict>
+
+				<key>DAV_COMMAND_SET_850M_SCAN_RECEIVE_MODE</key>
+				<dict>
+					<key>value</key>
+					<integer>25</integer>
+					<key>description</key>
+					<string>在 SET_RADIO_RECEIVER_MODE 命令码中 设置接收机850M 扫描接收</string>
+				</dict>
+
+				<key>DAV_COMMAND_SET_24G_SCAN_RECEIVE_MODE</key>
+				<dict>
+					<key>value</key>
+					<integer>26</integer>
+					<key>description</key>
+					<string>在 SET_RADIO_RECEIVER_MODE 命令码中 设置接收机2.4G 扫描接收</string>
+				</dict>
+
+				<key>DAV_COMMAND_ASK_DEVICE_LAN_CONFIG</key>
+				<dict>
+					<key>value</key>
+					<integer>27</integer>
+					<key>description</key>
+					<string>在 ASK_DEVICE_LAN_CONFIG 命令码中 询问设备网络ipv4配置</string>
+				</dict>
+
+				<key>DAV_COMMAND_ASK_LORA_RADIO_WORK_MODE</key>
+				<dict>
+					<key>value</key>
+					<integer>28</integer>
+					<key>description</key>
+					<string>在 ASK_RADIO_REGULATORY_DOMAIN 命令码中 询问电台的频率配置</string>
+				</dict>
+
+				<key>DAV_COMMAND_ACK_RECEIVER_DMD_AUTO_TEST_STATUS</key>
+				<dict>
+					<key>value</key>
+					<integer>30</integer>
+					<key>description</key>
+					<string></string>
+				</dict>
+
+				<key>DAV_COMMAND_ACK_ELRS_DMD_AUTO_TEST_STATUS</key>
+				<dict>
+					<key>value</key>
+					<integer>31</integer>
+					<key>description</key>
+					<string></string>
+				</dict>
+
+				<key>DAV_COMMAND_ACK_HARDFAULT_INFO</key>
+				<dict>
+					<key>value</key>
+					<integer>32</integer>
+					<key>description</key>
+					<string>在 ASK_HARDFAULT_INFO 命令码中 询问设备的hardfault错误信息</string>
+				</dict>
+
+				<key>DAV_COMMAND_SEARCH_SUB_RADIO_STATION</key>
+				<dict>
+					<key>value</key>
+					<integer>33</integer>
+					<key>description</key>
+					<string>搜索从基站</string>
+				</dict>
+
+				<key>DAV_COMMAND_CALIBRATE_GIMBAL</key>
+				<dict>
+					<key>value</key>
+					<integer>34</integer>
+					<key>description</key>
+					<string>校准云台</string>
+				</dict>
+
+				<key>DAV_COMMAND_STORAGE_GIMBAL</key>
+				<dict>
+					<key>value</key>
+					<integer>35</integer>
+					<key>description</key>
+					<string>收纳云台</string>
+				</dict>
+
+				<key>DAV_COMMAND_WORK_GIMBAL</key>
+				<dict>
+					<key>value</key>
+					<integer>36</integer>
+					<key>description</key>
+					<string>云台工作</string>
+				</dict>
+
+				<key>DAV_COMMAND_DEBUG_GIMBAL</key>
+				<dict>
+					<key>value</key>
+					<integer>37</integer>
+					<key>description</key>
+					<string>云台调试模式</string>
+				</dict>
+
+				<key>DAV_COMMAND_ASK_RADIO_ENCRYPT_KEY</key>
+				<dict>
+					<key>value</key>
+					<integer>38</integer>
+					<key>description</key>
+					<string>询问加密密钥</string>
+				</dict>
+
+				<key>DAV_ERROR_PROTOBUF_DESERIALIZE_FAIL</key>
+				<dict>
+					<key>value</key>
+					<integer>500</integer>
+					<key>description</key>
+					<string>protobuf的序列化失败</string>
+				</dict>
+
+				<key>DAV_ERROR_MEMORY_NO_ENOUGH</key>
+				<dict>
+					<key>value</key>
+					<integer>501</integer>
+					<key>description</key>
+					<string>内存不够</string>
+				</dict>
+
+				<key>DAV_ERROR_INTERFACE_NOT_FOUND</key>
+				<dict>
+					<key>value</key>
+					<integer>502</integer>
+					<key>description</key>
+					<string>接口未找</string>
+				</dict>
+
+				<key>DAV_ERROR_ROUTE_ADDRESS_NOT_FOUND</key>
+				<dict>
+					<key>value</key>
+					<integer>503</integer>
+					<key>description</key>
+					<string>路由表中 未找该地址</string>
+				</dict>
+
+				<key>DAV_ERROR_INTERFACE_INDEX_SET_BEYOND</key>
+				<dict>
+					<key>value</key>
+					<integer>504</integer>
+					<key>description</key>
+					<string>设置路由表时 设置的接口不在注册的接口范围内</string>
+				</dict>
+
+				<key>DAV_ERROR_INTERFACE_INDEX_SET_REPEAT</key>
+				<dict>
+					<key>value</key>
+					<integer>505</integer>
+					<key>description</key>
+					<string>设置路由表 重复设置</string>
+				</dict>
+
+				<key>DAV_ERROR_PRODUCT_SERIAL_NUM_FORMAT_WRONG</key>
+				<dict>
+					<key>value</key>
+					<integer>506</integer>
+					<key>description</key>
+					<string>设置SN码时 格式错误</string>
+				</dict>
+
+				<key>DAV_ERROR_PRODUCT_SERIAL_NUM_SET_REPEAT</key>
+				<dict>
+					<key>value</key>
+					<integer>507</integer>
+					<key>description</key>
+					<string>设置SN码时 设备已有SN码</string>
+				</dict>
+
+				<key>DAV_STATUS_REMOTE_CONTROL_RECEIVER_NO_EXIST</key>
+				<dict>
+					<key>value</key>
+					<integer>1000</integer>
+					<key>description</key>
+					<string>接收机判断遥控相关射频芯片不存在</string>
+				</dict>
+
+				<key>DAV_STATUS_REMOTE_CONTROL_RECEIVER_INIT_FAIL</key>
+				<dict>
+					<key>value</key>
+					<integer>1001</integer>
+					<key>description</key>
+					<string>接收机遥控相关射频芯片 初始化错误</string>
+				</dict>
+
+				<key>DAV_STATUS_REMOTE_CONTROL_RECEIVER_FREQ_MATCHING_TIMEOUT</key>
+				<dict>
+					<key>value</key>
+					<integer>1002</integer>
+					<key>description</key>
+					<string>接收机对频超时</string>
+				</dict>
+
+				<key>DAV_STATUS_REMOTE_CONTROL_RECEIVER_FOREVER_LOST_SIGNAL</key>
+				<dict>
+					<key>value</key>
+					<integer>1003</integer>
+					<key>description</key>
+					<string>接收机永久丢失遥控器</string>
+				</dict>
+
+				<key>DAV_STATUS_REMOTE_CONTROL_RECEIVER_TEMPORARILY_LOST_SIGNAL</key>
+				<dict>
+					<key>value</key>
+					<integer>1004</integer>
+					<key>description</key>
+					<string>接收机暂时丢失遥控</string>
+				</dict>
+
+				<key>DAV_STATUS_RADIO_850M_RECEIVER_NO_EXIST</key>
+				<dict>
+					<key>value</key>
+					<integer>1010</integer>
+					<key>description</key>
+					<string>接收机判断射频出问题</string>
+				</dict>
+
+				<key>DAV_STATUS_RADIO_850M_RECEIVER_INIT_FAIL</key>
+				<dict>
+					<key>value</key>
+					<integer>1011</integer>
+					<key>description</key>
+					<string>射频芯片初始化失败</string>
+				</dict>
+
+				<key>DAV_STATUS_RADIO_850M_FOREVER_LOST_SIGNAL</key>
+				<dict>
+					<key>value</key>
+					<integer>1012</integer>
+					<key>description</key>
+					<string>接收机永久丢失 850M信号</string>
+				</dict>
+
+				<key>DAV_STATUS_RADIO_850M_TEMPORARILY_LOST_SIGNAL</key>
+				<dict>
+					<key>value</key>
+					<integer>1013</integer>
+					<key>description</key>
+					<string>接收机暂时丢失 850M信号</string>
+				</dict>
+
+				<key>DAV_STATUS_RADIO_2400M_RECEIVER_NO_EXIST</key>
+				<dict>
+					<key>value</key>
+					<integer>1020</integer>
+					<key>description</key>
+					<string></string>
+				</dict>
+
+				<key>DAV_STATUS_RADIO_2400M_RECEIVER_INIT_FAIL</key>
+				<dict>
+					<key>value</key>
+					<integer>1021</integer>
+					<key>description</key>
+					<string></string>
+				</dict>
+
+				<key>DAV_STATUS_LPPC_CONTROL_RECEIVER_NO_EXIST</key>
+				<dict>
+					<key>value</key>
+					<integer>1022</integer>
+					<key>description</key>
+					<string></string>
+				</dict>
+
+				<key>DAV_STATUS_LPPC_CONTROL_RECEIVER_INIT_FAIL</key>
+				<dict>
+					<key>value</key>
+					<integer>1023</integer>
+					<key>description</key>
+					<string></string>
+				</dict>
+
+				<key>DAV_STATUS_RADIO_2400M_FOREVER_LOST_SIGNAL</key>
+				<dict>
+					<key>value</key>
+					<integer>1024</integer>
+					<key>description</key>
+					<string></string>
+				</dict>
+
+				<key>DAV_STATUS_RADIO_2400M_TEMPORARILY_LOST_SIGNAL</key>
+				<dict>
+					<key>value</key>
+					<integer>1025</integer>
+					<key>description</key>
+					<string></string>
+				</dict>
+
+				<key>DAV_LPPC_MODIFY_REGISTER_FAILED</key>
+				<dict>
+					<key>value</key>
+					<integer>1026</integer>
+					<key>description</key>
+					<string>修改LPPC寄存器失败</string>
+				</dict>
+
+				<key>DAV_REPORT_REMOTE_CONTROL_FREQ_MATCH_SUCCESS</key>
+				<dict>
+					<key>value</key>
+					<integer>2000</integer>
+					<key>description</key>
+					<string>对频成功</string>
+				</dict>
+
+				<key>DAV_REPORT_REMOTE_CONTROL_FREQ_MATCH_TIMEOUT</key>
+				<dict>
+					<key>value</key>
+					<integer>2001</integer>
+					<key>description</key>
+					<string>对频超时</string>
+				</dict>
+			</dict>
+		</dict>
+
+		<key>onlineDeviceType</key>
+		<dict>
+			<key>description</key>
+			<string></string>
+			<key>values</key>
+			<dict>
+				<key>UAV</key>
+				<dict>
+					<key>value</key>
+					<integer>0</integer>
+					<key>description</key>
+					<string></string>
+				</dict>
+
+				<key>PORTABLE_POWER_SOURCE</key>
+				<dict>
+					<key>value</key>
+					<integer>1</integer>
+					<key>description</key>
+					<string></string>
+				</dict>
+
+				<key>RADIO_STATION</key>
+				<dict>
+					<key>value</key>
+					<integer>2</integer>
+					<key>description</key>
+					<string></string>
+				</dict>
+
+			</dict>
+		</dict>
+
+		<key>enrollResult</key>
+		<dict>
+			<key>description</key>
+			<string></string>
+			<key>values</key>
+			<dict>
+				<key>accepted</key>
+				<dict>
+					<key>value</key>
+					<integer>0</integer>
+					<key>description</key>
+					<string>允许上线</string>
+				</dict>
+
+				<key>repeated</key>
+				<dict>
+					<key>value</key>
+					<integer>1</integer>
+					<key>description</key>
+					<string>已有在线设备</string>
+				</dict>
+
+				<key>out_capacity</key>
+				<dict>
+					<key>value</key>
+					<integer>2</integer>
+					<key>description</key>
+					<string>超过容量</string>
+				</dict>
+
+				<key>check_fail</key>
+				<dict>
+					<key>value</key>
+					<integer>3</integer>
+					<key>description</key>
+					<string>校验失败</string>
+				</dict>
+
+				<key>sn_error</key>
+				<dict>
+					<key>value</key>
+					<integer>4</integer>
+					<key>description</key>
+					<string>与后台不匹配</string>
+				</dict>
+
+			</dict>
+		</dict>
+
+		<key>subDeviceType</key>
+		<dict>
+			<key>description</key>
+			<string></string>
+			<key>values</key>
+			<dict>
+				<key>UAV_V4</key>
+				<dict>
+					<key>value</key>
+					<integer>0</integer>
+					<key>description</key>
+					<string></string>
+				</dict>
+
+				<key>PORTABLE_POWER_SOURCE_V1</key>
+				<dict>
+					<key>value</key>
+					<integer>1</integer>
+					<key>description</key>
+					<string></string>
+				</dict>
+
+				<key>RADIO_R2_STATION_850M_930M_V1</key>
+				<dict>
+					<key>value</key>
+					<integer>2</integer>
+					<key>description</key>
+					<string>电台R2 850M-930M版本</string>
+				</dict>
+
+				<key>RADIO_R2_STATION_2G4_V1</key>
+				<dict>
+					<key>value</key>
+					<integer>3</integer>
+					<key>description</key>
+					<string>电台R2 2.4G版本</string>
+				</dict>
+
+				<key>PAYLOAD_GIMBAL</key>
+				<dict>
+					<key>value</key>
+					<integer>4</integer>
+					<key>description</key>
+					<string>激光云台</string>
+				</dict>
+
+				<key>RADIO_R2_STATION</key>
+				<dict>
+					<key>value</key>
+					<integer>5</integer>
+					<key>description</key>
+					<string>电台R2 双频</string>
+				</dict>
+
+			</dict>
+		</dict>
+
+		<key>firmwareRunningStatus</key>
+		<dict>
+			<key>description</key>
+			<string></string>
+			<key>values</key>
+			<dict>
+				<key>normal</key>
+				<dict>
+					<key>value</key>
+					<integer>0</integer>
+					<key>description</key>
+					<string></string>
+				</dict>
+
+				<key>updating</key>
+				<dict>
+					<key>value</key>
+					<integer>1</integer>
+					<key>description</key>
+					<string></string>
+				</dict>
+
+				<key>standby</key>
+				<dict>
+					<key>value</key>
+					<integer>2</integer>
+					<key>description</key>
+					<string></string>
+				</dict>
+
+				<key>power_off</key>
+				<dict>
+					<key>value</key>
+					<integer>3</integer>
+					<key>description</key>
+					<string></string>
+				</dict>
+
+				<key>calibrating</key>
+				<dict>
+					<key>value</key>
+					<integer>4</integer>
+					<key>description</key>
+					<string></string>
+				</dict>
+
+				<key>emergency</key>
+				<dict>
+					<key>value</key>
+					<integer>5</integer>
+					<key>description</key>
+					<string></string>
+				</dict>
+
+			</dict>
+		</dict>
+
+		<key>RadioR2ErrorValue</key>
+		<dict>
+			<key>description</key>
+			<string>在电台R2心跳包中error report</string>
+			<key>values</key>
+			<dict>
+				<key>RADIO_R2_NO_ERROR</key>
+				<dict>
+					<key>value</key>
+					<integer>0</integer>
+					<key>description</key>
+					<string>error report 无错误</string>
+				</dict>
+
+				<key>RTK_ERROR_VALUE</key>
+				<dict>
+					<key>value</key>
+					<integer>1</integer>
+					<key>description</key>
+					<string>RTK输入异常 通常为RS232线未连接</string>
+				</dict>
+
+				<key>POWER_BUTTON_NOT_PRESSED_VALUE</key>
+				<dict>
+					<key>value</key>
+					<integer>2</integer>
+					<key>description</key>
+					<string>电源开关未按下</string>
+				</dict>
+
+				<key>LOW_POWER_VALUE</key>
+				<dict>
+					<key>value</key>
+					<integer>4</integer>
+					<key>description</key>
+					<string>B 低电报警</string>
+				</dict>
+
+				<key>BATTERY_ERROR_VALUE</key>
+				<dict>
+					<key>value</key>
+					<integer>8</integer>
+					<key>description</key>
+					<string>电池异常</string>
+				</dict>
+
+				<key>CHARGE_HIGH_TEMPERATURE_VALUE</key>
+				<dict>
+					<key>value</key>
+					<integer>16</integer>
+					<key>description</key>
+					<string>充电温度过高</string>
+				</dict>
+
+				<key>RADIO_850M_930M_HIGH_TEMPERATURE_VALUE</key>
+				<dict>
+					<key>value</key>
+					<integer>32</integer>
+					<key>description</key>
+					<string>850M-930M的射频温度过高</string>
+				</dict>
+
+				<key>RADIO_2G4_TEMPERATURE_VALUE</key>
+				<dict>
+					<key>value</key>
+					<integer>64</integer>
+					<key>description</key>
+					<string>2.4G射频温度过高</string>
+				</dict>
+
+				<key>RADIO_850M_930M_SELF_TEST_ERROR_VALUE</key>
+				<dict>
+					<key>value</key>
+					<integer>128</integer>
+					<key>description</key>
+					<string>850M-930M的射频芯片自检错误</string>
+				</dict>
+
+				<key>RADIO_2G4_SELF_TEST_ERROR_VALUE</key>
+				<dict>
+					<key>value</key>
+					<integer>256</integer>
+					<key>description</key>
+					<string>2.4G的射频芯片自检错误</string>
+				</dict>
+
+				<key>RADIO_850M_930M_ID_CONFLICT_ERROR_VALUE</key>
+				<dict>
+					<key>value</key>
+					<integer>512</integer>
+					<key>description</key>
+					<string>850M-930M频段范围存在重复的ID</string>
+				</dict>
+
+				<key>RADIO_2G4_ID_CONFLICT_ERROR_VALUE</key>
+				<dict>
+					<key>value</key>
+					<integer>1024</integer>
+					<key>description</key>
+					<string>2G4频段范围存在重复的ID</string>
+				</dict>
+
+			</dict>
+		</dict>
+
+		<key>RadioR2ErrorBitValue</key>
+		<dict>
+			<key>description</key>
+			<string>在电台R2心跳包中error report 不同bit位代表不同错误</string>
+			<key>values</key>
+			<dict>
+				<key>RTK_ERROR_BIT</key>
+				<dict>
+					<key>value</key>
+					<integer>0</integer>
+					<key>description</key>
+					<string>RTK输入异常 通常为RS232线未连接</string>
+				</dict>
+
+				<key>POWER_BUTTON_NOT_PRESSED_BIT</key>
+				<dict>
+					<key>value</key>
+					<integer>1</integer>
+					<key>description</key>
+					<string>电源开关未按下</string>
+				</dict>
+
+				<key>LOW_POWER_BIT</key>
+				<dict>
+					<key>value</key>
+					<integer>2</integer>
+					<key>description</key>
+					<string>低电报警</string>
+				</dict>
+
+				<key>BATTERY_ERROR_BIT</key>
+				<dict>
+					<key>value</key>
+					<integer>3</integer>
+					<key>description</key>
+					<string>电池异常</string>
+				</dict>
+
+				<key>CHARGE_HIGH_TEMPERATURE_BIT</key>
+				<dict>
+					<key>value</key>
+					<integer>4</integer>
+					<key>description</key>
+					<string>充电温度过高</string>
+				</dict>
+
+				<key>RADIO_850M_930M_HIGH_TEMPERATURE_BIT</key>
+				<dict>
+					<key>value</key>
+					<integer>5</integer>
+					<key>description</key>
+					<string>850M-930M的射频温度过高</string>
+				</dict>
+
+				<key>RADIO_2G4_TEMPERATURE_BIT</key>
+				<dict>
+					<key>value</key>
+					<integer>6</integer>
+					<key>description</key>
+					<string>2.4G射频温度过高</string>
+				</dict>
+
+				<key>RADIO_850M_930M_SELF_TEST_ERROR_BIT</key>
+				<dict>
+					<key>value</key>
+					<integer>7</integer>
+					<key>description</key>
+					<string>850M-930M的射频芯片自检错误</string>
+				</dict>
+
+				<key>RADIO_2G4_SELF_TEST_ERROR_BIT</key>
+				<dict>
+					<key>value</key>
+					<integer>8</integer>
+					<key>description</key>
+					<string>2.4G的射频芯片自检错误</string>
+				</dict>
+
+			</dict>
+		</dict>
+
+		<key>radioFactoryTestCmd</key>
+		<dict>
+			<key>description</key>
+			<string>射频模块工厂自检测试 </string>
+			<key>values</key>
+			<dict>
+
+				<key>askFactoryMode</key>
+				<dict>
+					<key>value</key>
+					<integer>0</integer>
+					<key>description</key>
+					<string>查询测试模式</string>
+				</dict>
+
+				<key>returnFactoryMode</key>
+				<dict>
+					<key>value</key>
+					<integer>1</integer>
+					<key>description</key>
+					<string>返回测试模式</string>
+				</dict>
+
+				<key>setFactoryMode</key>
+				<dict>
+					<key>value</key>
+					<integer>2</integer>
+					<key>description</key>
+					<string>设置测试模式</string>
+				</dict>
+
+				<key>askLLCC68RunMode</key>
+				<dict>
+					<key>value</key>
+					<integer>100</integer>
+					<key>description</key>
+					<string>查询LLCC68运行模式</string>
+				</dict>
+
+				<key>returnLLCC68RunMode</key>
+				<dict>
+					<key>value</key>
+					<integer>101</integer>
+					<key>description</key>
+					<string>返回LLCC68运行模式</string>
+				</dict>
+
+				<key>setLLCC68RunMode</key>
+				<dict>
+					<key>value</key>
+					<integer>102</integer>
+					<key>description</key>
+					<string>设置LLCC68运行模式</string>
+				</dict>
+
+				<key>askLLCC68Frequency</key>
+				<dict>
+					<key>value</key>
+					<integer>103</integer>
+					<key>description</key>
+					<string>查询LLCC68频率</string>
+				</dict>
+
+				<key>returnLLCC68Frequency</key>
+				<dict>
+					<key>value</key>
+					<integer>104</integer>
+					<key>description</key>
+					<string>返回LLCC68频率</string>
+				</dict>
+
+				<key>setLLCC68Frequency</key>
+				<dict>
+					<key>value</key>
+					<integer>105</integer>
+					<key>description</key>
+					<string>设置LLCC68频率</string>
+				</dict>
+
+				<key>askLLCC68PacketConfig</key>
+				<dict>
+					<key>value</key>
+					<integer>106</integer>
+					<key>description</key>
+					<string>查询LLCC68射频配置</string>
+				</dict>
+
+				<key>returnLLCC68PacketConfig</key>
+				<dict>
+					<key>value</key>
+					<integer>107</integer>
+					<key>description</key>
+					<string>返回LLCC68射频配置</string>
+				</dict>
+
+				<key>setLLCC68PacketConfig</key>
+				<dict>
+					<key>value</key>
+					<integer>108</integer>
+					<key>description</key>
+					<string>设置LLCC68射频配置</string>
+				</dict>
+
+				<key>returnLLCC68PacketStatus</key>
+				<dict>
+					<key>value</key>
+					<integer>109</integer>
+					<key>description</key>
+					<string>返回LLCC68接收状态包</string>
+				</dict>
+
+				<key>askSX1280RunMode</key>
+				<dict>
+					<key>value</key>
+					<integer>200</integer>
+					<key>description</key>
+					<string>查询SX1280运行模式</string>
+				</dict>
+
+				<key>returnSX1280RunMode</key>
+				<dict>
+					<key>value</key>
+					<integer>201</integer>
+					<key>description</key>
+					<string>返回SX1280运行模式</string>
+				</dict>
+
+				<key>setSX1280RunMode</key>
+				<dict>
+					<key>value</key>
+					<integer>202</integer>
+					<key>description</key>
+					<string>设置SX1280运行模式</string>
+				</dict>
+
+				<key>askSX1280Frequency</key>
+				<dict>
+					<key>value</key>
+					<integer>203</integer>
+					<key>description</key>
+					<string>查询SX1280频率</string>
+				</dict>
+
+				<key>returnSX1280Frequency</key>
+				<dict>
+					<key>value</key>
+					<integer>204</integer>
+					<key>description</key>
+					<string>返回SX1280频率</string>
+				</dict>
+
+				<key>setSX1280Frequency</key>
+				<dict>
+					<key>value</key>
+					<integer>205</integer>
+					<key>description</key>
+					<string>设置SX1280频率</string>
+				</dict>
+
+				<key>askSX1280PacketConfig</key>
+				<dict>
+					<key>value</key>
+					<integer>206</integer>
+					<key>description</key>
+					<string>查询SX1280射频配置</string>
+				</dict>
+
+				<key>returnSX1280PacketConfig</key>
+				<dict>
+					<key>value</key>
+					<integer>207</integer>
+					<key>description</key>
+					<string>返回SX1280射频配置</string>
+				</dict>
+
+				<key>setSX1280PacketConfig</key>
+				<dict>
+					<key>value</key>
+					<integer>208</integer>
+					<key>description</key>
+					<string>设置SX1280射频配置</string>
+				</dict>
+
+				<key>returnSX1280PacketStatus</key>
+				<dict>
+					<key>value</key>
+					<integer>209</integer>
+					<key>description</key>
+					<string>返回SX1280接收状态包</string>
+				</dict>
+
+			</dict>
+		</dict>
+
+		<key>radioRegulatoryDomain</key>
+		<dict>
+			<key>description</key>
+			<string></string>
+			<key>values</key>
+			<dict>
+				<key>COUNTRY_CODE_MUTE</key>
+				<dict>
+					<key>value</key>
+					<integer>0</integer>
+					<key>description</key>
+					<string>"MUTE" 射频关闭(850M 2.4G both)</string>
+				</dict>
+
+				<key>COUNTRY_CODE_V3_MODE</key>
+				<dict>
+					<key>value</key>
+					<integer>2</integer>
+					<key>description</key>
+					<string>射频频率和功率参考V3电台模式(850M)</string>
+				</dict>
+
+				<key>COUNTRY_CODE_V3_NEW_MODE</key>
+				<dict>
+					<key>value</key>
+					<integer>3</integer>
+					<key>description</key>
+					<string>射频频率和功率参考V3电台低空速模式(850M)</string>
+				</dict>
+
+				<key>COUNTRY_CODE_EU869</key>
+				<dict>
+					<key>value</key>
+					<integer>4</integer>
+					<key>description</key>
+					<string>射频频率 869.4-869.65MHz(850M)</string>
+				</dict>
+
+				<key>COUNTRY_CODE_R2_ISM2G4</key>
+				<dict>
+					<key>value</key>
+					<integer>5</integer>
+					<key>description</key>
+					<string>射频频率 2.4G-2.48325GHz(2.4G)</string>
+				</dict>
+
+				<key>COUNTRY_CODE_R2_850M_930M</key>
+				<dict>
+					<key>value</key>
+					<integer>6</integer>
+					<key>description</key>
+					<string>射频频率 R2跳频模式 915.495-929.435MHz(850M)</string>
+				</dict>
+
+				<key>COUNTRY_CODE_RC_ISM2G4</key>
+				<dict>
+					<key>value</key>
+					<integer>7</integer>
+					<key>description</key>
+					<string>2.4G遥控器工作模式(2.4G) 但不是电台模式 可先隐藏</string>
+				</dict>
+
+				<key>COUNTRY_CODE_R2_ISM2G4_SHORT_INTERVAL</key>
+				<dict>
+					<key>value</key>
+					<integer>8</integer>
+					<key>description</key>
+					<string>射频频率 支持较短频率范围(2.4G)</string>
+				</dict>
+
+				<key>COUNTRY_CODE_SCAN</key>
+				<dict>
+					<key>value</key>
+					<integer>100</integer>
+					<key>description</key>
+					<string>扫描模式 非正常模式 以三分钟跳频 频率逐渐增加(850M 2.4G both)</string>
+				</dict>
+
+				<key>COUNTRY_CODE_FACTORY_TEST</key>
+				<dict>
+					<key>value</key>
+					<integer>101</integer>
+					<key>description</key>
+					<string>工厂自检模式 非正常模式 用于生产(850M 2.4G both) 在生产流程中实现 可先隐藏</string>
+				</dict>
+
+				<key>COUNTRY_CODE_CW</key>
+				<dict>
+					<key>value</key>
+					<integer>102</integer>
+					<key>description</key>
+					<string>正弦波发送模式 非正常模式 射频强制发送正弦波 该模式下不传输数据 (850M 2.4G both) 在生产流程中实现 可先隐藏</string>
+				</dict>
+
+				<key>COUNTRY_CODE_CALI_FRE_OFFSET_SNED</key>
+				<dict>
+					<key>value</key>
+					<integer>103</integer>
+					<key>description</key>
+					<string>校准频偏发送模式 非正常模式 发送校准频偏信息(850M 2.4G both) 在生产流程中实现 可先隐藏</string>
+				</dict>
+
+				<key>COUNTRY_CODE_CALI_FRE_OFFSET_RECEIVER</key>
+				<dict>
+					<key>value</key>
+					<integer>104</integer>
+					<key>description</key>
+					<string>校准频偏接收模式 非正常模式 接收校准频偏信息(850M 2.4G both) 在生产流程中实现 可先隐藏</string>
+				</dict>
+
+				<key>COUNTRY_CODE_RC_BINDING</key>
+				<dict>
+					<key>value</key>
+					<integer>105</integer>
+					<key>description</key>
+					<string>进入遥控器对频模式 非正常模式(2.4G) 但不是电台模式 可先隐藏</string>
+				</dict>
+
+
+			</dict>
+		</dict>
+
+	</dict>
+
+	<key>Structs</key>
+	<dict>
+		<key>UniversalCommand</key>
+		<array>
+			<dict>
+				<key>uint32</key>
+				<string>command</string>
+				<key>description</key>
+				<string>通用赋值</string>
+			</dict>
+		</array>
+
+		<key>DavAddress</key>
+		<array>
+			<dict>
+				<key>fixed64</key>
+				<string>address</string>
+				<key>description</key>
+				<string>dav地址</string>
+			</dict>
+		</array>
+
+		<key>SingleString</key>
+		<array>
+			<dict>
+				<key>string</key>
+				<string>msg</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+		</array>
+
+		<key>ChipUID</key>
+		<array>
+			<dict>
+				<key>bytes</key>
+				<string>uid</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+		</array>
+
+		<key>SingleBytes</key>
+		<array>
+			<dict>
+				<key>bytes</key>
+				<string>msg</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+		</array>
+
+		<key>SingleUint32</key>
+		<array>
+			<dict>
+				<key>uint32</key>
+				<string>value</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+		</array>
+
+		<key>SingleFloat</key>
+		<array>
+			<dict>
+				<key>repeated float</key>
+				<string>value</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+		</array>
+
+		<key>ProductSerialNumber</key>
+		<array>
+			<dict>
+				<key>string</key>
+				<string>serial_number</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>year</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>month</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>day</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>hour</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>minute</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+		</array>
+
+		<key>EnrollRequest</key>
+		<array>
+			<dict>
+				<key>onlineDeviceType</key>
+				<string>device_type</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+			<dict>
+				<key>string</key>
+				<string>product_name</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+			<dict>
+				<key>string</key>
+				<string>serial_number</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>check</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+		</array>
+
+		<key>EnrollReply</key>
+		<array>
+			<dict>
+				<key>enrollResult</key>
+				<string>accept_status</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>heartbeat_interval_ms</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+		</array>
+
+		<key>PortableChargerHeartbeat</key>
+		<array>
+			<dict>
+				<key>uint32</key>
+				<string>soc</string>
+				<key>description</key>
+				<string>电量</string>
+			</dict>
+
+			<dict>
+				<key>repeated float</key>
+				<string>cell_voltage</string>
+				<key>description</key>
+				<string>六个电芯的电压</string>
+			</dict>
+
+			<dict>
+				<key>float</key>
+				<string>sum_voltage</string>
+				<key>description</key>
+				<string>总电压</string>
+			</dict>
+
+			<dict>
+				<key>float</key>
+				<string>cell_temperature</string>
+				<key>description</key>
+				<string>电芯的温度</string>
+			</dict>
+
+			<dict>
+				<key>float</key>
+				<string>fet_temperature</string>
+				<key>description</key>
+				<string>FET的温度</string>
+			</dict>
+
+			<dict>
+				<key>float</key>
+				<string>current</string>
+				<key>description</key>
+				<string>电流</string>
+			</dict>
+
+			<dict>
+				<key>float</key>
+				<string>diff_vol</string>
+				<key>description</key>
+				<string>压差</string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>normal_flag</string>
+				<key>description</key>
+				<string>OK是2， OPEN_ERR 是0， WRITE_ERR 1，READ_ERR 3</string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>cycle_count</string>
+				<key>description</key>
+				<string>电池循环次数</string>
+			</dict>
+
+			<dict>
+				<key>float</key>
+				<string>rechargeable_times</string>
+				<key>description</key>
+				<string>可冲次数</string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>soh</string>
+				<key>description</key>
+				<string>健康度</string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>error_code</string>
+				<key>description</key>
+				<string>错误代码</string>
+			</dict>
+
+			<dict>
+				<key>bool</key>
+				<string>fan_open</string>
+				<key>description</key>
+				<string>风扇是否开启</string>
+			</dict>
+
+			<dict>
+				<key>bool</key>
+				<string>heat_open</string>
+				<key>description</key>
+				<string>加热是否开启</string>
+			</dict>
+
+			<dict>
+				<key>bool</key>
+				<string>bazz_open</string>
+				<key>description</key>
+				<string>蜂鸣器是否开启</string>
+			</dict>
+
+			<dict>
+				<key>bool</key>
+				<string>charge_open</string>
+				<key>description</key>
+				<string>充电开启标志位</string>
+			</dict>
+
+			<dict>
+				<key>bool</key>
+				<string>ds_open</string>
+				<key>description</key>
+				<string>数码管开启标志位</string>
+			</dict>
+
+			<dict>
+				<key>bool</key>
+				<string>discharge_open</string>
+				<key>description</key>
+				<string>放电开启标志位</string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>charge_status</string>
+				<key>description</key>
+				<string>充电状态 0为既没有放电也没有充电 1为快充， 2为慢充， 3为放电</string>
+			</dict>
+
+			<dict>
+				<key>string</key>
+				<string>wifi_ssid</string>
+				<key>description</key>
+				<string>wifi的ssid</string>
+			</dict>
+
+			<dict>
+				<key>string</key>
+				<string>wifi_ip</string>
+				<key>description</key>
+				<string>移动电源自己wifi模块的ip</string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>operation_reg</string>
+				<key>description</key>
+				<string>操作寄存器</string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>lifetime</string>
+				<key>description</key>
+				<string>bq40z50的lifetime</string>
+			</dict>
+
+		</array>
+
+		<key>PpsHeartBeat</key>
+		<array>
+			<dict>
+				<key>subDeviceType</key>
+				<string>device_type</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+
+			<dict>
+				<key>firmwareRunningStatus</key>
+				<string>firmware_running_status</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+
+			<dict>
+				<key>string</key>
+				<string>firmware_version_alias</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+
+			<dict>
+				<key>fixed32</key>
+				<string>firmware_version</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>protobuf_version</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+
+			<dict>
+				<key>fixed32</key>
+				<string>local_ms_time</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+
+			<dict>
+				<key>PortableChargerHeartbeat</key>
+				<string>portable_charger</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+
+		</array>
+
+		<key>DirectRTCM</key>
+		<array>
+			<dict>
+				<key>bytes</key>
+				<string>rtcm</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+		</array>
+
+		<key>RtcmLinkInfo</key>
+		<array>
+			<dict>
+				<key>uint32</key>
+				<string>radio_850m_chan</string>
+				<key>description</key>
+				<string>设置850的通道值 参考v3电台通道设置</string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>gps_utc_time</string>
+				<key>description</key>
+				<string>gps报文中 周时间 单位 ms</string>
+			</dict>
+		</array>
+
+		<key>RemoteControlChannel</key>
+		<array>
+			<dict>
+				<key>repeated uint32</key>
+				<string>channel_value</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+		</array>
+
+		<key>RadioReceiverMode</key>
+		<array>
+			<dict>
+				<key>uint32</key>
+				<string>radio_850m_mode</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>radio_2g4_mode</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>radio_850m_binding_code</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>radio_2g4_binding_code</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+
+		</array>
+
+		<key>RadioReceiverRFparameters</key>
+		<array>
+			<dict>
+				<key>uint32</key>
+				<string>rc_binding_code</string>
+				<key>description</key>
+				<string>遥控器对频码</string>
+			</dict>
+			<dict>
+				<key>repeated uint32</key>
+				<string>radio_binding_code</string>
+				<key>description</key>
+				<string>接收机接收起始电台的对频码</string>
+			</dict>
+			<dict>
+				<key>repeated RFparameters</key>
+				<string>receiver_radio_param</string>
+				<key>description</key>
+				<string>射频参数</string>
+			</dict>
+			<dict>
+				<key>repeated uint32</key>
+				<string>radio_id_enable_bit</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+		</array>
+
+		<key>RadioReceiveRSSI</key>
+		<array>
+			<dict>
+				<key>uint32</key>
+				<string>radio_850m_status</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>radio_850m_1074_num_per_secode</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>radio_2400M_status</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>radio_2g4_1074_num_per_secode</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+		</array>
+
+		<key>RcAndRadioBindingCode</key>
+		<array>
+			<dict>
+				<key>uint32</key>
+				<string>rc_matching_code</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>radio_915m_matching_code</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>radio_2g4_matching_code</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+		</array>
+
+		<key>RemoteControlRSSI</key>
+		<array>
+			<dict>
+				<key>uint32</key>
+				<string>remote_control_status</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>remote_control_pkg_per</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+		</array>
+
+		<key>LppcControlMessage</key>
+		<array>
+			<dict>
+				<key>uint32</key>
+				<string>lock_flag</string>
+				<key>description</key>
+				<string>飞控解锁标志位 1是解锁</string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>flying_flag</string>
+				<key>description</key>
+				<string>飞控判断飞行标志位 1是飞 0不飞</string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>mode</string>
+				<key>description</key>
+				<string>飞控发给LPPC的控制模式 0丢失 1开始 2待机 3关机</string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>igniter_open</string>
+				<key>description</key>
+				<string>降落伞点火器使能标志位 1是使能</string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>igniter_enable</string>
+				<key>description</key>
+				<string>降落伞点火器权限标志位 1是使能</string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>bq40z50_reset</string>
+				<key>description</key>
+				<string>BQ40Z50是否重置标志位置 1是重置</string>
+			</dict>
+
+			<dict>
+				<key>float</key>
+				<string>height</string>
+				<key>description</key>
+				<string>飞控所获得的高度</string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>height_available</string>
+				<key>description</key>
+				<string>飞控所获得的高度是否可靠</string>
+			</dict>
+
+			<dict>
+				<key>float</key>
+				<string>acc_z</string>
+				<key>description</key>
+				<string>飞控z轴速度</string>
+			</dict>
+
+			<dict>
+				<key>float</key>
+				<string>open_height</string>
+				<key>description</key>
+				<string>开伞高度参数</string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>uav_used</string>
+				<key>description</key>
+				<string>关机方案标志位，主要是判断飞控是否处于使用状态</string>
+			</dict>
+
+			<dict>
+				<key>float</key>
+				<string>max_speed</string>
+				<key>description</key>
+				<string>最大飞机降落速度 默认18m/s</string>
+			</dict>
+
+			<dict>
+				<key>float</key>
+				<string>other_msg</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+
+			<dict>
+				<key>float</key>
+				<string>other_msg2</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+
+			<dict>
+				<key>float</key>
+				<string>other_msg3</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+
+		</array>
+
+		<key>LppcBatteryMessage</key>
+		<array>
+			<dict>
+				<key>float</key>
+				<string>cell1_vol</string>
+				<key>description</key>
+				<string>电芯电压</string>
+			</dict>
+
+			<dict>
+				<key>float</key>
+				<string>cell2_vol</string>
+				<key>description</key>
+				<string>电芯电压</string>
+			</dict>
+
+			<dict>
+				<key>float</key>
+				<string>cell3_vol</string>
+				<key>description</key>
+				<string>电芯电压</string>
+			</dict>
+
+			<dict>
+				<key>float</key>
+				<string>cell4_vol</string>
+				<key>description</key>
+				<string>电芯电压</string>
+			</dict>
+
+			<dict>
+				<key>float</key>
+				<string>voltage</string>
+				<key>description</key>
+				<string>总电压</string>
+			</dict>
+
+			<dict>
+				<key>float</key>
+				<string>current</string>
+				<key>description</key>
+				<string>电流</string>
+			</dict>
+
+			<dict>
+				<key>float</key>
+				<string>temp</string>
+				<key>description</key>
+				<string>温度</string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>soc</string>
+				<key>description</key>
+				<string>电量百分比</string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>cycle_count</string>
+				<key>description</key>
+				<string>循环次数</string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>left_time</string>
+				<key>description</key>
+				<string>可用时间，在该时间过后电池过放</string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>max_diff</string>
+				<key>description</key>
+				<string>最大压差</string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>normal_flag</string>
+				<key>description</key>
+				<string>正常标志位 2是OK 0是ERR，3是read_err</string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>bat_serial_need_reset</string>
+				<key>description</key>
+				<string>sn码是否需要重置</string>
+			</dict>
+
+			<dict>
+				<key>bytes</key>
+				<string>fix</string>
+				<key>description</key>
+				<string>sn码</string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>igniter_err</string>
+				<key>description</key>
+				<string>点火器错误</string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>discharge_err</string>
+				<key>description</key>
+				<string>放电电阻错误</string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>watchdog_err</string>
+				<key>description</key>
+				<string>看门狗错误</string>
+			</dict>
+
+			<dict>
+				<key>float</key>
+				<string>discharge_voltage</string>
+				<key>description</key>
+				<string>放电电压，用于判断电源板温度</string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>soh</string>
+				<key>description</key>
+				<string>电量</string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>close_count</string>
+				<key>description</key>
+				<string>关机方案计数</string>
+			</dict>
+
+			<dict>
+				<key>float</key>
+				<string>igni_opened</string>
+				<key>description</key>
+				<string>降落伞是否已经开启</string>
+			</dict>
+
+			<dict>
+				<key>float</key>
+				<string>opera_status</string>
+				<key>description</key>
+				<string>BQ40Z50的操作寄存器</string>
+			</dict>
+
+			<dict>
+				<key>float</key>
+				<string>lifetime</string>
+				<key>description</key>
+				<string>BQ40Z50的lifetime</string>
+			</dict>
+
+			<dict>
+				<key>float</key>
+				<string>other_msg</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+
+			<dict>
+				<key>float</key>
+				<string>other_msg1</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+
+			<dict>
+				<key>float</key>
+				<string>other_msg2</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+
+		</array>
+
+		<key>FirmwareInfo</key>
+		<array>
+			<dict>
+				<key>uint32</key>
+				<string>split_len</string>
+				<key>description</key>
+				<string>固件分包大小 即每个包多少字节</string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>split_sum</string>
+				<key>description</key>
+				<string>固件分包总数</string>
+			</dict>
+
+			<dict>
+				<key>fixed32</key>
+				<string>firmware_version</string>
+				<key>description</key>
+				<string>固件版本</string>
+			</dict>
+
+			<dict>
+				<key>fixed32</key>
+				<string>firmware_len</string>
+				<key>description</key>
+				<string>固件长度</string>
+			</dict>
+
+			<dict>
+				<key>fixed32</key>
+				<string>hardware_code</string>
+				<key>description</key>
+				<string>固件硬件码</string>
+			</dict>
+
+			<dict>
+				<key>fixed32</key>
+				<string>firmware_address</string>
+				<key>description</key>
+				<string>固件运行地址</string>
+			</dict>
+
+			<dict>
+				<key>fixed32</key>
+				<string>firmware_param_address</string>
+				<key>description</key>
+				<string>固件参数地址</string>
+			</dict>
+
+			<dict>
+				<key>fixed32</key>
+				<string>firmware_write_address</string>
+				<key>description</key>
+				<string>固件写入地址</string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>firmware_type</string>
+				<key>description</key>
+				<string>固件类型</string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>security_info</string>
+				<key>description</key>
+				<string>加密等级</string>
+			</dict>
+
+			<dict>
+				<key>bytes</key>
+				<string>firmware_sha256</string>
+				<key>description</key>
+				<string>固件信息的sha256签名</string>
+			</dict>
+		</array>
+
+		<key>FirmwarePackage</key>
+		<array>
+			<dict>
+				<key>uint32</key>
+				<string>package_seq</string>
+				<key>description</key>
+				<string>分包序号</string>
+			</dict>
+			<dict>
+				<key>bytes</key>
+				<string>firmware_data</string>
+				<key>description</key>
+				<string>分包内容</string>
+			</dict>
+		</array>
+
+		<key>InterfaceNameIndex</key>
+		<array>
+			<dict>
+				<key>string</key>
+				<string>interface_name</string>
+				<key>description</key>
+				<string>接口名</string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>interface_index</string>
+				<key>description</key>
+				<string>接口序号</string>
+			</dict>
+		</array>
+
+		<key>RouteAddressIndex</key>
+		<array>
+			<dict>
+				<key>uint64</key>
+				<string>address</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>interface_index</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+		</array>
+
+		<key>InterfaceAndRouteMessage</key>
+		<array>
+			<dict>
+				<key>repeated interfaceNameIndex</key>
+				<string>interface_info</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+			<dict>
+				<key>repeated routeAddressIndex</key>
+				<string>route_info</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+		</array>
+
+		<key>InterfaceAddDelete</key>
+		<array>
+			<dict>
+				<key>repeated routeAddressIndex</key>
+				<string>add_route_address</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+		</array>
+
+		<key>ModifyRouteAddressIndex</key>
+		<array>
+			<dict>
+				<key>uint64</key>
+				<string>change_address</string>
+				<key>description</key>
+				<string>需要改变接口的地址</string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>old_interface_index</string>
+				<key>description</key>
+				<string>旧接口 序号</string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>new_interface_index</string>
+				<key>description</key>
+				<string>新接口 序号</string>
+			</dict>
+		</array>
+
+		<key>InterfaceModify</key>
+		<array>
+			<dict>
+				<key>repeated modifyRouteAddressIndex</key>
+				<string>modify_route_address</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+		</array>
+
+		<key>SetInterfaceAsMaster</key>
+		<array>
+			<dict>
+				<key>uint64</key>
+				<string>address</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>master_interface_index</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+		</array>
+
+		<key>IctOnboardMessage</key>
+		<array>
+			<dict>
+				<key>uint32</key>
+				<string>project</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>test_type</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+			<dict>
+				<key>bytes</key>
+				<string>result</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>remark</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+			<dict>
+				<key>bytes</key>
+				<string>sn_code</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+		</array>
+
+		<key>DgcsControlPPS</key>
+		<array>
+			<dict>
+				<key>uint32</key>
+				<string>chg_disch_open</string>
+				<key>description</key>
+				<string>开启充放电0是保持默认，1是打开，2是关闭</string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>fan_open</string>
+				<key>description</key>
+				<string>风扇开启0是保持默认，1是打开，2是关闭</string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>heat_open</string>
+				<key>description</key>
+				<string>加热开启0是保持默认，1是打开，2是关闭</string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>bazz_open</string>
+				<key>description</key>
+				<string>蜂鸣器开启0是保持默认，1是打开，2是关闭</string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>ds_open</string>
+				<key>description</key>
+				<string>数码管开启0是保持默认，1是打开，2是关闭</string>
+			</dict>
+		</array>
+
+		<key>TestStruct1</key>
+		<array>
+			<dict>
+				<key>uint32</key>
+				<string>value</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+		</array>
+
+		<key>TestStruct2</key>
+		<array>
+			<dict>
+				<key>uint32</key>
+				<string>value1</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+
+			<dict>
+				<key>repeated uint32</key>
+				<string>value2</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+
+			<dict>
+				<key>bytes</key>
+				<string>value3</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+
+			<dict>
+				<key>repeated bytes</key>
+				<string>value4</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+
+			<dict>
+				<key>TestStruct1</key>
+				<string>value5</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+
+			<dict>
+				<key>repeated TestStruct1</key>
+				<string>value6</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+
+			<dict>
+				<key>Uint32Value</key>
+				<string>value7</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+
+			<dict>
+				<key>repeated Uint32Value</key>
+				<string>value8</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+
+		</array>
+
+		<key>SubModuleLogSave</key>
+		<array>
+			<dict>
+				<key>uint32</key>
+				<string>msg_id</string>
+				<key>description</key>
+				<string>保存到飞控log中的数据msg id</string>
+			</dict>
+			<dict>
+				<key>bytes</key>
+				<string>log_data</string>
+				<key>description</key>
+				<string>保存到飞控log中的数据</string>
+			</dict>
+		</array>
+
+		<key>ElrsDmdAutoTestStatus</key>
+		<array>
+			<dict>
+				<key>repeated uint32</key>
+				<string>channel_value</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>remote_control_fre</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>radio_chip_status</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+			<dict>
+				<key>float</key>
+				<string>radio_temperature</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>match_code</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+		</array>
+
+		<key>ReceiverDmdAutoTestStatus</key>
+		<array>
+			<dict>
+				<key>repeated uint32</key>
+				<string>channel_value</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>remote_control_fre</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>radio_2g4_chip_status</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>radio_2g4_rssi</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>radio_850m_chip_status</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>radio_850m_rssi</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>radio_2g4_match_code</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>radio_850m_match_code</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+		</array>
+
+
+		<key>LoraRadioFactoryTest</key>
+		<array>
+			<dict>
+				<key>uint32</key>
+				<string>cmd</string>
+				<key>description</key>
+				<string> 指令 </string>
+			</dict>
+			<dict>
+				<key>repeated uint32</key>
+				<string>param</string>
+				<key>description</key>
+				<string> 参数 </string>
+			</dict>
+		</array>
+
+		<key>NetDestIpPort</key>
+		<array>
+
+			<dict>
+				<key>bytes</key>
+				<string>dest_ipv4</string>
+				<key>description</key>
+				<string> 目标设备局域网ipv4地址 </string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>dest_port</string>
+				<key>description</key>
+				<string> 目标设备端口号 </string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>local_port</string>
+				<key>description</key>
+				<string> 本地端口号 </string>
+			</dict>
+
+		</array>
+
+		<key>DeviceLocalAreaNetworkConfig</key>
+		<array>
+
+			<dict>
+				<key>bytes</key>
+				<string>device_ipv4</string>
+				<key>description</key>
+				<string> 设备局域网ipv4地址 避免大小端使用bytes</string>
+			</dict>
+
+			<dict>
+				<key>bytes</key>
+				<string>ipv4_gateway</string>
+				<key>description</key>
+				<string> 设备局域网网关 </string>
+			</dict>
+
+			<dict>
+				<key>bytes</key>
+				<string>ipv4_subnet_mask</string>
+				<key>description</key>
+				<string> 设备局域网子网掩码</string>
+			</dict>
+
+			<dict>
+				<key>repeated NetDestIpPort</key>
+				<string>dest_ip_port</string>
+				<key>description</key>
+				<string> 目标局域网地址和端口号 </string>
+			</dict>
+		</array>
+
+		<key>RadioStationRegulatoryDomain</key>
+		<array>
+
+			<dict>
+				<key>uint32</key>
+				<string>set_device_id</string>
+				<key>description</key>
+				<string>设置电台ID</string>
+			</dict>
+
+			<dict>
+				<key>repeated RFparameters</key>
+				<string>set_rf_param</string>
+				<key>description</key>
+				<string>设置的射频参数</string>
+			</dict>
+
+		</array>
+
+		<key>rtkStationPosition</key>
+		<array>
+
+			<dict>
+				<key>uint32</key>
+				<string>device_id</string>
+				<key>description</key>
+				<string>基站ID</string>
+			</dict>
+
+			<dict>
+				<key>double</key>
+				<string>latitude</string>
+				<key>description</key>
+				<string>纬度</string>
+			</dict>
+
+			<dict>
+				<key>double</key>
+				<string>longitude</string>
+				<key>description</key>
+				<string>经度</string>
+			</dict>
+
+			<dict>
+				<key>double</key>
+				<string>altitude</string>
+				<key>description</key>
+				<string>高度</string>
+			</dict>
+		</array>
+
+		<key>RFparameters</key>
+		<array>
+
+			<dict>
+				<key>radioRegulatoryDomain</key>
+				<string>rf_work_mode</string>
+				<key>description</key>
+				<string>射频工作模式(参数)</string>
+			</dict>
+
+			<dict>
+				<key>repeated uint32</key>
+				<string>rf_tx_power_dbm</string>
+				<key>description</key>
+				<string>射频发射功率</string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>rf_temperature</string>
+				<key>description</key>
+				<string>射频温度</string>
+			</dict>
+
+			<dict>
+				<key>repeated uint32</key>
+				<string>rf_max_fre</string>
+				<key>description</key>
+				<string>射频频率上限</string>
+			</dict>
+
+			<dict>
+				<key>repeated uint32</key>
+				<string>rf_min_fre</string>
+				<key>description</key>
+				<string>射频频率下限</string>
+			</dict>
+		</array>
+
+		<key>radioStationR2HeartBeatExtend</key>
+		<array>
+
+			<dict>
+				<key>uint32</key>
+				<string>device_id</string>
+				<key>description</key>
+				<string>自身电台ID</string>
+			</dict>
+
+			<dict>
+				<key>RadioR2ErrorValue</key>
+				<string>error_report</string>
+				<key>description</key>
+				<string>错误信息</string>
+			</dict>
+
+			<dict>
+				<key>string</key>
+				<string>ethernet_ip</string>
+				<key>description</key>
+				<string>IP地址</string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>battery_percentage</string>
+				<key>description</key>
+				<string>电量百分比 范围0-100</string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>poe_voltage_mv</string>
+				<key>description</key>
+				<string>POE供电电压 单位mV 约为12V</string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>charge_temperature</string>
+				<key>description</key>
+				<string>充电温度</string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>gps_utc_time</string>
+				<key>description</key>
+				<string>UTC周时间</string>
+			</dict>
+
+			<dict>
+				<key>repeated rtkStationPosition</key>
+				<string>radioGroupPosition</string>
+				<key>description</key>
+				<string>电台会收集其他从基站电台信息 从而发送整个电台组的位置</string>
+			</dict>
+
+			<dict>
+				<key>repeated RFparameters</key>
+				<string>radio_rf_param</string>
+				<key>description</key>
+				<string>电台射频信息</string>
+			</dict>
+
+			<dict>
+				<key>RadioButtonParam</key>
+				<string>button_param</string>
+				<key>description</key>
+				<string>自定义按键功能</string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>encrypt_type</string>
+				<key>description</key>
+				<string>加密类型</string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>translate_data_left_bytes</string>
+				<key>description</key>
+				<string>电台剩余转发字节数</string>
+			</dict>
+
+		</array>
+
+		<key>radioStationR2Heart</key>
+		<array>
+
+			<dict>
+				<key>subDeviceType</key>
+				<string>device_type</string>
+				<key>description</key>
+				<string>为RADIO_R2_STATION_850M_930M 或RADIO_R2_STATION_2G4</string>
+			</dict>
+
+			<dict>
+				<key>firmwareRunningStatus</key>
+				<string>firmware_running_status</string>
+				<key>description</key>
+				<string>电台运行状态 会有四种状态 1.normal 连接RTK 发射信号中 2.standby 未连接RTK 3.power off 电源按键未按下 4.emergency 报错</string>
+			</dict>
+
+			<dict>
+				<key>string</key>
+				<string>firmware_version_alias</string>
+				<key>description</key>
+				<string>电台版本字符串</string>
+			</dict>
+
+			<dict>
+				<key>fixed32</key>
+				<string>firmware_version</string>
+				<key>description</key>
+				<string>电台版本</string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>protobuf_version</string>
+				<key>description</key>
+				<string>protobuf 版本</string>
+			</dict>
+
+			<dict>
+				<key>fixed32</key>
+				<string>local_ms_time</string>
+				<key>description</key>
+				<string>本地tick时间</string>
+			</dict>
+
+			<dict>
+				<key>radioStationR2HeartBeatExtend</key>
+				<string>radio_station_r2</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+		</array>
+
+		<key>RadioButtonParam</key>
+		<array>
+			<dict>
+				<key>repeated uint32</key>
+				<string>long_click_time</string>
+				<key>description</key>
+				<string>单位ms 大于该时间为长按 小于该时间为短按</string>
+			</dict>
+			<dict>
+				<key>repeated uint32</key>
+				<string>long_click_button_mode</string>
+				<key>description</key>
+				<string>0 保留 1共同长按 返航 2 共同长按 降落 3 共同长按 急停</string>
+			</dict>
+			<dict>
+				<key>repeated uint32</key>
+				<string>short_click_button_mode</string>
+				<key>description</key>
+				<string>短按功能</string>
+			</dict>
+		</array>
+
+		<key>EncryptKey</key>
+		<array>
+			<dict>
+				<key>uint32</key>
+				<string>encrypt_type</string>
+				<key>description</key>
+				<string>0不加密 1 AES128加密 2 AES256加密</string>
+			</dict>
+			<dict>
+				<key>bytes</key>
+				<string>encrypt_key</string>
+				<key>description</key>
+				<string>加密密钥</string>
+			</dict>
+			<dict>
+				<key>bytes</key>
+				<string>encrypt_iv</string>
+				<key>description</key>
+				<string>加密向量</string>
+			</dict>
+		</array>
+
+		<key>RadioEncryptKey</key>
+		<array>
+			<dict>
+				<key>EncryptKey</key>
+				<string>radio_key</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+			<dict>
+				<key>EncryptKey</key>
+				<string>rc_key</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+		</array>
+
+		<key>RadioRFParamEcho</key>
+		<array>
+			<dict>
+				<key>fixed32</key>
+				<string>upper_frequency</string>
+				<key>description</key>
+				<string>频率上沿 最大中心频率加带宽频率的一半</string>
+			</dict>
+			<dict>
+				<key>fixed32</key>
+				<string>lower_frequency</string>
+				<key>description</key>
+				<string>频率下沿 最小中心频率减带宽频率的一半</string>
+			</dict>
+			<dict>
+				<key>fixed32</key>
+				<string>bandwide</string>
+				<key>description</key>
+				<string>单频点的频率带宽</string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>frequency_channel_num</string>
+				<key>description</key>
+				<string>在设置频率范围内有多少个中心频点， (信道数)</string>
+			</dict>
+			<dict>
+				<key>float</key>
+				<string>average_tx_power</string>
+				<key>description</key>
+				<string>平均射频发送功率  单位 dBm</string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>send_duty_cycle</string>
+				<key>description</key>
+				<string>发送占空比 单位千分之一 0.1-100% , 当为0不显示该项</string>
+			</dict>
+		</array>
+
+		<key>RadioRFParamsEcho</key>
+		<array>
+			<dict>
+				<key>repeated RadioRFParamEcho</key>
+				<string>rf_echo</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+		</array>
+
+		<key>LppcRegisterModifyMessage</key>
+		<array>
+			<dict>
+				<key>uint32</key>
+				<string>bms_address</string>
+				<key>description</key>
+				<string>需要修改的BMS芯片的地址</string>
+			</dict>
+			<dict>
+				<key>bytes</key>
+				<string>bms_value</string>
+				<key>description</key>
+				<string>BMS寄存器需要修改的值</string>
+			</dict>
+		</array>
+
+		<key>laserGimbalHeartExtend</key>
+		<array>
+			<dict>
+				<key>float</key>
+				<string>temperature</string>
+				<key>description</key>
+				<string>温度 单位摄氏度</string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>channel_status</string>
+				<key>description</key>
+				<string>通道状态 是否打开</string>
+			</dict>
+			<dict>
+				<key>float</key>
+				<string>cur_roll</string>
+				<key>description</key>
+				<string>云台当前roll</string>
+			</dict>
+			<dict>
+				<key>float</key>
+				<string>cur_pitch</string>
+				<key>description</key>
+				<string>云台当前pitch</string>
+			</dict>
+		</array>
+
+		<key>laserGimbalHeart</key>
+		<array>
+			<dict>
+				<key>subDeviceType</key>
+				<string>device_type</string>
+				<key>description</key>
+				<string></string>
+			</dict>
+
+			<dict>
+				<key>firmwareRunningStatus</key>
+				<string>running_status</string>
+				<key>description</key>
+				<string>云台运行状态 会有四种状态 1.normal 正常工作 2.standby 解算未收敛 3.updating 升级中 4.calibrating 校准中 5.emergency 报错</string>
+			</dict>
+
+			<dict>
+				<key>fixed32</key>
+				<string>firmware_version</string>
+				<key>description</key>
+				<string>版本号</string>
+			</dict>
+
+			<dict>
+				<key>uint32</key>
+				<string>protobuf_version</string>
+				<key>description</key>
+				<string>protobuf版本号</string>
+			</dict>
+
+			<dict>
+				<key>fixed32</key>
+				<string>local_ms_time</string>
+				<key>description</key>
+				<string>本地时间戳</string>
+			</dict>
+
+			<dict>
+				<key>laserGimbalHeartExtend</key>
+				<string>gimbal_extend_status</string>
+				<key>description</key>
+				<string>云台扩展心跳包</string>
+			</dict>
+		</array>
+
+		<key>GpsInfo</key>
+		<array>
+			<dict>
+				<key>uint64</key>
+				<string>stamp</string>
+				<key>description</key>
+				<string>时间戳 us</string>
+			</dict>
+			<dict>
+				<key>repeated float</key>
+				<string>pos</string>
+				<key>description</key>
+				<string>pos enu</string>
+			</dict>
+			<dict>
+				<key>repeated float</key>
+				<string>vel</string>
+				<key>description</key>
+				<string>vel enu</string>
+			</dict>
+			<dict>
+				<key>repeated float</key>
+				<string>pos_noise</string>
+				<key>description</key>
+				<string>位置确定因子</string>
+			</dict>
+			<dict>
+				<key>repeated float</key>
+				<string>vel_noise</string>
+				<key>description</key>
+				<string>速度确定因子</string>
+			</dict>
+		</array>
+
+		<key>AttitudeInfo</key>
+		<array>
+			<dict>
+				<key>uint64</key>
+				<string>stamp</string>
+				<key>description</key>
+				<string>时间戳 us</string>
+			</dict>
+			<dict>
+				<key>float</key>
+				<string>roll</string>
+				<key>description</key>
+				<string>roll 弧度制</string>
+			</dict>
+			<dict>
+				<key>float</key>
+				<string>pitch</string>
+				<key>description</key>
+				<string>pitch 弧度制</string>
+			</dict>
+			<dict>
+				<key>float</key>
+				<string>yaw</string>
+				<key>description</key>
+				<string>yaw 弧度制</string>
+			</dict>
+			<dict>
+				<key>float</key>
+				<string>gx</string>
+				<key>description</key>
+				<string>gx 陀螺仪</string>
+			</dict>
+			<dict>
+				<key>float</key>
+				<string>gy</string>
+				<key>description</key>
+				<string>gy 陀螺仪</string>
+			</dict>
+			<dict>
+				<key>float</key>
+				<string>gz</string>
+				<key>description</key>
+				<string>gz 陀螺仪</string>
+			</dict>
+		</array>
+
+		<key>TargetAngleInfo</key>
+		<array>
+			<dict>
+				<key>uint64</key>
+				<string>stamp</string>
+				<key>description</key>
+				<string>时间戳 us</string>
+			</dict>
+			<dict>
+				<key>bool</key>
+				<string>enable</string>
+				<key>description</key>
+				<string>是否使能控制</string>
+			</dict>
+			<dict>
+				<key>float</key>
+				<string>roll</string>
+				<key>description</key>
+				<string>roll 弧度制</string>
+			</dict>
+			<dict>
+				<key>float</key>
+				<string>pitch</string>
+				<key>description</key>
+				<string>pitch 弧度制</string>
+			</dict>
+			<dict>
+				<key>float</key>
+				<string>yaw</string>
+				<key>description</key>
+				<string>yaw 弧度制</string>
+			</dict>
+		</array>
+
+		<key>PositionKeyFrame</key>
+		<array>
+			<dict>
+				<key>uint32</key>
+				<string>frame</string>
+				<key>description</key>
+				<string>帧号</string>
+			</dict>
+			<dict>
+				<key>int32</key>
+				<string>lon</string>
+				<key>description</key>
+				<string>经度 10e*7</string>
+			</dict>
+			<dict>
+				<key>int32</key>
+				<string>lat</string>
+				<key>description</key>
+				<string>维度 10e*7</string>
+			</dict>
+			<dict>
+				<key>int32</key>
+				<string>alt</string>
+				<key>description</key>
+				<string>高度 10e*7</string>
+			</dict>
+		</array>
+
+		<key>PoseKeyFrame</key>
+		<array>
+			<dict>
+				<key>uint32</key>
+				<string>frame</string>
+				<key>description</key>
+				<string>帧号</string>
+			</dict>
+			<dict>
+				<key>float</key>
+				<string>pitch</string>
+				<key>description</key>
+				<string>预留 -1 表示不设置</string>
+			</dict>
+			<dict>
+				<key>float</key>
+				<string>roll</string>
+				<key>description</key>
+				<string>预留 -1 表示不设置</string>
+			</dict>
+			<dict>
+				<key>float</key>
+				<string>yaw</string>
+				<key>description</key>
+				<string>-1表示不设置 [0-360)</string>
+			</dict>
+		</array>
+
+		<key>PayloadLight</key>
+		<array>
+			<dict>
+				<key>uint32</key>
+				<string>r</string>
+				<key>description</key>
+				<string>红色</string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>g</string>
+				<key>description</key>
+				<string>绿色</string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>b</string>
+				<key>description</key>
+				<string>蓝色</string>
+			</dict>
+		</array>
+		<key>PayloadLightFrame</key>
+		<array>
+			<dict>
+				<key>uint32</key>
+				<string>frame</string>
+				<key>description</key>
+				<string>帧号</string>
+			</dict>
+			<dict>
+				<key>PayloadLight</key>
+				<string>lights</string>
+				<key>description</key>
+				<string>灯光帧</string>
+			</dict>
+		</array>
+
+		<key>PayloadLaser</key>
+		<array>
+			<dict>
+				<key>uint32</key>
+				<string>r</string>
+				<key>description</key>
+				<string>红色</string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>g</string>
+				<key>description</key>
+				<string>绿色</string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>b</string>
+				<key>description</key>
+				<string>蓝色</string>
+			</dict>
+		</array>
+		<key>PayloadLaserFrame</key>
+		<array>
+			<dict>
+				<key>uint32</key>
+				<string>frame</string>
+				<key>description</key>
+				<string>帧号</string>
+			</dict>
+			<dict>
+				<key>PayloadLaser</key>
+				<string>lasers</string>
+				<key>description</key>
+				<string>激光帧</string>
+			</dict>
+		</array>
+
+		<key>PayloadNova</key>
+		<array>
+			<dict>
+				<key>uint32</key>
+				<string>power</string>
+				<key>description</key>
+				<string>爆闪功率</string>
+			</dict>
+		</array>
+		<key>PayloadNovaFrame</key>
+		<array>
+			<dict>
+				<key>uint32</key>
+				<string>frame</string>
+				<key>description</key>
+				<string>帧号</string>
+			</dict>
+			<dict>
+				<key>PayloadNova</key>
+				<string>novas</string>
+				<key>description</key>
+				<string>爆闪帧</string>
+			</dict>
+		</array>
+
+		<key>PayloadFireworkAngle</key>
+		<array>
+			<dict>
+				<key>uint32</key>
+				<string>channel</string>
+				<key>description</key>
+				<string>烟花通道</string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>angle</string>
+				<key>description</key>
+				<string>烟花角度</string>
+			</dict>
+		</array>
+		<key>PayloadFireworks</key>
+		<array>
+			<dict>
+				<key>uint32</key>
+				<string>firedPort</string>
+				<key>description</key>
+				<string>按位算烟花通道</string>
+			</dict>
+			<dict>
+				<key>repeated PayloadFireworkAngle</key>
+				<string>fireworkAngles</string>
+				<key>description</key>
+				<string>烟花角度</string>
+			</dict>
+		</array>
+		<key>PayloadFireworksFrame</key>
+		<array>
+			<dict>
+				<key>uint32</key>
+				<string>frame</string>
+				<key>description</key>
+				<string>帧号</string>
+			</dict>
+			<dict>
+				<key>PayloadFireworks</key>
+				<string>fireworks</string>
+				<key>description</key>
+				<string>烟花帧</string>
+			</dict>
+		</array>
+
+		<key>PayloadLantern</key>
+		<array>
+			<dict>
+				<key>bool</key>
+				<string>isOn</string>
+				<key>description</key>
+				<string>灯笼点燃与否</string>
+			</dict>
+		</array>
+		<key>PayloadLanternFrame</key>
+		<array>
+			<dict>
+				<key>uint32</key>
+				<string>frame</string>
+				<key>description</key>
+				<string>帧号</string>
+			</dict>
+			<dict>
+				<key>PayloadLantern</key>
+				<string>lanterns</string>
+				<key>description</key>
+				<string>灯笼帧</string>
+			</dict>
+		</array>
+
+		<key>PayloadGimbal</key>
+		<array>
+			<dict>
+				<key>float</key>
+				<string>pitch</string>
+				<key>description</key>
+				<string>-1 表示不设置</string>
+			</dict>
+			<dict>
+				<key>float</key>
+				<string>roll</string>
+				<key>description</key>
+				<string>-1 表示不设置</string>
+			</dict>
+			<dict>
+				<key>float</key>
+				<string>yaw</string>
+				<key>description</key>
+				<string>-1 表示不设置</string>
+			</dict>
+		</array>
+		<key>PayloadGimbalFrame</key>
+		<array>
+			<dict>
+				<key>uint32</key>
+				<string>frame</string>
+				<key>description</key>
+				<string>帧号</string>
+			</dict>
+			<dict>
+				<key>PayloadGimbal</key>
+				<string>gimbals</string>
+				<key>description</key>
+				<string>云台帧</string>
+			</dict>
+		</array>
+
+		<key>DroneDramaHeader</key>
+		<array>
+			<dict>
+				<key>uint32</key>
+				<string>pointFps</string>
+				<key>description</key>
+				<string>航点帧率</string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>payloadFps</string>
+				<key>description</key>
+				<string>负载帧率</string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>totalPointFrameCount</string>
+				<key>description</key>
+				<string>位置帧总数</string>
+			</dict>
+			<dict>
+				<key>uint32</key>
+				<string>totalPayloadFrameCount</string>
+				<key>description</key>
+				<string>负载帧总数</string>
+			</dict>
+		</array>
+
+		<key>DroneFrame</key>
+		<array>
+			<dict>
+				<key>PayloadNovaFrame</key>
+				<string>novaKeyFrame</string>
+				<key>description</key>
+				<string>爆闪帧</string>
+			</dict>
+			<dict>
+				<key>PayloadFireworksFrame</key>
+				<string>fireworksKeyFrame</string>
+				<key>description</key>
+				<string>烟花帧</string>
+			</dict>
+			<dict>
+				<key>PayloadLanternFrame</key>
+				<string>lanternKeyFrame</string>
+				<key>description</key>
+				<string>灯笼帧</string>
+			</dict>
+			<dict>
+				<key>PayloadGimbalFrame</key>
+				<string>gimbalKeyFrame</string>
+				<key>description</key>
+				<string>云台控制帧</string>
+			</dict>
+			<dict>
+				<key>PayloadLaserFrame</key>
+				<string>laserKeyFrame</string>
+				<key>description</key>
+				<string>激光帧</string>
+			</dict>
+			<dict>
+				<key>PoseKeyFrame</key>
+				<string>poseKeyFrames</string>
+				<key>description</key>
+				<string>姿态(航向)帧</string>
+			</dict>
+		</array>
+
+		<key>GimbalParam</key>
+		<array>
+			<dict>
+				<key>float</key>
+				<string>rol_up_lmt</string>
+				<key>description</key>
+				<string>最大roll角</string>
+			</dict>
+			<dict>
+				<key>float</key>
+				<string>rol_dw_lmt</string>
+				<key>description</key>
+				<string>最小roll角</string>
+			</dict>
+			<dict>
+				<key>float</key>
+				<string>pit_up_lmt</string>
+				<key>description</key>
+				<string>最大pitch角</string>
+			</dict>
+			<dict>
+				<key>float</key>
+				<string>pit_dw_lmt</string>
+				<key>description</key>
+				<string>最小pitch角</string>
+			</dict>
+			<dict>
+				<key>float</key>
+				<string>rol_p</string>
+				<key>description</key>
+				<string>roll p</string>
+			</dict>
+			<dict>
+				<key>float</key>
+				<string>pit_p</string>
+				<key>description</key>
+				<string>pitch p</string>
+			</dict>
+			<dict>
+				<key>float</key>
+				<string>gx_p</string>
+				<key>description</key>
+				<string>gx p</string>
+			</dict>
+			<dict>
+				<key>float</key>
+				<string>gy_p</string>
+				<key>description</key>
+				<string>gy p</string>
+			</dict>
+			<dict>
+				<key>float</key>
+				<string>kp</string>
+				<key>description</key>
+				<string>kp</string>
+			</dict>
+			<dict>
+				<key>float</key>
+				<string>ki</string>
+				<key>description</key>
+				<string>ki</string>
+			</dict>
+		</array>
+
+	</dict>
+
+
+	<key>Messages</key>
+	<dict>
+		<key>GET_FIRMWARE_VERSION</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0</integer>
+			<key>description</key>
+			<string>发送端向接收端询问版本 回应的uint32 拆分为4个8位，形成四个版本号 例如1.0.0.1</string>
+			<key>OriginType</key>
+			<string>UniversalCommand</string>
+			<key>CType</key>
+			<string>UniversalCommand</string>
+			<key>CSharpType</key>
+			<string>UniversalCommand</string>
+		</dict>
+
+		<key>ASK_DAV_ADDRESS</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>1</integer>
+			<key>description</key>
+			<string>发送端向接收端询问地址 因为发送端不知道接收端地址 所以这个包通常是设置成广播 保证接收端接收到</string>
+			<key>OriginType</key>
+			<string>UniversalCommand</string>
+			<key>CType</key>
+			<string>UniversalCommand</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+		<key>SEND_DAV_ADDRESS</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>2</integer>
+			<key>description</key>
+			<string>当接收端接收到询问地址的包 接收端向发送端发送自身地址</string>
+			<key>OriginType</key>
+			<string>DavAddress</string>
+			<key>CType</key>
+			<string>DavAddress</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+		<key>CHANGE_DAV_ADDRESS</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>3</integer>
+			<key>description</key>
+			<string>发送端向接收端修改其地址</string>
+			<key>OriginType</key>
+			<string>DavAddress</string>
+			<key>CType</key>
+			<string>DavAddress</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+		<key>ASK_CHIP_UID</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>4</integer>
+			<key>description</key>
+			<string>发送端向接收端询问UID 芯片通常有96位全球唯一ID</string>
+			<key>OriginType</key>
+			<string>UniversalCommand</string>
+			<key>CType</key>
+			<string>UniversalCommand</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+		<key>SEND_CHIP_UID</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>5</integer>
+			<key>description</key>
+			<string>接收端收到 询问UID的包 接收端向发送端发送自身UID</string>
+			<key>OriginType</key>
+			<string>SingleBytes</string>
+			<key>CType</key>
+			<string>SingleBytes</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+		<key>SET_PRODUCT_SERIAL_NUMBER</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>6</integer>
+			<key>description</key>
+			<string>设置SN码</string>
+			<key>OriginType</key>
+			<string>ProductSerialNumber</string>
+			<key>CType</key>
+			<string>ProductSerialNumber</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+		<key>ASK_PRODUCT_SERIAL_NUMBER</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>7</integer>
+			<key>description</key>
+			<string>询问SN码</string>
+			<key>OriginType</key>
+			<string>UniversalCommand</string>
+			<key>CType</key>
+			<string>UniversalCommand</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+		<key>SEND_PRODUCT_SERIAL_NUMBER</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>8</integer>
+			<key>description</key>
+			<string>发送SN码</string>
+			<key>OriginType</key>
+			<string>ProductSerialNumber</string>
+			<key>CType</key>
+			<string>ProductSerialNumber</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+		<key>ASK_VERSION_SHA</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>9</integer>
+			<key>description</key>
+			<string>询问固件的SHA256哈希值</string>
+			<key>OriginType</key>
+			<string>UniversalCommand</string>
+			<key>CType</key>
+			<string>UniversalCommand</string>
+			<key>CSharpType</key>
+			<string>UniversalCommand</string>
+		</dict>
+
+		<key>SEND_VERSION_SHA</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>10</integer>
+			<key>description</key>
+			<string>发送SHA256哈希值</string>
+			<key>OriginType</key>
+			<string>SingleBytes</string>
+			<key>CType</key>
+			<string>SingleBytes</string>
+			<key>CSharpType</key>
+			<string>SingleBytes</string>
+		</dict>
+
+		<key>ASK_DAV_PROTO_VERSION_INT</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>11</integer>
+			<key>description</key>
+			<string>询问 proto文件版本 在protoVersion枚举中的version 回应的uint32即为版本</string>
+			<key>OriginType</key>
+			<string>UniversalCommand</string>
+			<key>CType</key>
+			<string>UniversalCommand</string>
+			<key>CSharpType</key>
+			<string>UniversalCommand</string>
+		</dict>
+
+		<key>ENROLL_REQUEST</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x000C</integer>
+			<key>description</key>
+			<string>向地面站请求注册</string>
+			<key>OriginType</key>
+			<string>EnrollRequest</string>
+			<key>CType</key>
+			<string>EnrollRequest</string>
+			<key>CSharpType</key>
+			<string>EnrollRequest</string>
+		</dict>
+
+		<key>ENROLL_REPLY</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x000D</integer>
+			<key>description</key>
+			<string>地面站向设备端下发注册结果</string>
+			<key>OriginType</key>
+			<string>EnrollReply</string>
+			<key>CType</key>
+			<string>EnrollReply</string>
+			<key>CSharpType</key>
+			<string>EnrollReply</string>
+		</dict>
+
+		<key>ASK_HEARTBEAT</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x000E</integer>
+			<key>description</key>
+			<string>地面站向设备端询问心跳包</string>
+			<key>OriginType</key>
+			<string>UniversalCommand</string>
+			<key>CType</key>
+			<string>UniversalCommand</string>
+			<key>CSharpType</key>
+			<string>UniversalCommand</string>
+		</dict>
+
+		<key>PPS_HEARTBEAT</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x000F</integer>
+			<key>description</key>
+			<string>PPS的心跳包</string>
+			<key>OriginType</key>
+			<string>PpsHeartBeat</string>
+			<key>CType</key>
+			<string>PpsHeartBeat</string>
+			<key>CSharpType</key>
+			<string>PpsHeartBeat</string>
+		</dict>
+
+		<key>SUBMODULE_TRANS_SAVE_LOG</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0010</integer>
+			<key>description</key>
+			<string>子模块发送给飞控log 由飞控保存到sd卡中</string>
+			<key>OriginType</key>
+			<string>SubModuleLogSave</string>
+			<key>CType</key>
+			<string>SubModuleLogSave</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+		<key>ASK_DEVICE_LAN_CONFIG</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0011</integer>
+			<key>description</key>
+			<string> </string>
+			<key>OriginType</key>
+			<string>UniversalCommand</string>
+			<key>CType</key>
+			<string>UniversalCommand</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+		<key>SEND_DEVICE_LAN_CONFIG</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0012</integer>
+			<key>description</key>
+			<string> </string>
+			<key>OriginType</key>
+			<string>DeviceLocalAreaNetworkConfig</string>
+			<key>CType</key>
+			<string>DeviceLocalAreaNetworkConfig</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+		<key>SET_DEVICE_LAN_CONFIG</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0013</integer>
+			<key>description</key>
+			<string> </string>
+			<key>OriginType</key>
+			<string>DeviceLocalAreaNetworkConfig</string>
+			<key>CType</key>
+			<string>DeviceLocalAreaNetworkConfig</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+		<key>ASK_HARDFAULT_INFO</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0014</integer>
+			<key>description</key>
+			<string>查询设备的hardfault信息</string>
+			<key>OriginType</key>
+			<string>UniversalCommand</string>
+			<key>CType</key>
+			<string>UniversalCommand</string>
+			<key>CSharpType</key>
+			<string>UniversalCommand</string>
+		</dict>
+
+		<key>SEND_HARDFAULT_INFO</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0015</integer>
+			<key>description</key>
+			<string>发送设备的hardfault信息</string>
+			<key>OriginType</key>
+			<string>SingleBytes</string>
+			<key>CType</key>
+			<string>SingleBytes</string>
+			<key>CSharpType</key>
+			<string>SingleBytes</string>
+		</dict>
+
+		<key>RADIO_SEND_RTCM</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0100</integer>
+			<key>description</key>
+			<string>由接收机发向飞控 的RTCM信息</string>
+			<key>OriginType</key>
+			<string>SingleBytes</string>
+			<key>CType</key>
+			<string>SingleBytes</string>
+			<key>CSharpType</key>
+			<string>SingleBytes</string>
+		</dict>
+
+		<key>RADIO_RTCM_LINK_INFO</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0101</integer>
+			<key>description</key>
+			<string>飞控向接收机发送 的 电台配置 模仿v3电台</string>
+			<key>OriginType</key>
+			<string>RtcmLinkInfo</string>
+			<key>CType</key>
+			<string>RtcmLinkInfo</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+		<key>SET_RADIO_ENCRYPT_KEY</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0102</integer>
+			<key>description</key>
+			<string>设置遥控器加密秘钥</string>
+			<key>OriginType</key>
+			<string>RadioEncryptKey</string>
+			<key>CType</key>
+			<string>RadioEncryptKey</string>
+			<key>CSharpType</key>
+			<string>RadioEncryptKey</string>
+		</dict>
+
+		<key>ASK_RADIO_ENCRYPT_KEY</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0103</integer>
+			<key>description</key>
+			<string>查询加密秘钥</string>
+			<key>OriginType</key>
+			<string>UniversalCommand</string>
+			<key>CType</key>
+			<string>UniversalCommand</string>
+			<key>CSharpType</key>
+			<string>UniversalCommand</string>
+		</dict>
+
+		<key>SEND_RADIO_ENCRYPT_KEY</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0104</integer>
+			<key>description</key>
+			<string>返回加密秘钥</string>
+			<key>OriginType</key>
+			<string>RadioEncryptKey</string>
+			<key>CType</key>
+			<string>RadioEncryptKey</string>
+			<key>CSharpType</key>
+			<string>RadioEncryptKey</string>
+		</dict>
+
+		<key>REMOTE_CONTROL_SEND_CHANNEL</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0110</integer>
+			<key>description</key>
+			<string>接收机向飞控发送遥控器通道值</string>
+			<key>OriginType</key>
+			<string>RemoteControlChannel</string>
+			<key>CType</key>
+			<string>RemoteControlChannel</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+		<key>SET_RADIO_RECEIVER_MODE</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0111</integer>
+			<key>description</key>
+			<string>飞控向接收机 设置接收机的850M和2.4G的工作模式和对频码</string>
+			<key>OriginType</key>
+			<string>RadioReceiverMode</string>
+			<key>CType</key>
+			<string>RadioReceiverMode</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+		<key>REMOTE_CONTROL_FREQ_MATCHING</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0112</integer>
+			<key>description</key>
+			<string>飞控向接收机 使能遥控器对频模式 合并到SET_RADIO_RECEIVER_MODE</string>
+			<key>OriginType</key>
+			<string>UniversalCommand</string>
+			<key>CType</key>
+			<string>UniversalCommand</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+		<key>REMOTE_CONTROL_FREQ_MATCHING_RESULT</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0113</integer>
+			<key>description</key>
+			<string>对频结果</string>
+			<key>OriginType</key>
+			<string>UniversalCommand</string>
+			<key>CType</key>
+			<string>UniversalCommand</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+		<key>RADIO_RECEIVER_RSSI</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0114</integer>
+			<key>description</key>
+			<string>接收机 接收电台信号的状态 包括2.4G电台和850m电台 2.4G如果是遥控器模式 则对应电台信号为0</string>
+			<key>OriginType</key>
+			<string>RadioReceiveRSSI</string>
+			<key>CType</key>
+			<string>RadioReceiveRSSI</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+		<key>REMOTE_CONTROL_RECEIVER_RSSI</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0115</integer>
+			<key>description</key>
+			<string>接收机 接收遥控器的状态  2.4G如果是电台模式 则对应信号为0</string>
+			<key>OriginType</key>
+			<string>RemoteControlRSSI</string>
+			<key>CType</key>
+			<string>RemoteControlRSSI</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+		<!-- <key>SET_REMOTE_CONTROL_MATCHING_CODE</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0116</integer>
+			<key>description</key>
+			<string>设置接收机 接收遥控器的对频码</string>
+			<key>OriginType</key>
+			<string>RemoteControlMatchingCode</string>
+			<key>CType</key>
+			<string>RemoteControlMatchingCode</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict> -->
+
+		<key>GET_RECEIVER_RC_AND_RADIO_PARAM</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0117</integer>
+			<key>description</key>
+			<string>获取接收机遥控器和电台参数</string>
+			<key>OriginType</key>
+			<string>UniversalCommand</string>
+			<key>CType</key>
+			<string>UniversalCommand</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+		<key>SEND_RECEIVER_RC_AND_RADIO_PARAM</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0118</integer>
+			<key>description</key>
+			<string>发送接收机遥控器和电台参数</string>
+			<key>OriginType</key>
+			<string>RadioReceiverRFparameters</string>
+			<key>CType</key>
+			<string>RadioReceiverRFparameters</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+		<key>SET_RECEIVER_RC_AND_RADIO_PARAM</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0119</integer>
+			<key>description</key>
+			<string>设</string>
+			<key>OriginType</key>
+			<string>RadioReceiverRFparameters</string>
+			<key>CType</key>
+			<string>RadioReceiverRFparameters</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+		<key>ASK_DMD_AUTO_TEST_STATUS</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0120</integer>
+			<key>description</key>
+			<string>询问自动测试状态</string>
+			<key>OriginType</key>
+			<string>UniversalCommand</string>
+			<key>CType</key>
+			<string>UniversalCommand</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+		<key>RECEIVER_DMD_AUTO_TEST_STATUS</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0121</integer>
+			<key>description</key>
+			<string>回复接收机的自动测试状态</string>
+			<key>OriginType</key>
+			<string>ReceiverDmdAutoTestStatus</string>
+			<key>CType</key>
+			<string>ReceiverDmdAutoTestStatus</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+		<key>ELRS_DMD_AUTO_TEST_STATUS</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0122</integer>
+			<key>description</key>
+			<string>回复接收机的自动测试状态</string>
+			<key>OriginType</key>
+			<string>ElrsDmdAutoTestStatus</string>
+			<key>CType</key>
+			<string>ElrsDmdAutoTestStatus</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+		<key>LORA_RADIO_FACTORY_TEST</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0200</integer>
+			<key>description</key>
+			<string> </string>
+			<key>OriginType</key>
+			<string>LoraRadioFactoryTest</string>
+			<key>CType</key>
+			<string>LoraRadioFactoryTest</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+		<key>ASK_RADIO_REGULATORY_DOMAIN</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0201</integer>
+			<key>description</key>
+			<string>查询电台的射频参数</string>
+			<key>OriginType</key>
+			<string>UniversalCommand</string>
+			<key>CType</key>
+			<string>UniversalCommand</string>
+			<key>CSharpType</key>
+			<string>UniversalCommand</string>
+		</dict>
+
+		<key>SEND_RADIO_REGULATORY_DOMAIN</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0202</integer>
+			<key>description</key>
+			<string>发送电台的射频参数</string>
+			<key>OriginType</key>
+			<string>RadioStationRegulatoryDomain</string>
+			<key>CType</key>
+			<string>RadioStationRegulatoryDomain</string>
+			<key>CSharpType</key>
+			<string>RadioStationRegulatoryDomain</string>
+		</dict>
+
+		<key>SET_RADIO_REGULATORY_DOMAIN</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0203</integer>
+			<key>description</key>
+			<string>设置电台的射频参数</string>
+			<key>OriginType</key>
+			<string>RadioStationRegulatoryDomain</string>
+			<key>CType</key>
+			<string>RadioStationRegulatoryDomain</string>
+			<key>CSharpType</key>
+			<string>RadioStationRegulatoryDomain</string>
+		</dict>
+
+		<key>SEND_RADIO_R2_HEARTBEAT</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0204</integer>
+			<key>description</key>
+			<string>发送电台的心跳包</string>
+			<key>OriginType</key>
+			<string>radioStationR2Heart</string>
+			<key>CType</key>
+			<string>radioStationR2Heart</string>
+			<key>CSharpType</key>
+			<string>radioStationR2Heart</string>
+		</dict>
+
+		<key>SET_RADIO_BUTTON_PARAM</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0205</integer>
+			<key>description</key>
+			<string>设置电台按钮参数</string>
+			<key>OriginType</key>
+			<string>RadioButtonParam</string>
+			<key>CType</key>
+			<string>RadioButtonParam</string>
+			<key>CSharpType</key>
+			<string>RadioButtonParam</string>
+		</dict>
+
+		<!-- <key>SET_RADIO_ENCRYPT_PARAM</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0206</integer>
+			<key>description</key>
+			<string>设置电台的加密参数</string>
+			<key>OriginType</key>
+			<string>EncryptKey</string>
+			<key>CType</key>
+			<string>EncryptKey</string>
+			<key>CSharpType</key>
+			<string>EncryptKey</string>
+		</dict> -->
+
+		<key>SEND_RADIO_RF_PARAM_ECHO</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0207</integer>
+			<key>description</key>
+			<string>回显电台射频信息</string>
+			<key>OriginType</key>
+			<string>RadioRFParamsEcho</string>
+			<key>CType</key>
+			<string>RadioRFParamsEcho</string>
+			<key>CSharpType</key>
+			<string>RadioRFParamsEcho</string>
+		</dict>
+
+		<key>SEND_LASER_GIMBAL_HEARTBEAT</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0280</integer>
+			<key>description</key>
+			<string>发送云台的心跳包</string>
+			<key>OriginType</key>
+			<string>laserGimbalHeart</string>
+			<key>CType</key>
+			<string>laserGimbalHeart</string>
+			<key>CSharpType</key>
+			<string>laserGimbalHeart</string>
+		</dict>
+
+		<key>SEND_CUR_ATTITUDE</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0281</integer>
+			<key>description</key>
+			<string>发送飞控姿态给云台</string>
+			<key>OriginType</key>
+			<string>AttitudeInfo</string>
+			<key>CType</key>
+			<string>AttitudeInfo</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+		<key>SEND_CUR_GPS</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0282</integer>
+			<key>description</key>
+			<string>发送飞控gps信息给云台</string>
+			<key>OriginType</key>
+			<string>GpsInfo</string>
+			<key>CType</key>
+			<string>GpsInfo</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+		<key>SET_PAYLOAD_GIMBAL_ANGLE</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0283</integer>
+			<key>description</key>
+			<string>由飞控向负载发送的消息 控制云台 目标roll/pitch</string>
+			<key>OriginType</key>
+			<string>TargetAngleInfo</string>
+			<key>CType</key>
+			<string>TargetAngleInfo</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+		<key>SET_PAYLOAD_LASER_CHANNEL</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0284</integer>
+			<key>description</key>
+			<string>由飞控向负载发送的消息 控制激光</string>
+			<key>OriginType</key>
+			<string>SingleBytes</string>
+			<key>CType</key>
+			<string>SingleBytes</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+		<key>SET_PAYLOAD_NOTIFY_LED</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0285</integer>
+			<key>description</key>
+			<string>由飞控向负载发送的消息 控制指示灯</string>
+			<key>OriginType</key>
+			<string>UniversalCommand</string>
+			<key>CType</key>
+			<string>UniversalCommand</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+		<key>SET_GIMBAL_PARAM</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0286</integer>
+			<key>description</key>
+			<string>由飞控向云台发送的消息 设置云台参数</string>
+			<key>OriginType</key>
+			<string>GimbalParam</string>
+			<key>CType</key>
+			<string>GimbalParam</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+		<key>SET_GIMBAL_CMD</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0287</integer>
+			<key>description</key>
+			<string>由飞控向云台发送命令</string>
+			<key>OriginType</key>
+			<string>UniversalCommand</string>
+			<key>CType</key>
+			<string>UniversalCommand</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+		<key>READY_TO_BOOTLOADER</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0422</integer>
+			<key>description</key>
+			<string>升级过程中 让设备返回boot状态</string>
+			<key>OriginType</key>
+			<string>UniversalCommand</string>
+			<key>CType</key>
+			<string>UniversalCommand</string>
+			<key>CSharpType</key>
+			<string>UniversalCommand</string>
+		</dict>
+
+		<key>SEND_FIRMWARE_HEADER</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0425</integer>
+			<key>description</key>
+			<string>升级过程中 向设备发送固件信息 设备判断固件是否合法</string>
+			<key>OriginType</key>
+			<string>FirmwareInfo</string>
+			<key>CType</key>
+			<string>FirmwareInfo</string>
+			<key>CSharpType</key>
+			<string>FirmwareInfo</string>
+		</dict>
+
+		<key>CONTROL_MESSAGE_IN_BOOT</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0426</integer>
+			<key>description</key>
+			<string>升级过程中 控制待升级设备的广播通信接口</string>
+			<key>OriginType</key>
+			<string>UniversalCommand</string>
+			<key>CType</key>
+			<string>UniversalCommand</string>
+			<key>CSharpType</key>
+			<string>UniversalCommand</string>
+		</dict>
+
+		<key>ERASE_FLASH_ADDRESS</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0427</integer>
+			<key>description</key>
+			<string>升级过程中 控制 带升级设备擦除待写入区域</string>
+			<key>OriginType</key>
+			<string>UniversalCommand</string>
+			<key>CType</key>
+			<string>UniversalCommand</string>
+			<key>CSharpType</key>
+			<string>UniversalCommand</string>
+		</dict>
+
+		<key>SEND_FIRMWARE_PACKET</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0428</integer>
+			<key>description</key>
+			<string>升级过程中 发送固件的分包数据</string>
+			<key>OriginType</key>
+			<string>FirmwarePackage</string>
+			<key>CType</key>
+			<string>FirmwarePackage</string>
+			<key>CSharpType</key>
+			<string>FirmwarePackage</string>
+		</dict>
+
+		<key>SEND_FIRMWARE_UPDATE_DONE</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x042B</integer>
+			<key>description</key>
+			<string>升级过程中 待升级设备 对外发送升级成功</string>
+			<key>OriginType</key>
+			<string>UniversalCommand</string>
+			<key>CType</key>
+			<string>UniversalCommand</string>
+			<key>CSharpType</key>
+			<string>UniversalCommand</string>
+		</dict>
+
+		<key>READY_TO_JUMP_APP</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x042C</integer>
+			<key>description</key>
+			<string>升级过程中 待升级设备已成功升级后， 控制其跳入新固件</string>
+			<key>OriginType</key>
+			<string>UniversalCommand</string>
+			<key>CType</key>
+			<string>UniversalCommand</string>
+			<key>CSharpType</key>
+			<string>UniversalCommand</string>
+		</dict>
+
+		<key>LPPC_CONTROL_MESSAGE</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0600</integer>
+			<key>description</key>
+			<string>LPPC 控制信息</string>
+			<key>OriginType</key>
+			<string>LppcControlMessage</string>
+			<key>CType</key>
+			<string>LppcControlMessage</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+		<key>LPPC_BATTERY_MESSAGE</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0601</integer>
+			<key>description</key>
+			<string>LPPC 的电池信息</string>
+			<key>OriginType</key>
+			<string>LppcBatteryMessage</string>
+			<key>CType</key>
+			<string>LppcBatteryMessage</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+		<key>ICT_ONBOARD_MESSAGE</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0602</integer>
+			<key>description</key>
+			<string>工装发送信息</string>
+			<key>OriginType</key>
+			<string>IctOnboardMessage</string>
+			<key>CType</key>
+			<string>IctOnboardMessage</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+		<key>LPPC_REGISTER_MODIFY_MESSAGE</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0603</integer>
+			<key>description</key>
+			<string>LPPC 寄存器修改信息</string>
+			<key>OriginType</key>
+			<string>LppcRegisterModifyMessage</string>
+			<key>CType</key>
+			<string>LppcRegisterModifyMessage</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+		<key>DGCS_CONTROL_PPS_MESSAGE</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x0700</integer>
+			<key>description</key>
+			<string>地面站控制PPS</string>
+			<key>OriginType</key>
+			<string>DgcsControlPPS</string>
+			<key>CType</key>
+			<string>DgcsControlPPS</string>
+			<key>CSharpType</key>
+			<string>DgcsControlPPS</string>
+		</dict>
+
+		<key>DISABLE_READ_PROTECT</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0xFFFD</integer>
+			<key>description</key>
+			<string>发送命令关闭读保护</string>
+			<key>OriginType</key>
+			<string>UniversalCommand</string>
+			<key>CType</key>
+			<string>UniversalCommand</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+		<key>DRONE_HEADER</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x10001</integer>
+			<key>description</key>
+			<string>实际不用 生成结构体解析剧本文件头</string>
+			<key>OriginType</key>
+			<string>DroneDramaHeader</string>
+			<key>CType</key>
+			<string>DroneDramaHeader</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+		<key>DRONE_FRAME</key>
+		<dict>
+			<key>cmdID</key>
+			<integer>0x10002</integer>
+			<key>description</key>
+			<string>实际不用 生成结构体解析剧本</string>
+			<key>OriginType</key>
+			<string>DroneFrame</string>
+			<key>CType</key>
+			<string>DroneFrame</string>
+			<key>CSharpType</key>
+			<string></string>
+		</dict>
+
+	</dict>
+</dict>

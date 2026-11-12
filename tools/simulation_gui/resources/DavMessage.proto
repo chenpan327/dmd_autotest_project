@@ -1,0 +1,456 @@
+syntax = "proto3";
+enum ProtoVersion
+{
+    res = 0;
+    version = 619934;
+}
+
+enum MessageID
+{
+    GET_FIRMWARE_VERSION = 0; //发送端向接收端询问版本 回应的uint32 拆分为4个8位，形成四个版本号 例如1.0.0.1
+    ASK_DAV_ADDRESS = 1; //发送端向接收端询问地址 因为发送端不知道接收端地址 所以这个包通常是设置成广播 保证接收端接收到
+    SEND_DAV_ADDRESS = 2; //当接收端接收到询问地址的包 接收端向发送端发送自身地址
+    CHANGE_DAV_ADDRESS = 3; //发送端向接收端修改其地址
+    ASK_CHIP_UID = 4; //发送端向接收端询问UID 芯片通常有96位全球唯一ID
+    SEND_CHIP_UID = 5; //接收端收到 询问UID的包 接收端向发送端发送自身UID
+    SET_PRODUCT_SERIAL_NUMBER = 6; //设置SN码
+    ASK_PRODUCT_SERIAL_NUMBER = 7; //询问SN码
+    SEND_PRODUCT_SERIAL_NUMBER = 8; //发送SN码
+    ASK_VERSION_SHA = 9; //询问固件的SHA256哈希值
+    SEND_VERSION_SHA = 10; //发送SHA256哈希值
+    ASK_DAV_PROTO_VERSION_INT = 11; //询问 proto文件版本 在protoVersion枚举中的version 回应的uint32即为版本
+    ENROLL_REQUEST = 0x000C; //向地面站请求注册
+    ENROLL_REPLY = 0x000D; //地面站向设备端下发注册结果
+    ASK_HEARTBEAT = 0x000E; //地面站向设备端询问心跳包
+    PPS_HEARTBEAT = 0x000F; //PPS的心跳包
+    SUBMODULE_TRANS_SAVE_LOG = 0x0010; //子模块发送给飞控log 由飞控保存到sd卡中
+    ASK_DEVICE_LAN_CONFIG = 0x0011; // 
+    SEND_DEVICE_LAN_CONFIG = 0x0012; // 
+    SET_DEVICE_LAN_CONFIG = 0x0013; // 
+    ASK_HARDFAULT_INFO = 0x0014; //查询设备的hardfault信息
+    SEND_HARDFAULT_INFO = 0x0015; //发送设备的hardfault信息
+    RADIO_SEND_RTCM = 0x0100; //由接收机发向飞控 的RTCM信息
+    RADIO_RTCM_LINK_INFO = 0x0101; //飞控向接收机发送 的 电台配置 模仿v3电台
+    SET_RADIO_ENCRYPT_KEY = 0x0102; //设置遥控器加密秘钥
+    ASK_RADIO_ENCRYPT_KEY = 0x0103; //查询加密秘钥
+    SEND_RADIO_ENCRYPT_KEY = 0x0104; //返回加密秘钥
+    REMOTE_CONTROL_SEND_CHANNEL = 0x0110; //接收机向飞控发送遥控器通道值
+    SET_RADIO_RECEIVER_MODE = 0x0111; //飞控向接收机 设置接收机的850M和2.4G的工作模式和对频码
+    REMOTE_CONTROL_FREQ_MATCHING = 0x0112; //飞控向接收机 使能遥控器对频模式 合并到SET_RADIO_RECEIVER_MODE
+    REMOTE_CONTROL_FREQ_MATCHING_RESULT = 0x0113; //对频结果
+    RADIO_RECEIVER_RSSI = 0x0114; //接收机 接收电台信号的状态 包括2.4G电台和850m电台 2.4G如果是遥控器模式 则对应电台信号为0
+    REMOTE_CONTROL_RECEIVER_RSSI = 0x0115; //接收机 接收遥控器的状态  2.4G如果是电台模式 则对应信号为0
+    GET_RECEIVER_RC_AND_RADIO_PARAM = 0x0117; //获取接收机遥控器和电台参数
+    SEND_RECEIVER_RC_AND_RADIO_PARAM = 0x0118; //发送接收机遥控器和电台参数
+    SET_RECEIVER_RC_AND_RADIO_PARAM = 0x0119; //设
+    ASK_DMD_AUTO_TEST_STATUS = 0x0120; //询问自动测试状态
+    RECEIVER_DMD_AUTO_TEST_STATUS = 0x0121; //回复接收机的自动测试状态
+    ELRS_DMD_AUTO_TEST_STATUS = 0x0122; //回复接收机的自动测试状态
+    LORA_RADIO_FACTORY_TEST = 0x0200; // 
+    ASK_RADIO_REGULATORY_DOMAIN = 0x0201; //查询电台的射频国家码
+    SEND_RADIO_REGULATORY_DOMAIN = 0x0202; //发送电台的射频国家码
+    SET_RADIO_REGULATORY_DOMAIN = 0x0203; //设置电台的射频国家码
+    SEND_RADIO_R2_HEARTBEAT = 0x0204; //发送电台的心跳包
+    SET_RADIO_BUUTON_PARAM = 0x0205; //设置电台按钮参数
+    SEND_RADIO_RF_PARAM_ECHO = 0x0207; //回显电台射频信息
+    SEND_LASER_GIMBAL_HEARTBEAT = 0x0280; //发送云台的心跳包
+    SEND_CUR_ATTITUDE = 0x0281; //发送飞控姿态给云台
+    SEND_CUR_GPS = 0x0282; //发送飞控gps信息给云台
+    SET_PAYLOAD_GIMBAL_ANGLE = 0x0283; //由飞控向负载发送的消息 控制云台 目标roll/pitch
+    SET_PAYLOAD_LASER_CHANNEL = 0x0284; //由飞控向负载发送的消息 控制激光
+    SET_PAYLOAD_NOTIFY_LED = 0x0285; //由飞控向负载发送的消息 控制指示灯
+    SET_GIMBAL_PARAM = 0x0286; //由飞控向云台发送的消息 设置云台参数
+    SET_GIMBAL_CMD = 0x0287; //由飞控向云台发送命令
+    READY_TO_BOOTLOADER = 0x0422; //升级过程中 让设备返回boot状态
+    SEND_FIRMWARE_HEADER = 0x0425; //升级过程中 向设备发送固件信息 设备判断固件是否合法
+    CONTROL_MESSAGE_IN_BOOT = 0x0426; //升级过程中 控制待升级设备的广播通信接口
+    ERASE_FLASH_ADDRESS = 0x0427; //升级过程中 控制 带升级设备擦除待写入区域
+    SEND_FIRMWARE_PACKET = 0x0428; //升级过程中 发送固件的分包数据
+    SEND_FIRMWARE_UPDATE_DONE = 0x042B; //升级过程中 待升级设备 对外发送升级成功
+    READY_TO_JUMP_APP = 0x042C; //升级过程中 待升级设备已成功升级后， 控制其跳入新固件
+    LPPC_CONTROL_MESSAGE = 0x0600; //LPPC 控制信息
+    LPPC_BATTERY_MESSAGE = 0x0601; //LPPC 的电池信息
+    ICT_ONBOARD_MESSAGE = 0x0602; //工装发送信息
+    LPPC_REGISTER_MODIFY_MESSAGE = 0x0603; //LPPC 寄存器修改信息
+    DGCS_CONTROL_PPS_MESSAGE = 0x0700; //地面站控制PPS
+    DISABLE_READ_PROTECT = 0xFFFD; //发送命令关闭读保护
+    DRONE_HEADER = 0x10001; //实际不用 生成结构体解析剧本文件头
+    DRONE_FRAME = 0x10002; //实际不用 生成结构体解析剧本
+}
+
+// 通常在universalCommand中赋值，或者其他uint32赋值
+enum Uint32Value
+{
+    DAV_NO_ERROR = 0; //无错误
+    DAV_COMMAND_ACK_BOOTLOADER_VERSION = 1; //在GET_FIRMWARE_VERSION命令码中 询问boot的版本
+    DAV_COMMAND_ACK_APP_VERSION = 2; //在GET_FIRMWARE_VERSION命令码中 询问app的版本
+    DAV_COMMAND_RETURN_TO_BOOTLOADER = 3; //在 READY_TO_BOOTLOADER 命令码中 使设备从app跳转boot
+    DAV_COMMAND_MESSAGE_DISABLE_BROADCAST = 4; //在 CONTROL_MESSAGE_IN_BOOT 命令码中 使设备的广播接口失效
+    DAV_COMMAND_MESSAGE_ENABLE_BROADCAST = 5; //在 CONTROL_MESSAGE_IN_BOOT 命令码中 使设备的广播接口恢复
+    DAV_COMMAND_BOOT_ERASE_FLASH_ADDRESS = 6; //在 ERASE_FLASH_ADDRESS 命令码中 让固件写入区域擦除
+    DAV_COMMAND_ASK_DAV_ADDRESS = 7; //在 ASK_DAV_ADDRESS 命令码中 询问地址
+    DAV_COMMAND_ENABLE_REMOTE_CONTROL_FREQ_MATCH = 8; //在 REMOTE_CONTROL_FREQ_MATCHING 命令码中 使能接收机对频
+    DAV_COMMAND_DISABLE_REMOTE_CONTROL_FREQ_MATCH = 9; //在 REMOTE_CONTROL_FREQ_MATCHING 命令码中 失能接收机对频
+    DAV_COMMAND_ASK_CHIP_UID = 10; //在 ASK_CHIP_UID 命令码中 询问设备UID
+    DAV_COMMAND_ASK_PRODUCT_SERIAL_NUMBER = 11; //在 ASK_PRODUCT_SERIAL_NUMBER 命令码中 询问设备SN码
+    DAV_COMMAND_SET_850M_V3_RECEIVE_MODE = 12; //在 SET_RADIO_RECEIVER_MODE 命令码中 设置接收机850M 接收V3电台
+    DAV_COMMAND_SET_850M_R2_RECEIVE_MODE = 13; //在 SET_RADIO_RECEIVER_MODE 命令码中 设置接收机850M 接收R2电台
+    DAV_COMMAND_SET_24G_REMOTE_CONTROL_MODE = 14; //在 SET_RADIO_RECEIVER_MODE 命令码中 设置接收机2.4G 接收遥控器
+    DAV_COMMAND_SET_24G_RTCM_MODE = 15; //在 SET_RADIO_RECEIVER_MODE 命令码中 设置接收机2.4G 接收R2电台
+    DAV_COMMAND_ASK_BOOTLOADER_SHA256 = 16; //在 ASK_VERSION_SHA 命令码中 询问BOOT固件的SHA256签名
+    DAV_COMMAND_ASK_APP_SHA256 = 17; //在 ASK_VERSION_SHA 命令码中 询问APP固件的SHA256签名
+    DAV_COMMAND_ASK_PROTOCOL_SHA256 = 18; //在 ASK_VERSION_SHA 命令码中 询问使用的dav protocol_c仓库的SHA256签名
+    DAV_COMMAND_ASK_PROTO_VERSION_INT = 19; //在 ASK_DAV_PROTO_VERSION_INT 命令码中 询问protobuf的proto文件版本
+    DAV_COMMAND_ASK_REMOTE_CONTROL_MATCHING_CODE = 20; //在GET_REMOTE_CONTROL_MATCHING_CODE 命令码中 获取接收机的遥控器对频码
+    DAV_COMMAND_ASK_RADIO_R2_850M_MATCHING_CODE = 21; //在GET_REMOTE_CONTROL_MATCHING_CODE 命令码中 获取接收机的R2电台850M对频码
+    DAV_COMMAND_ASK_RADIO_R2_24G_MATCHING_CODE = 22; //在GET_REMOTE_CONTROL_MATCHING_CODE 命令码中 获取接收机的R2电台2.4G对频码
+    DAV_COMMAND_ACK_HEARTBEAT = 23;
+    DAV_COMMAND_SET_850M_V3_LOW_RATE_RECEIVE_MODE = 24; //在 SET_RADIO_RECEIVER_MODE 命令码中 设置接收机850M 接收V3低空速电台
+    DAV_COMMAND_SET_850M_SCAN_RECEIVE_MODE = 25; //在 SET_RADIO_RECEIVER_MODE 命令码中 设置接收机850M 扫描接收
+    DAV_COMMAND_SET_24G_SCAN_RECEIVE_MODE = 26; //在 SET_RADIO_RECEIVER_MODE 命令码中 设置接收机2.4G 扫描接收
+    DAV_COMMAND_ASK_DEVICE_LAN_CONFIG = 27; //在 ASK_DEVICE_LAN_CONFIG 命令码中 询问设备网络ipv4配置
+    DAV_COMMAND_ASK_LORA_RADIO_WORK_MODE = 28; //在 ASK_RADIO_REGULATORY_DOMAIN 命令码中 询问电台的频率配置
+    DAV_COMMAND_ACK_RECEIVER_DMD_AUTO_TEST_STATUS = 30;
+    DAV_COMMAND_ACK_ELRS_DMD_AUTO_TEST_STATUS = 31;
+    DAV_COMMAND_ACK_HARDFAULT_INFO = 32; //在 ASK_HARDFAULT_INFO 命令码中 询问设备的hardfault错误信息
+    DAV_COMMAND_SEARCH_SUB_RADIO_STATION = 33; //搜索从基站
+    DAV_COMMAND_CALIBRATE_GIMBAL = 34; //校准云台
+    DAV_COMMAND_STORAGE_GIMBAL = 35; //收纳云台
+    DAV_COMMAND_WORK_GIMBAL = 36; //云台工作
+    DAV_COMMAND_DEBUG_GIMBAL = 37; //云台调试模式
+    DAV_ERROR_PROTOBUF_DESERIALIZE_FAIL = 500; //protobuf的序列化失败
+    DAV_ERROR_MEMORY_NO_ENOUGH = 501; //内存不够
+    DAV_ERROR_INTERFACE_NOT_FOUND = 502; //接口未找
+    DAV_ERROR_ROUTE_ADDRESS_NOT_FOUND = 503; //路由表中 未找该地址
+    DAV_ERROR_INTERFACE_INDEX_SET_BEYOND = 504; //设置路由表时 设置的接口不在注册的接口范围内
+    DAV_ERROR_INTERFACE_INDEX_SET_REPEAT = 505; //设置路由表 重复设置
+    DAV_ERROR_PRODUCT_SERIAL_NUM_FORMAT_WRONG = 506; //设置SN码时 格式错误
+    DAV_ERROR_PRODUCT_SERIAL_NUM_SET_REPEAT = 507; //设置SN码时 设备已有SN码
+    DAV_STATUS_REMOTE_CONTROL_RECEIVER_NO_EXIST = 1000; //接收机判断遥控相关射频芯片不存在
+    DAV_STATUS_REMOTE_CONTROL_RECEIVER_INIT_FAIL = 1001; //接收机遥控相关射频芯片 初始化错误
+    DAV_STATUS_REMOTE_CONTROL_RECEIVER_FREQ_MATCHING_TIMEOUT = 1002; //接收机对频超时
+    DAV_STATUS_REMOTE_CONTROL_RECEIVER_FOREVER_LOST_SIGNAL = 1003; //接收机永久丢失遥控器
+    DAV_STATUS_REMOTE_CONTROL_RECEIVER_TEMPORARILY_LOST_SIGNAL = 1004; //接收机暂时丢失遥控
+    DAV_STATUS_RADIO_850M_RECEIVER_NO_EXIST = 1010; //接收机判断射频出问题
+    DAV_STATUS_RADIO_850M_RECEIVER_INIT_FAIL = 1011; //射频芯片初始化失败
+    DAV_STATUS_RADIO_850M_FOREVER_LOST_SIGNAL = 1012; //接收机永久丢失 850M信号
+    DAV_STATUS_RADIO_850M_TEMPORARILY_LOST_SIGNAL = 1013; //接收机暂时丢失 850M信号
+    DAV_STATUS_RADIO_2400M_RECEIVER_NO_EXIST = 1020;
+    DAV_STATUS_RADIO_2400M_RECEIVER_INIT_FAIL = 1021;
+    DAV_STATUS_LPPC_CONTROL_RECEIVER_NO_EXIST = 1022;
+    DAV_STATUS_LPPC_CONTROL_RECEIVER_INIT_FAIL = 1023;
+    DAV_STATUS_RADIO_2400M_FOREVER_LOST_SIGNAL = 1024;
+    DAV_STATUS_RADIO_2400M_TEMPORARILY_LOST_SIGNAL = 1025;
+    DAV_LPPC_MODIFY_REGISTER_FAILED = 1026; //修改LPPC寄存器失败
+    DAV_REPORT_REMOTE_CONTROL_FREQ_MATCH_SUCCESS = 2000; //对频成功
+    DAV_REPORT_REMOTE_CONTROL_FREQ_MATCH_TIMEOUT = 2001; //对频超时
+}
+
+enum onlineDeviceType
+{
+    UAV = 0;
+    PORTABLE_POWER_SOURCE = 1;
+    RADIO_STATION = 2;
+}
+
+enum enrollResult
+{
+    accepted = 0; //允许上线
+    repeated = 1; //已有在线设备
+    out_capacity = 2; //超过容量
+    check_fail = 3; //校验失败
+    sn_error = 4; //与后台不匹配
+}
+
+enum subDeviceType
+{
+    UAV_V4 = 0;
+    PORTABLE_POWER_SOURCE_V1 = 1;
+    RADIO_R2_STATION_850M_930M_V1 = 2; //电台R2 850M-930M版本
+    RADIO_R2_STATION_2G4_V1 = 3; //电台R2 2.4G版本
+    PAYLOAD_GIMBAL = 4; //激光云台
+    RADIO_R2_STATION = 5; //电台R2 双频
+}
+
+enum firmwareRunningStatus
+{
+    normal = 0;
+    updating = 1;
+    standby = 2;
+    power_off = 3;
+    calibrating = 4;
+    emergency = 5;
+}
+
+// 在电台R2心跳包中error report
+enum RadioR2ErrorValue
+{
+    RADIO_R2_NO_ERROR = 0; //error report 无错误
+    RTK_ERROR_VALUE = 1; //RTK输入异常 通常为RS232线未连接
+    POWER_BUTTON_NOT_PRESSED_VALUE = 2; //电源开关未按下
+    LOW_POWER_VALUE = 4; //B 低电报警
+    BATTERY_ERROR_VALUE = 8; //电池异常
+    CHARGE_HIGH_TEMPERATURE_VALUE = 16; //充电温度过高
+    RADIO_850M_930M_HIGH_TEMPERATURE_VALUE = 32; //850M-930M的射频温度过高
+    RADIO_2G4_TEMPERATURE_VALUE = 64; //2.4G射频温度过高
+    RADIO_850M_930M_SELF_TEST_ERROR_VALUE = 128; //850M-930M的射频芯片自检错误
+    RADIO_2G4_SELF_TEST_ERROR_VALUE = 256; //2.4G的射频芯片自检错误
+    RADIO_850M_930M_ID_CONFLICT_ERROR_VALUE = 512; //850M-930M频段范围存在重复的ID
+    RADIO_2G4_ID_CONFLICT_ERROR_VALUE = 1024; //2G4频段范围存在重复的ID
+}
+
+// 在电台R2心跳包中error report 不同bit位代表不同错误
+enum RadioR2ErrorBitValue
+{
+    RTK_ERROR_BIT = 0; //RTK输入异常 通常为RS232线未连接
+    POWER_BUTTON_NOT_PRESSED_BIT = 1; //电源开关未按下
+    LOW_POWER_BIT = 2; //低电报警
+    BATTERY_ERROR_BIT = 3; //电池异常
+    CHARGE_HIGH_TEMPERATURE_BIT = 4; //充电温度过高
+    RADIO_850M_930M_HIGH_TEMPERATURE_BIT = 5; //850M-930M的射频温度过高
+    RADIO_2G4_TEMPERATURE_BIT = 6; //2.4G射频温度过高
+    RADIO_850M_930M_SELF_TEST_ERROR_BIT = 7; //850M-930M的射频芯片自检错误
+    RADIO_2G4_SELF_TEST_ERROR_BIT = 8; //2.4G的射频芯片自检错误
+}
+
+// 射频模块工厂自检测试 
+enum radioFactoryTestCmd
+{
+    askFactoryMode = 0; //查询测试模式
+    returnFactoryMode = 1; //返回测试模式
+    setFactoryMode = 2; //设置测试模式
+    askLLCC68RunMode = 100; //查询LLCC68运行模式
+    returnLLCC68RunMode = 101; //返回LLCC68运行模式
+    setLLCC68RunMode = 102; //设置LLCC68运行模式
+    askLLCC68Frequency = 103; //查询LLCC68频率
+    returnLLCC68Frequency = 104; //返回LLCC68频率
+    setLLCC68Frequency = 105; //设置LLCC68频率
+    askLLCC68PacketConfig = 106; //查询LLCC68射频配置
+    returnLLCC68PacketConfig = 107; //返回LLCC68射频配置
+    setLLCC68PacketConfig = 108; //设置LLCC68射频配置
+    returnLLCC68PacketStatus = 109; //返回LLCC68接收状态包
+    askSX1280RunMode = 200; //查询SX1280运行模式
+    returnSX1280RunMode = 201; //返回SX1280运行模式
+    setSX1280RunMode = 202; //设置SX1280运行模式
+    askSX1280Frequency = 203; //查询SX1280频率
+    returnSX1280Frequency = 204; //返回SX1280频率
+    setSX1280Frequency = 205; //设置SX1280频率
+    askSX1280PacketConfig = 206; //查询SX1280射频配置
+    returnSX1280PacketConfig = 207; //返回SX1280射频配置
+    setSX1280PacketConfig = 208; //设置SX1280射频配置
+    returnSX1280PacketStatus = 209; //返回SX1280接收状态包
+}
+
+enum radioRegulatoryDomain
+{
+    COUNTRY_CODE_MUTE = 0; //"MUTE" 射频关闭(850M 2.4G both)
+    COUNTRY_CODE_V3_MODE = 2; //射频频率和功率参考V3电台模式(850M)
+    COUNTRY_CODE_V3_NEW_MODE = 3; //射频频率和功率参考V3电台低空速模式(850M)
+    COUNTRY_CODE_EU869 = 4; //射频频率 869.4-869.65MHz(850M)
+    COUNTRY_CODE_R2_ISM2G4 = 5; //射频频率 2.4G-2.48325GHz(2.4G)
+    COUNTRY_CODE_R2_850M_930M = 6; //射频频率 R2跳频模式 915.495-929.435MHz(850M)
+    COUNTRY_CODE_RC_ISM2G4 = 7; //2.4G遥控器工作模式(2.4G) 但不是电台模式 可先隐藏
+    COUNTRY_CODE_R2_ISM2G4_SHORT_INTERVAL = 8; //射频频率 支持较短频率范围(2.4G)
+    COUNTRY_CODE_R1_HALF_DUTY_MODE = 9; // 射频频率 支持2.4G和850m
+    COUNTRY_CODE_SCAN = 100; //扫描模式 非正常模式 以三分钟跳频 频率逐渐增加(850M 2.4G both)
+    COUNTRY_CODE_FACTORY_TEST = 101; //工厂自检模式 非正常模式 用于生产(850M 2.4G both) 在生产流程中实现 可先隐藏
+    COUNTRY_CODE_CW = 102; //正弦波发送模式 非正常模式 射频强制发送正弦波 该模式下不传输数据 (850M 2.4G both) 在生产流程中实现 可先隐藏
+    COUNTRY_CODE_CALI_FRE_OFFSET_SNED = 103; //校准频偏发送模式 非正常模式 发送校准频偏信息(850M 2.4G both) 在生产流程中实现 可先隐藏
+    COUNTRY_CODE_CALI_FRE_OFFSET_RECEIVER = 104; //校准频偏接收模式 非正常模式 接收校准频偏信息(850M 2.4G both) 在生产流程中实现 可先隐藏
+    COUNTRY_CODE_RC_BINDING = 105; //进入遥控器对频模式 非正常模式(2.4G) 但不是电台模式 可先隐藏
+}
+
+message UniversalCommand
+{
+    uint32 command = 1; //通用赋值
+}
+
+message SingleBytes
+{
+    bytes msg = 1;
+}
+
+message EnrollRequest
+{
+    onlineDeviceType device_type = 1;
+    string product_name = 2;
+    string serial_number = 3;
+    uint32 check = 4;
+}
+
+message EnrollReply
+{
+    enrollResult accept_status = 1;
+    uint32 heartbeat_interval_ms = 2;
+}
+
+message PortableChargerHeartbeat
+{
+    uint32 soc = 1; //电量
+    repeated float cell_voltage = 2; //六个电芯的电压
+    float sum_voltage = 3; //总电压
+    float cell_temperature = 4; //电芯的温度
+    float fet_temperature = 5; //FET的温度
+    float current = 6; //电流
+    float diff_vol = 7; //压差
+    uint32 normal_flag = 8; //OK是2， OPEN_ERR 是0， WRITE_ERR 1，READ_ERR 3
+    uint32 cycle_count = 9; //电池循环次数
+    float rechargeable_times = 10; //可冲次数
+    uint32 soh = 11; //健康度
+    uint32 error_code = 12; //错误代码
+    bool fan_open = 13; //风扇是否开启
+    bool heat_open = 14; //加热是否开启
+    bool bazz_open = 15; //蜂鸣器是否开启
+    bool charge_open = 16; //充电开启标志位
+    bool ds_open = 17; //数码管开启标志位
+    bool discharge_open = 18; //放电开启标志位
+    uint32 charge_status = 19; //充电状态 0为既没有放电也没有充电 1为快充， 2为慢充， 3为放电
+    string wifi_ssid = 20; //wifi的ssid
+    string wifi_ip = 21; //移动电源自己wifi模块的ip
+    uint32 operation_reg = 22; //操作寄存器
+    uint32 lifetime = 23; //bq40z50的lifetime
+}
+
+message PpsHeartBeat
+{
+    subDeviceType device_type = 1;
+    firmwareRunningStatus firmware_running_status = 2;
+    string firmware_version_alias = 3;
+    fixed32 firmware_version = 4;
+    uint32 protobuf_version = 5;
+    fixed32 local_ms_time = 6;
+    PortableChargerHeartbeat portable_charger = 7;
+}
+
+message EncryptKey
+{
+    uint32 encrypt_type = 1; //0不加密 1 AES128加密 2 AES256加密
+    bytes encrypt_key = 2; //加密密钥
+    bytes encrypt_iv = 3; //加密向量
+}
+
+message RadioEncryptKey
+{
+    EncryptKey radio_key = 1;
+    EncryptKey rc_key = 2;
+}
+
+message RFparameters
+{
+    radioRegulatoryDomain rf_work_mode = 1; //射频工作模式(国家码)
+    repeated uint32 rf_tx_power_dbm = 2; //射频发射功率
+    uint32 rf_temperature = 3; //射频温度
+    repeated uint32 rf_max_fre = 4; //射频频率上限
+    repeated uint32 rf_min_fre = 5; //射频频率下限
+}
+
+message RadioStationRegulatoryDomain
+{
+    uint32 set_device_id = 1; //设置电台ID
+    repeated RFparameters set_rf_param = 2; //设置的射频参数
+}
+
+message rtkStationPosition
+{
+    uint32 device_id = 1; //基站ID
+    double latitude = 2; //纬度
+    double longitude = 3; //经度
+    double altitude = 4; //高度
+}
+
+message RadioButtonParam
+{
+    repeated uint32 long_click_time = 1; //单位ms 大于该时间为长按 小于该时间为短按；下标语义与long_click_button_mode一致
+    repeated uint32 long_click_button_mode = 2; //[0]两侧按钮共同长按 [1]左侧按钮长按 [2]右侧按钮长按；0 保留/无功能 1 返航 2 降落 3 坠落 4 暂停 5 飞机FTS 6 载荷FTS
+    repeated uint32 short_click_button_mode = 3; //短按功能
+}
+
+message radioStationR2HeartBeatExtend
+{
+    uint32 device_id = 1; //自身电台ID
+    RadioR2ErrorValue error_report = 2; //错误信息
+    string ethernet_ip = 3; //IP地址
+    uint32 battery_percentage = 4; //电量百分比 范围0-100
+    uint32 poe_voltage_mv = 5; //POE供电电压 单位mV 约为12V
+    uint32 charge_temperature = 6; //充电温度
+    uint32 gps_utc_time = 7; //UTC周时间
+    repeated rtkStationPosition radioGroupPosition = 8; //电台会收集其他从基站电台信息 从而发送整个电台组的位置
+    repeated RFparameters radio_rf_param = 9; //电台射频信息
+    RadioButtonParam button_param = 10; //自定义按键功能
+    uint32 encrypt_type = 11; //加密类型
+    uint32 translate_data_left_bytes = 12; //电台剩余转发字节数
+}
+
+message radioStationR2Heart
+{
+    subDeviceType device_type = 1; //为RADIO_R2_STATION_850M_930M 或RADIO_R2_STATION_2G4
+    firmwareRunningStatus firmware_running_status = 2; //电台运行状态 会有四种状态 1.normal 连接RTK 发射信号中 2.standby 未连接RTK 3.power off 电源按键未按下 4.emergency 报错
+    string firmware_version_alias = 3; //电台版本字符串
+    fixed32 firmware_version = 4; //电台版本
+    uint32 protobuf_version = 5; //protobuf 版本
+    fixed32 local_ms_time = 6; //本地tick时间
+    radioStationR2HeartBeatExtend radio_station_r2 = 7;
+}
+
+message RadioRFParamEcho
+{
+    fixed32 upper_frequency = 1; //频率上沿 最大中心频率加带宽频率的一半
+    fixed32 lower_frequency = 2; //频率下沿 最小中心频率减带宽频率的一半
+    fixed32 bandwide = 3; //单频点的频率带宽
+    uint32 frequency_channel_num = 4; //在设置频率范围内有多少个中心频点， (信道数)
+    float average_tx_power = 5; //平均射频发送功率  单位 dBm
+    uint32 send_duty_cycle = 6; //发送占空比 单位千分之一 0.1-100% , 当为0不显示该项
+}
+
+message RadioRFParamsEcho
+{
+    repeated RadioRFParamEcho rf_echo = 1;
+}
+
+message laserGimbalHeartExtend
+{
+    float temperature = 1; //温度 单位摄氏度
+    uint32 channel_status = 2; //通道状态 是否打开
+    float cur_roll = 3; //云台当前roll
+    float cur_pitch = 4; //云台当前pitch
+}
+
+message laserGimbalHeart
+{
+    subDeviceType device_type = 1;
+    firmwareRunningStatus running_status = 2; //云台运行状态 会有四种状态 1.normal 正常工作 2.standby 解算未收敛 3.updating 升级中 4.calibrating 校准中 5.emergency 报错
+    fixed32 firmware_version = 3; //版本号
+    uint32 protobuf_version = 4; //protobuf版本号
+    fixed32 local_ms_time = 5; //本地时间戳
+    laserGimbalHeartExtend gimbal_extend_status = 6; //云台扩展心跳包
+}
+
+message FirmwareInfo
+{
+    uint32 split_len = 1; //固件分包大小 即每个包多少字节
+    uint32 split_sum = 2; //固件分包总数
+    fixed32 firmware_version = 3; //固件版本
+    fixed32 firmware_len = 4; //固件长度
+    fixed32 hardware_code = 5; //固件硬件码
+    fixed32 firmware_address = 6; //固件运行地址
+    fixed32 firmware_param_address = 7; //固件参数地址
+    fixed32 firmware_write_address = 8; //固件写入地址
+    uint32 firmware_type = 9; //固件类型
+    uint32 security_info = 10; //加密等级
+    bytes firmware_sha256 = 11; //固件信息的sha256签名
+}
+
+message FirmwarePackage
+{
+    uint32 package_seq = 1; //分包序号
+    bytes firmware_data = 2; //分包内容
+}
+
+message DgcsControlPPS
+{
+    uint32 chg_disch_open = 1; //开启充放电0是保持默认，1是打开，2是关闭
+    uint32 fan_open = 2; //风扇开启0是保持默认，1是打开，2是关闭
+    uint32 heat_open = 3; //加热开启0是保持默认，1是打开，2是关闭
+    uint32 bazz_open = 4; //蜂鸣器开启0是保持默认，1是打开，2是关闭
+    uint32 ds_open = 5; //数码管开启0是保持默认，1是打开，2是关闭
+}

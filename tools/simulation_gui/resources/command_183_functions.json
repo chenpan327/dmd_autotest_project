@@ -1,0 +1,102 @@
+{
+  "_description": "COMMAND_LONG (msg_id=76) command=183 业务功能映射配置",
+  "_matching_rule": "按顺序匹配，首个满足全部 match 条件的条目生效。param 值为 float，匹配时比较 int(param)。约束越多越靠前。",
+  "command": 183,
+  "functions": [
+    {
+      "name": "关闭X1折叠灯/孔明灯 + 关闭爆闪",
+      "match": {"param7": 1, "param1": 0, "param2": 0, "param3": 0},
+      "note": "关灯指令，同时关闭孔明灯和爆闪"
+    },
+    {
+      "name": "点灯",
+      "match": {"param7": 1},
+      "param_desc": "param1=r, param2=g, param3=b",
+      "note": "rgb都是0时关灯"
+    },
+    {
+      "name": "点烟花",
+      "match": {"param7": 2},
+      "param_desc": "param1=channel (0-7)"
+    },
+    {
+      "name": "烟花检查",
+      "match": {"param7": 3, "param1": 1}
+    },
+    {
+      "name": "关闭烟花",
+      "match": {"param7": 3, "param1": 2}
+    },
+    {
+      "name": "激光颜色",
+      "match": {"param7": 4},
+      "param_desc": "param1=r, param2=g, param3=b, param4=channel(1-4)",
+      "note": "rgb都是0时关激光"
+    },
+    {
+      "name": "云台角度",
+      "match": {"param7": 5},
+      "param_desc": "param1=yaw, param2=roll, param3=pitch",
+      "note": "不再使用"
+    },
+    {
+      "name": "云台模式-锁定",
+      "match": {"param7": 6, "param1": 1},
+      "param_desc": "param4=channel(1-4)",
+      "note": "不再使用"
+    },
+    {
+      "name": "云台模式-跟随",
+      "match": {"param7": 6, "param1": 2},
+      "param_desc": "param4=channel(1-4)",
+      "note": "不再使用"
+    },
+    {
+      "name": "打开 X1折叠灯/孔明灯",
+      "match": {"param7": 7, "param1": 1},
+      "param_desc": "param2=power (0-8)"
+    },
+    {
+      "name": "打开爆闪",
+      "match": {"param7": 8, "param1": 1}
+    },
+    {
+      "name": "激光检查",
+      "match": {"param7": 9, "param1": 1},
+      "note": "飞控返回激光安装状态"
+    },
+    {
+      "name": "激光校准",
+      "match": {"param7": 9, "param1": 2},
+      "note": "执行激光校准"
+    },
+    {
+      "name": "云台角度-向量形式",
+      "match": {"param7": 10},
+      "param_desc": "param1=x, param2=y, param3=z, param4=channel(1-4)",
+      "note": "第二版云台激光需求"
+    },
+    {
+      "name": "云台舵机角度-角度形式",
+      "match": {"param7": 11},
+      "param_desc": "param1=angle1, param2=angle2, param4=channel(1-4)",
+      "note": "地面站激光负载"
+    },
+    {
+      "name": "高亮灯检查",
+      "match": {"param7": 12, "param1": 1},
+      "note": "高亮灯安装检查"
+    },
+    {
+      "name": "机巢点灯",
+      "match": {"param7": 13},
+      "param_desc": "param1=r, param2=g, param3=b, param4=灯珠索引(0-5)",
+      "note": "0xff表示点亮全部5个灯珠, 0-4表示点亮1-5其中一个灯珠"
+    },
+    {
+      "name": "折叠灯检查",
+      "match": {"param7": 14, "param1": 1},
+      "note": "折叠灯安装检查"
+    }
+  ]
+}

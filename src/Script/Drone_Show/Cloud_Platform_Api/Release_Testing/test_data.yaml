@@ -1,0 +1,817 @@
+defaults: &reg_code WV43210X0000
+
+
+# 地面站设备入库
+gdbc_device_inbound:
+  - index: 1
+    args:
+      data:
+        - registerCode: *reg_code
+          displayId: "1011"
+          status: 1
+
+    expected:
+      - [ "$.code", "eq", 200 ]
+      - [ "$.message", "contains", "success" ]
+
+# 获取待绑定设备
+bind_list:
+  - index: 1
+    args:
+      createBy: null
+
+    expected:
+      - [ "$.code", "eq", 200 ]
+      - [ "$.success","eq",true ]
+      - [ "$.result.records", "len_eq",1 ]
+      - [ "$.result.records[0].registerCode", "eq", *reg_code ]
+      - [ "$.result.records[0].id", "not_none" ]
+
+# 绑定设备
+bind_device:
+  - index: 1
+    args:
+      bindName: 基础模式-序列号绑定
+      warehouseId: B03
+      registerCodes: *reg_code
+      rfid: "000000000000000000000000"
+    expected:
+      - [ "$.code", "eq", 200 ]
+      - [ "$.success","eq",true ]
+      - [ "$.message","eq","operation successfully" ]
+
+# 编辑设备
+edit_device:
+  - index: 1
+    args:
+      status: 3
+      id: null
+      departmentId: A01
+      warehouseId: B03
+      registerCodes: *reg_code
+    expected:
+      - [ "$.code", "eq", 200 ]
+      - [ "$.success","eq",true ]
+      - [ "$.message","eq","edit successfully！" ]
+
+  - index: 2
+    args:
+      status: 3
+      id: null
+      departmentId: B43
+      warehouseId: C16
+      registerCodes: *reg_code
+    expected:
+      - [ "$.code", "eq", 200 ]
+      - [ "$.success","eq",true ]
+      - [ "$.message","eq","edit successfully！" ]
+  - index: 3
+    args:
+      status: 3
+      id: null
+      departmentId: A01
+      warehouseId: null
+      registerCodes: *reg_code
+    expected:
+      - [ "$.code", "eq", 200 ]
+      - [ "$.success","eq",true ]
+      - [ "$.message","eq","edit successfully！" ]
+
+# 查询设备
+search_device:
+  - index: 1
+    args:
+      registerCode: *reg_code
+      departmentId: A01
+      warehouseId: B03
+      status: 3
+    expected:
+      - [ "$.code", "eq", 200 ]
+      - [ "$.success","eq",true ]
+      - [ "$.result.records", "len_eq", 1 ]
+      - [ "$.result.records[0].registerCode", "eq", *reg_code ]
+      - [ "$.result.records[0].warehouseId", "eq", "B03" ]
+      - [ "$.result.records[0].status", "eq", 3 ]
+  - index: 2
+    args:
+      registerCode: *reg_code
+      departmentId: A01
+      status: 4
+    expected:
+      - [ "$.code", "eq", 200 ]
+      - [ "$.success","eq",true ]
+      - [ "$.result.records", "len_eq", 1 ]
+      - [ "$.result.records[0].registerCode", "eq", *reg_code ]
+      - [ "$.result.records[0].status", "eq", 4 ]
+      - [ "$.result.records[0].projectName","not_none" ]
+  - index: 3
+    args:
+      registerCode: *reg_code
+    expected:
+      - [ "$.code", "eq", 200 ]
+      - [ "$.success","eq",true ]
+      - [ "$.result.records", "len_eq", 1 ]
+      - [ "$.result.records[0].registerCode", "eq", *reg_code ]
+# 新建飞行项目
+add_project:
+  - index: 1
+    args:
+      projectName: null
+      expectedStartDate: null
+      expectedEndDate: null
+      address: test
+      longitude: 114.0224548
+      latitude: 22.6868664
+      projectDeviceRequireList:
+        - deviceType: "1"
+          quantity: 1
+    expected:
+      - [ "$.code", "eq", 200 ]
+      - [ "$.success","eq",true ]
+      - [ "$.message","eq","添加成功" ]
+# 搜索飞行项目
+search_project:
+  - index: 1
+    args:
+      projectName: null
+      status: 1
+      column: createTime
+      order: desc
+    expected:
+      - [ "$.code", "eq", 200 ]
+      - [ "$.success","eq",true ]
+      - [ "$.result.records", "len_gt",0 ]
+      - [ "$.result.records[0].id","not_none" ]
+
+# 新增自用订单
+add_self_order:
+  - index: 1
+    args:
+      projectName: null
+      projectId: null
+      name: auto_test_order
+      fromId: B03
+      from: 生产部
+      returnId: B03
+      returnName: 生产部
+      recipient: test
+      recipientPhone: "15100000000"
+      fromType: 0
+      rentTime: null
+      rentTimeEnd: null
+      uavEquipmentRentItemList:
+        - type: "2"
+          rentCount: 1
+    expected:
+      - [ "$.code", "eq", 200 ]
+      - [ "$.success","eq",true ]
+      - [ "$.message", "eq","创建成功" ]
+
+# 查询自用订单
+search_self_order:
+  - index: 1
+    args:
+      projectId: null
+    expected:
+      - [ "$.code", "eq", 200 ]
+      - [ "$.success","eq",true ]
+      - [ "$.result.records", "len_gt",0 ]
+      - [ "$.result.records[0].status","eq",1 ]
+      - [ "$.result.records[0].id","not_none" ]
+
+# 自用订单出库
+self_order_outbound:
+  - index: 1
+    args:
+      ids: null
+      devices:
+        - *reg_code
+    expected:
+      - [ "$.code", "eq", 200 ]
+      - [ "$.success","eq",true ]
+      - [ "$.result.statusName", "eq","已出库" ]
+      - [ "$.result.opType","eq",1 ]
+
+# 出入库记录
+in_out_record:
+  - index: 1
+    args:
+      stockOrderType: null
+    expected:
+      - [ "$.code", "eq", 200 ]
+      - [ "$.success","eq",true ]
+      - [ "$.result.records", "len_gt",0 ]
+# 自用订单入库
+self_order_inbound:
+  - index: 1
+    args:
+      returnWarehouseName: 生产部
+      returnTime: null
+      ids: null
+      devices:
+        - *reg_code
+    expected:
+      - [ "$.code", "eq", 200 ]
+      - [ "$.success","eq",true ]
+      - [ "$.result.statusName", "eq","已完成" ]
+      - [ "$.result.opType","eq",2 ]
+
+# 获取token接口
+get_token:
+  - index: 1
+    args:
+      username: kh2
+      password: 1
+    expected:
+      - [ "$.code", "eq", 200 ]
+      - [ "$.data.token", "not_none" ]
+      - [ "$.message", "contains", "success" ]
+
+# 查询租借资源
+search_rent_source:
+  - index: 1
+    args:
+      warehouseId: C16
+      type: 2
+    expected:
+      - [ "$.code", "eq", 200 ]
+      - [ "$.success", "eq", true ]
+
+# 上架租借资源
+add_rent_source:
+  - index: 1
+    args:
+      warehouseId: C16
+      warehouseName: 测试2
+      type: "2"
+      rentalCount: 1
+    expected:
+      - [ "$.code", "eq", 200 ]
+      - [ "$.success", "eq", true ]
+      - [ "$.result", "eq", "add successfully！" ]
+
+# 租借设备价格计算
+calculate_price:
+  - index: 1
+    args:
+      rentTime: null
+      rentTimeEnd: null
+    jsonpath_args:
+      - [ "$.uavEquipmentRentItemList[0].type", '2' ]
+      - [ "$.uavEquipmentRentItemList[0].rentCount", 1 ]
+    expected:
+      - [ "$.code", "eq", 200 ]
+      - [ "$.success","eq",true ]
+      - [ "$.result.items[0].type", "eq","2" ]
+      - [ "$.result.amount", "eq",170.00 ]
+
+# 新增租借订单
+add_rent_order:
+  - index: 1
+    args:
+      projectId: null
+      projectName: null
+      name: rent_test_order
+      departmentRent: A01
+      address: test
+      lon: 114.0224548
+      lat: 22.6868664
+      rentTime: null
+      rentTimeEnd: null
+      customerRent: B43
+      phoneRent: "15111111111"
+    jsonpath_args:
+      - [ "$.uavEquipmentRentItemList[0].type", '2' ]
+      - [ "$.uavEquipmentRentItemList[0].rentCount", 1 ]
+    expected:
+      - [ "$.success", "eq", true ]
+      - [ "$.code", "eq", 200 ]
+
+search_rent_order:
+  - index: 1
+    args:
+      projectId: null
+    expected:
+      - [ "$.success", "eq", true ]
+      - [ "$.code", "eq", 200 ]
+      - [ "$.result.records[0].status","eq", 1 ]
+
+detail_rent_order:
+  - index: 1
+    args:
+      id: null
+    expected:
+      - [ "$.success", "eq", true ]
+      - [ "$.code", "eq", 200 ]
+      - [ "$.result.status","eq", 1 ]
+
+confirm_rent_order:
+  - index: 1
+    args:
+      status: 3
+      phone: "15100000000"
+      returnId: C16
+      returnName: 测试2
+    expected:
+      - [ "$.success", "eq", true ]
+      - [ "$.code", "eq", 200 ]
+      - [ "$.message","eq","edit successfully！" ]
+
+rent_out_outbound:
+  - index: 1
+    args:
+      ids: null
+      devices:
+        - *reg_code
+    expected:
+      - [ "$.success", "eq", true ]
+      - [ "$.code", "eq", 200 ]
+      - [ "$.result.opType","eq",3 ]
+      - [ "$.result.statusName","eq","运输中" ]
+
+rent_in_inbound:
+  - index: 1
+    args:
+      ids: null
+      devices:
+        - *reg_code
+    expected:
+      - [ "$.success", "eq", true ]
+      - [ "$.code", "eq", 200 ]
+      - [ "$.result.opType","eq",4 ]
+      - [ "$.result.statusName","eq","使用中" ]
+
+rent_in_outbound:
+  - index: 1
+    args:
+      ids: null
+      devices:
+        - *reg_code
+    expected:
+      - [ "$.success", "eq", true ]
+      - [ "$.code", "eq", 200 ]
+      - [ "$.result.opType","eq",5 ]
+      - [ "$.result.statusName","eq","归还运输中" ]
+
+rent_out_inbound:
+  - index: 1
+    args:
+      returnWarehouseName: 测试2
+      returnTime: null
+      ids: null
+      devices:
+        - *reg_code
+    expected:
+      - [ "$.success", "eq", true ]
+      - [ "$.code", "eq", 200 ]
+      - [ "$.result.opType","eq",6 ]
+      - [ "$.result.statusName","eq","已归还" ]
+
+delete_device:
+  - index: 1
+    args:
+      id: null
+    expected:
+      - [ "$.success", "eq", true ]
+      - [ "$.code", "eq", 200 ]
+      - [ "$.message","eq","delete successfully！" ]
+
+flight_project_dashboard:
+  - index: 1
+    args:
+      projectId: null
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.result.returnSelfDeviceNum","eq",1 ]
+      - [ "$.result.returnRentDeviceNum","eq",1 ]
+
+equipment_out_item:
+  - index: 1
+    args:
+      projectId: null
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.result.records","len_gt",0 ]
+      - [ "$.result.records[0].outType","eq",1 ]
+      - [ "$.result.records[1].outType","eq",0 ]
+
+edit_project:
+  - index: 1
+    args:
+      id: null
+      status: 2
+    expected:
+      - [ "$.success","eq",false ]
+      - [ "$.code","eq",500 ]
+      - [ "$.message","eq","当前项目下存在未完结的订单，请核实后再试" ]
+
+warehouse_list:
+  - index: 1
+    args:
+      name: null
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.result.records","len_gt", 0 ]
+
+inventory_task_add:
+  - index: 1
+    args:
+      warehouseId: null
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.message","添加成功！", 0 ]
+
+inventory_task_list:
+  - index: 1
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.result.records[0].status","eq",0 ]
+
+start_inventory_task:
+  - index: 1
+    args:
+      id: null
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.message","contains","盘点任务开始成功" ]
+
+commit_devices_data:
+  - index: 1
+    args:
+      devices: '[{"registerCode":"WV43210X0000"}]'
+      id: null
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.message","eq","盘点数据提交成功" ]
+
+finish_inventory_task:
+  - index: 1
+    args:
+      id: null
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.message","eq","盘点任务完成成功" ]
+
+query_record_list:
+  - index: 1
+    args:
+      taskId: null
+      isActualList: 1
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.result.records","len_gt",0 ]
+      - [ "$.result.records[0].sn","eq",*reg_code ]
+  - index: 2
+    args:
+      taskId: null
+      isSystemList: 1
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.result.records","len_gt",0 ]
+      - [ "$.result.records[0].sn","eq",*reg_code ]
+
+get_inventory_adjustment:
+  - index: 1
+    args:
+      id: null
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.result.resultTypeName","eq","账实相符" ]
+      - [ "$.result.resultType","eq",3 ]
+
+create_inventory_adjustment:
+  - index: 1
+    args:
+      id: null
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.message","eq","库存调整单创建成功" ]
+
+rating_type_list:
+  - index: 1
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.result","len_gt",0 ]
+
+rating_icon_list:
+  - index: 1
+    args:
+      ratingTypeId: null
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.result","len_gt",0 ]
+
+add_rating_level:
+  - index: 1
+    args:
+      name: 测试飞手等级
+      ratingTypeId: null
+      icon: null
+      requirement: "测试飞手等级"
+      remark: test
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.message","eq","add successfully！" ]
+
+rating_level_list:
+  - index: 1
+    args:
+      name: 测试飞手等级
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.result.records","len_gt",0 ]
+
+add_rating_user:
+  - index: 1
+    args:
+      startDate: null
+      endDate: null
+      ratingTypeId: null
+      name: CI
+      username: CI
+      orgCode: A01
+      ratingLevelId: null
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.message","eq","add successfully！" ]
+
+rating_user_list:
+  - index: 1
+    args:
+      name: CI
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.result.records","len_gt",0 ]
+
+add_flyer_cost:
+  - index: 1
+    args:
+      ratingLevelId: null
+      price: 100
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.message","eq","add successfully！" ]
+
+user_resource_list:
+  - index: 1
+    args:
+      name: CI
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.result.records","len_gt",0 ]
+
+change_rent_flag:
+  - index: 1
+    args:
+      id: null
+      ratingId: null
+      rentFlag: 1
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.message","eq","edit successfully！" ]
+
+calculate_flyer_cost:
+  - index: 1
+    args:
+      startDay: null
+      endDay: null
+      resourceId: null
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.result.commonDetails[0].subtotal","eq",500.0 ]
+
+create_flyer_order:
+  - index: 1
+    args:
+      userResourceId: null
+      projectId: "1958352522325282818"
+      startDay: null
+      endDay: null
+      address: 1
+      phone: "15111111111"
+      deviceNumber: 200
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.message","eq","下单成功，可前往【订单列表】中查看订单进度" ]
+
+flyer_order_list:
+  - index: 1
+    args:
+      name: CI
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ '$.result.records[0].status','eq',0 ]
+
+confirm_flyer_order:
+  - index: 1
+    args:
+      id: null
+      userResourceId: null
+      finalPrice: 500
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.message","eq","确认成功" ]
+
+update_flyer_order:
+  - index: 1
+    args:
+      id: null
+      operationType: 1
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.message","eq","操作成功" ]
+  - index: 2
+    args:
+      id: null
+      operationType: 2
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.message","eq","操作成功" ]
+
+send_repair:
+  - index: 1
+    args:
+      projectId: null
+      projectName: null
+    jsonpath_args:
+      - [ "$.breakdownRecords[0].deviceId", *reg_code ]
+      - [ "$.breakdownRecords[0].displayId","1011" ]
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.message","eq","操作成功" ]
+      - [ "$.result.status","eq",0 ]
+
+update_repair_site:
+  - index: 1
+    args:
+      orderId: null
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.message","eq","修改成功" ]
+
+update_repair_status:
+  - index: 1
+    args:
+      orderId: null
+      deviceIds:
+        - *reg_code
+      status: 2
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.message","eq","成功操作1台设备" ]
+  - index: 2
+    args:
+      orderId: null
+      deviceIds:
+        - *reg_code
+      status: 3
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.message","eq","成功操作1台设备" ]
+  - index: 3
+    args:
+      orderId: null
+      deviceIds:
+        - *reg_code
+      status: 4
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.message","eq","成功操作1台设备" ]
+
+upload_darma_jsdm:
+  - index: 1
+    args:
+      file: C:\workspace\code\dmd_autotest_project\file\JSDM\1.jsdm
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.message","eq","上传成功" ]
+
+add_drama_material:
+  - index: 1
+    args:
+      type: jsdm
+      url: null
+      deviceNumber: 200
+      defaultModel: V4
+      keywords: null
+      imageUrl: null
+      downloadUrl: null
+      deviceCountDetails:
+        - type: "31"
+          count: 200
+      fileId: null
+      name: test
+      fileName: "1.jsdm"
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.message","eq","add successfully！" ]
+
+list_drama_material:
+  - index: 1
+    args:
+      name: test
+      keywords: null
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.result.records","len_gt",0 ]
+      - [ "$.result.records[0].status","eq",0 ]
+
+change_material_status:
+  - index: 1
+    args:
+      id: null
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.message","eq","edit successfully！" ]
+
+delete_drama_material:
+  - index: 1
+    args:
+      id: null
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+
+add_dispatch_order:
+  - index: 1
+    args:
+      orderName: test
+      expectedDispatchDate: null
+      dispatchWarehouseId: B03
+      dispatchWarehouseName: 生产部
+      intoWarehouseId: C16
+      intoWarehouseName: 测试2
+      returnType: 1
+      details:
+        - deviceType: '2'
+          requiredCount: 1
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.message","eq","add successfully！" ]
+
+list_dispatch_order:
+  - index: 1
+    args:
+      orderName: test
+      pageNo: 1
+      pageSize: 10
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+      - [ "$.result.records", "len_gt",0 ]
+
+outbound_dispatch_devices:
+  - index: 1
+    args:
+      ids: null
+      devices: [ *reg_code ]
+    expected:
+      - [ "$.success","eq",true ]
+      - [ "$.code","eq",200 ]
+
+return_dispatch_devices:
+  - index: 1
+    args:
+      devices:
+        - *reg_code
+      returnWarehouseId: B03
+      expected:
+        - [ "$.success","eq",true ]
+        - [ "$.code","eq",200 ]

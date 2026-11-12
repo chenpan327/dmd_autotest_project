@@ -1,0 +1,32 @@
+logs/
+__pycache__/
+.pytest_cache/
+allure-results/
+allure-history/
+allure-report
+tools/platform-tools-adb/
+.idea/
+.venv/
+file/picture/*
+file/picture/.gitkeep
+file/gif/*
+file/gif/.gitkeep
+file/doc/*
+.qwen
+.claude/
+*.tmp
+**/agent.jar
+@AutomationLog.txt
+**/jarCache/
+# Debug files
+Debug_Scene_*.txt
+AlgLog/
+activate.ps1
+# 调试脚本（手动排查用，不入库）
+debug_*
+param_dump_*.txt
+# Common_Testing 通用测试库（个人维护，不入库）
+Script/Drone_Show/X1/Functional_Testing/Common_Testing/
+# Simulation GUI local artifacts
+tools/simulation_gui/output/
+tools/simulation_gui/tests/

@@ -1,0 +1,10 @@
+<service>
+  <id>JenkinsAgent-10.10.4.176</id>
+  <name>Jenkins Agent (10.10.4.176)</name>
+  <description>Jenkins Agent for node 10.10.4.176</description>
+  <executable>C:\Program Files\Java\jdk-25\bin\java.exe</executable>
+  <arguments>-jar "D:\workspace\code\dmd_autotest_project\tools\java-agent\agent.jar" -url http://10.10.2.25:8080/ -secret c0a0190e474992797da7456f37e0ffccb5c7dc939e8b49a32f6d14c6f4c5c37e -name "10.10.4.176" -webSocket -workDir "D:\workspace\code\dmd_autotest_project"</arguments>
+  <logpath>D:\workspace\code\dmd_autotest_project\tools\java-agent\logs</logpath>
+  <logmode>rotate</logmode>
+  <startmode>Automatic</startmode>
+</service>

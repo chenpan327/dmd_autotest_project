@@ -1,0 +1,710 @@
+{
+  "mavlink_version": "44",
+  "V4": {
+    "ip": "172.17.0.111",
+    "port": 14551,
+    "serial_port": "COM14",
+    "wifi_serial_port": "",
+    "serial_baudrate": 115200,
+    "wifi_serial_baudrate": 921600,
+    "serial_timeout": 15,
+    "buffer_size": 1024,
+    "connect_timeout": 10,
+    "max_velocity_threshold": 0.1,
+    "expected_velocity_count": 4,
+    "command_timeout": 3.0,
+    "system_stabilize_delay": 1.0,
+    "mavlink_version": 44,
+    "testsuites": {
+      "Release_Testing": {
+        "script": [
+          "test_release_testcases.py"
+        ]
+      },
+      "Change_Testing": {
+        "script": []
+      },
+      "Functional_Testing": {
+        "script": []
+      },
+      "Performance_Testing": {
+        "script": []
+      },
+      "Unit_Module_Testing": {
+        "script": []
+      }
+    }
+  },
+  "L5": {
+    "ip": "",
+    "port": 14551,
+    "serial_port": "COM7",
+    "wifi_serial_port": "",
+    "serial_baudrate": 115200,
+    "wifi_serial_baudrate": 921600,
+    "serial_timeout": 15,
+    "buffer_size": 1024,
+    "connect_timeout": 10,
+    "max_velocity_threshold": 0.1,
+    "expected_velocity_count": 4,
+    "command_timeout": 3.0,
+    "system_stabilize_delay": 1.0,
+    "mavlink_version": 41,
+    "testsuites": {
+      "Release_Testing": {
+        "script": []
+      },
+      "Change_Testing": {
+        "script": []
+      },
+      "Functional_Testing": {
+        "script": []
+      },
+      "Performance_Testing": {
+        "script": []
+      },
+      "Unit_Module_Testing": {
+        "script": []
+      }
+    }
+  },
+  "V41": {
+    "ip": "172.21.146.246",
+    "port": 14551,
+    "serial_port": "COM4",
+    "wifi_serial_port": "",
+    "serial_baudrate": 115200,
+    "wifi_serial_baudrate": 921600,
+    "serial_timeout": 15,
+    "buffer_size": 1024,
+    "connect_timeout": 10,
+    "max_velocity_threshold": 0.1,
+    "expected_velocity_count": 4,
+    "command_timeout": 3.0,
+    "system_stabilize_delay": 1.0,
+    "mavlink_version": 41,
+    "testsuites": {
+      "Release_Testing": {
+        "script": [
+          "test_release_testcases.py"
+        ]
+      },
+      "Change_Testing": {
+        "script": []
+      },
+      "Functional_Testing": {
+        "script": []
+      },
+      "Performance_Testing": {
+        "script": []
+      },
+      "Unit_Module_Testing": {
+        "script": []
+      }
+    }
+  },
+  "V3": {
+    "ip": "",
+    "port": 0,
+    "serial_port": "COM7",
+    "wifi_serial_port": "",
+    "serial_baudrate": 115200,
+    "wifi_serial_baudrate": 921600,
+    "serial_timeout": 15,
+    "buffer_size": 1024,
+    "connect_timeout": 10,
+    "max_velocity_threshold": 0.1,
+    "expected_velocity_count": 4,
+    "command_timeout": 3.0,
+    "system_stabilize_delay": 1.0,
+    "mavlink_version": 41,
+    "testsuites": {
+      "Release_Testing": {
+        "script": []
+      },
+      "Change_Testing": {
+        "script": []
+      },
+      "Functional_Testing": {
+        "script": []
+      },
+      "Performance_Testing": {
+        "script": []
+      },
+      "Unit_Module_Testing": {
+        "script": []
+      }
+    }
+  },
+  "L3": {
+    "ip": "172.19.245.58",
+    "port": 14551,
+    "serial_port": "COM7",
+    "wifi_serial_port": "",
+    "serial_baudrate": 115200,
+    "wifi_serial_baudrate": 921600,
+    "serial_timeout": 15,
+    "buffer_size": 1024,
+    "connect_timeout": 10,
+    "max_velocity_threshold": 0.1,
+    "expected_velocity_count": 4,
+    "command_timeout": 3.0,
+    "system_stabilize_delay": 1.0,
+    "mavlink_version": 44,
+    "testsuites": {
+      "Release_Testing": {
+        "script": [
+          "test_mavlink_heartbeat.py",
+          "test_mavlink_identify_info.py",
+          "test_mavlink_led_control.py",
+          "test_release_testcases.py",
+          "test_serial_protocol.py",
+          "test_topic_data.py"
+        ]
+      },
+      "Change_Testing": {
+        "script": []
+      },
+      "Functional_Testing": {
+        "script": []
+      },
+      "Performance_Testing": {
+        "script": []
+      },
+      "Unit_Module_Testing": {
+        "script": []
+      }
+    }
+  },
+  "X1": {
+    "ip": "172.19.210.29",
+    "port": 14551,
+    "serial_port": "COM3",
+    "wifi_serial_port": "",
+    "serial_baudrate": 115200,
+    "wifi_serial_baudrate": 921600,
+    "serial_timeout": 15,
+    "buffer_size": 1024,
+    "connect_timeout": 10,
+    "max_velocity_threshold": 0.1,
+    "expected_velocity_count": 4,
+    "command_timeout": 3.0,
+    "system_stabilize_delay": 1.0,
+    "mavlink_version": 44,
+    "testsuites": {
+      "Release_Testing": {
+        "script": [
+          "test_mavlink_cli.py"
+        ]
+      },
+      "Change_Testing": {
+        "script": []
+      },
+      "Functional_Testing": {
+        "script": [
+          "test_fc_gcs01_heartbeat.py",
+          "test_fc_gcs02_status.py",
+          "test_fc_gcs03_arm.py",
+          "test_fc_gcs04_failsafe.py",
+          "test_fc_gcs05_mode.py",
+          "test_fc_gcs13_led.py",
+          "test_fc_gcs14_param.py",
+          "test_fc_gcs15_calibration.py",
+          "test_fc_gcs16_log.py",
+          "test_fc_gcs18_standby.py",
+          "test_fc_gcs19_rtcm.py",
+          "test_fc_gcs23_terminal.py",
+          "test_fc_gcs26_cli.py",
+          "test_autopilot_net.py"
+        ]
+      },
+      "Performance_Testing": {
+        "script": []
+      },
+      "Unit_Module_Testing": {
+        "script": []
+      }
+    }
+  },
+  "INDV1": {
+    "acore_ip": "172.16.0.2",
+    "port": 22,
+    "sophon_jump": "root@10.10.12.136",
+    "console_com_map": {
+      "J6_Acore": "COM9",
+      "J6_Acore_baudrate": 921600,
+      "J6_MCU": "COM11",
+      "J6_MCU_baudrate": 921600,
+      "CV186": "COM6",
+      "CV186_baudrate": 115200,
+      "serial_user": "root",
+      "serial_passwd": "root"
+    },
+    "ssh_user": "root",
+    "ssh_passwd": "",
+    "adb_serial": "",
+    "expected_boardid": "",
+    "expected_i2c8_claimed": [
+      "48",
+      "49"
+    ],
+    "expected_i2c8_present": [
+      "2f"
+    ],
+    "fc_uart_dev": "/dev/fc-uart",
+    "board_test_bin": "/usr/hobot/bin/dmd_board_test",
+    "ipc_pwm_test_enabled": false,
+    "ipc_can_test_enabled": false,
+    "ipc_loopback_test_enabled": false,
+    "mcu_proxy_enabled": false,
+    "adsb_enabled": false,
+    "testsuites": {
+      "Release_Testing": {
+        "script": []
+      },
+      "Change_Testing": {
+        "script": []
+      },
+      "Functional_Testing": {
+        "script": []
+      },
+      "Performance_Testing": {
+        "script": []
+      },
+      "Unit_Module_Testing": {
+        "script": []
+      }
+    }
+  },
+  "Wifi_Module": {
+    "mavlink_version": "41",
+    "serial_port": "COM10",
+    "serial_baudrate": 921600,
+    "serial_fc_port": "",
+    "serial_fc_baudrate": 3000000,
+    "serial_timeout": 0.5,
+    "command_timeout": 15,
+    "ftp_host": "172.16.0.100",
+    "ftp_user": "root",
+    "ftp_passwd": "onioneer",
+    "mavlink_target_ip": "172.16.0.200",
+    "mavlink_target_port": 14551,
+    "test_ssid": "dmdtest",
+    "test_ssid_alt": "d100",
+    "test_gateway": "172.16.201.1",
+    "test_ip_alternate": "172.16.0.201",
+    "test_ip_alternate_full": "172.16.0.101",
+    "gcs_local_ip": "172.16.200.1",
+    "gcs_local_port": 14550,
+    "uav_power_supply_type": "fake",
+    "testsuites": {
+      "Release_Testing": {
+        "script": [
+          "test_wifi_auto_recovery.py",
+          "test_wifi_firmware_alternating_upgrade.py",
+          "test_wifi_ftp_transfer.py",
+          "test_wifi_gcs_command_handling.py",
+          "test_wifi_info_system_status.py",
+          "test_wifi_iperf_throughput.py",
+          "test_wifi_mavlink_extra_commands.py",
+          "test_wifi_mavlink_heartbeat_passthrough.py",
+          "test_wifi_mavlink_protocol_handshake.py",
+          "test_wifi_network_config.py",
+          "test_wifi_sd_network_performance.py",
+          "test_wifi_stress_aging.py",
+          "test_wifi_upgrade_failure.py"
+        ]
+      },
+      "Change_Testing": {
+        "script": []
+      },
+      "Functional_Testing": {
+        "script": []
+      },
+      "Performance_Testing": {
+        "script": []
+      },
+      "Unit_Module_Testing": {
+        "script": []
+      }
+    }
+  },
+  "Cloud_Platform_Api": {
+    "domain": "https://cloud-gateway-uat.dmduav.com",
+    "test_user": "alan",
+    "test_pwd": "dmd@2025",
+    "testsuites": {
+      "Release_Testing": {
+        "script": [
+          "test_web_api.py"
+        ]
+      },
+      "Change_Testing": {
+        "script": []
+      },
+      "Functional_Testing": {
+        "script": []
+      },
+      "Performance_Testing": {
+        "script": []
+      },
+      "Unit_Module_Testing": {
+        "script": [
+          "test_api_unit.py"
+        ]
+      }
+    }
+  },
+  "Cloud_Platform_Ui": {
+    "base_url": "https://cloud-uat.dmduav.com/index",
+    "api_url": "https://cloud-gateway-uat.dmduav.com",
+    "key": "1629428467008",
+    "test_user": "alan",
+    "test_pwd": "dmd@2025",
+    "testsuites": {
+      "Release_Testing": {
+        "script": [
+          "test_after_sales.py",
+          "test_devices_center.py",
+          "test_ground_control.py",
+          "test_production_center.py",
+          "test_service_center.py"
+        ]
+      },
+      "Change_Testing": {
+        "script": []
+      },
+      "Functional_Testing": {
+        "script": []
+      },
+      "Performance_Testing": {
+        "script": []
+      },
+      "Unit_Module_Testing": {
+        "script": []
+      }
+    }
+  },
+  "Ground_Station": {
+    "version": "DGCS_3be819d9_4.0.9631.20963",
+    "client_ip": "172.16.200.1",
+    "client_port": 14550,
+    "heartbeat_interval": 3,
+    "reconnect_times": 3,
+    "app_path": "C:\\Program Files\\DGCS\\4.0\\DGCS.exe",
+    "user_name": "CI",
+    "login_passwd": "dmdfighting!",
+    "drama3_file_path": "file\\drama_files\\0422-L10P2.drm",
+    "dat_file_path": "file/dat_files/L10P2.txt",
+    "testsuites": {
+      "Release_Testing": {
+        "script": [
+          "test_dgcs_business.py",
+          "test_drama_compare.py",
+          "test_drama_mission.py",
+          "test_drone_light.py",
+          "test_drone_ota.py",
+          "test_ground_station.py",
+          "test_mavlink_fake_airplane.py",
+          "test_wind_speed_warning.py"
+        ]
+      },
+      "Change_Testing": {
+        "script": []
+      },
+      "Functional_Testing": {
+        "script": []
+      },
+      "Performance_Testing": {
+        "script": []
+      },
+      "Unit_Module_Testing": {
+        "script": []
+      }
+    }
+  },
+  "Swarm_Painter": {
+    "file_name": "file/drama/L3随机爆闪.drm",
+    "testsuites": {
+      "Release_Testing": {
+        "script": [
+          "test_algo_ai_conversion.py",
+          "test_algo_basic.py",
+          "test_algo_collision.py",
+          "test_algo_file_ops.py",
+          "test_algo_matching.py",
+          "test_algo_path_finding.py",
+          "test_algo_safety_check.py",
+          "test_algo_takeoff_land.py",
+          "test_drama_info.py",
+          "test_drama_reader.py"
+        ]
+      },
+      "Change_Testing": {
+        "script": []
+      },
+      "Functional_Testing": {
+        "script": []
+      },
+      "Performance_Testing": {
+        "script": []
+      },
+      "Unit_Module_Testing": {
+        "script": []
+      }
+    }
+  },
+  "SwarmPainter_Ui": {
+    "app_path": "C:\\Program Files (x86)\\SwarmPainter\\SwarmPainter.exe",
+    "user_name": "alan",
+    "login_passwd": "dmd@2025",
+    "testsuites": {
+      "Release_Testing": {
+        "script": [
+          "test_create_drame.py"
+        ]
+      },
+      "Change_Testing": {
+        "script": []
+      },
+      "Functional_Testing": {
+        "script": []
+      },
+      "Performance_Testing": {
+        "script": []
+      },
+      "Unit_Module_Testing": {
+        "script": []
+      }
+    }
+  },
+  "MavLink": {
+    "old-version": "file\\mavlink_version\\mavlink_config_v42.json",
+    "new-version": "file\\mavlink_version\\mavlink_config_v44.json",
+    "testsuites": {
+      "Release_Testing": {
+        "script": [
+          "test_mavlink_config_comparison.py"
+        ]
+      },
+      "Change_Testing": {
+        "script": []
+      },
+      "Functional_Testing": {
+        "script": []
+      },
+      "Performance_Testing": {
+        "script": []
+      },
+      "Unit_Module_Testing": {
+        "script": []
+      }
+    }
+  },
+  "Nest_Module": {
+    "mavlink_version": "41",
+    "nest_ip": "172.16.2.196",
+    "ssh_port": 22,
+    "ssh_user": "root",
+    "ssh_passwd": "szdamoda",
+    "debug_serial_port": "COM8",
+    "debug_serial_baudrate": 115200,
+    "adb_serial": "",
+    "nest_adb_enabled": false,
+    "sftp_user": "root",
+    "sftp_passwd": "szdamoda",
+    "eth_iface": "eth0",
+    "eth_netmask": "255.240.0.0",
+    "gcs_local_ip": "172.16.200.1",
+    "gcs_local_port": 14550,
+    "nest_mavlink_port": 14651,
+    "pps_udp_port": 14652,
+    "charge_udp_port": 14653,
+    "uart_devs": [
+      "ttyACM2",
+      "ttyACM3",
+      "ttyS3",
+      "ttyS4",
+      "ttyS5"
+    ],
+    "nest_processes": [
+      "gateWay",
+      "ppsManager",
+      "chargeCtrl"
+    ],
+    "baseline_ip": "172.16.2.196",
+    "alternate_ip": "172.16.2.197",
+    "userdata_path": "/userdata",
+    "play_path": "/userdata/play",
+    "update_img_path": "/userdata/update.img",
+    "log_path_gateWay": "/userdata/logs/gateWay",
+    "log_path_chargeCtrl": "/userdata/logs/chargeCtrl",
+    "log_path_ppsManager": "/userdata/logs/ppsManager",
+    "config_path": "/userdata/config",
+    "camera_http_port": 8080,
+    "df_userdata_min_mb": 50,
+    "df_sdcard_min_gb": 1,
+    "cpu_max_percent": 80,
+    "disk_usage_warn_percent": 80,
+    "aging_loop_count": 30,
+    "aging_mem_drop_max_percent": 5,
+    "testsuites": {
+      "Release_Testing": {
+        "script": [
+          "test_nest_system_config.py",
+          "test_nest_mavlink_passthrough.py",
+          "test_nest_command_routing.py",
+          "test_nest_sn_query.py",
+          "test_nest_sftp_transfer.py",
+          "test_nest_firmware_upgrade.py",
+          "test_nest_log_fetch.py",
+          "test_nest_control.py",
+          "test_nest_info_query.py",
+          "test_nest_stress_aging.py"
+        ]
+      },
+      "Change_Testing": {
+        "script": []
+      },
+      "Functional_Testing": {
+        "script": []
+      },
+      "Performance_Testing": {
+        "script": []
+      },
+      "Unit_Module_Testing": {
+        "script": []
+      }
+    }
+  },
+  "Radio": {
+    "radio_serial_port": "COM11",
+    "radio_serial_baudrate": 460800,
+    "radio_udp_host": "172.20.0.76",
+    "radio_udp_port": 14555,
+    "radio_udp_local_port": 14555,
+    "radio_udp_enroll_timeout": 15.0,
+    "radio_latency_repeat": 20,
+    "radio_latency_combined_duration": 20,
+    "radio_heartbeat_samples": 10,
+    "radio_sustained_duration": 20,
+    "radio_deadlock_duration": 30,
+    "radio_deadlock_max_wait": 60.0,
+    "radio_drop_off_max_wait": 60.0,
+    "rtk_serial_port": "COM4",
+    "rtk_serial_baud": 115200,
+    "rtk_send_interval": 1.0,
+    "testsuites": {
+      "Release_Testing": {
+        "script": [
+          "test_radio_latency_udp.py",
+          "test_radio_enrollment_udp.py",
+          "test_radio_deadlock_regression.py",
+          "test_radio_latency.py"
+        ]
+      },
+      "Change_Testing": {
+        "script": []
+      },
+      "Functional_Testing": {
+        "script": []
+      },
+      "Performance_Testing": {
+        "script": []
+      },
+      "Unit_Module_Testing": {
+        "script": []
+      }
+    }
+  },
+  "TSMaster": {
+    "bin64_path": "C:/Program Files (x86)/TOSUN/TSMaster/bin64",
+    "app_name": "TSMaster",
+    "can_channel_count": 1,
+    "can_baudrate_kbps": 500,
+    "canfd_arb_baudrate_kbps": 500,
+    "canfd_data_baudrate_kbps": 2000,
+    "listen_only": false,
+    "install_term_resistor_120ohm": false,
+    "hw_name": "",
+    "hw_type": 0,
+    "hw_sub_type": 0,
+    "hw_index": 0,
+    "hw_channel_index": 0,
+    "dbc_path": "",
+    "monitor_signals": []
+  },
+  "hope_stm32h743vit6": {
+    "port1": "COM13",
+    "baud1": 115200,
+    "uartx": 1,
+    "seed": 20260909,
+    "soak_seconds": 60,
+    "testsuites": {
+      "UART": {
+        "script": [
+          "test_uart_send.py",
+          "test_uart_recv.py",
+          "test_uart_duplex.py",
+          "test_uart_loop.py",
+          "test_uart_stat.py",
+          "test_uart_baud.py",
+          "test_uart_random.py",
+          "test_uart_error.py"
+        ]
+      },
+      "SPI": {
+        "script": []
+      },
+      "I2C": {
+        "script": []
+      },
+      "CAN": {
+        "script": []
+      },
+      "PWM": {
+        "script": []
+      },
+      "Release_Testing": {
+        "script": []
+      },
+      "Change_Testing": {
+        "script": []
+      },
+      "Functional_Testing": {
+        "script": []
+      },
+      "Performance_Testing": {
+        "script": []
+      },
+      "Unit_Module_Testing": {
+        "script": []
+      }
+    },
+    "port2": "COM12"
+  },
+  "RDKS100": {
+    "testsuites": {
+      "Release_Testing": {
+        "script": []
+      },
+      "Change_Testing": {
+        "script": []
+      },
+      "Functional_Testing": {
+        "script": [
+          "test_indv1_linux_bsp_s100_flow.py",
+          "test_indv1_linux_bsp_s100_ddr.py",
+          "test_indv1_linux_bsp_s100_ipc.py",
+          "test_indv1_linux_bsp_s100_cpu.py"
+        ]
+      },
+      "Performance_Testing": {
+        "script": []
+      },
+      "Unit_Module_Testing": {
+        "script": []
+      }
+    }
+  }
+}

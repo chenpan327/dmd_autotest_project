@@ -1,0 +1,19 @@
+{
+  "login": [
+    {
+      "usr": "alan1",
+      "pwd": "Aa123456",
+      "expected": "请联系管理员授权"
+    },
+    {
+      "usr": "alan1",
+      "pwd": "dmdfighting!！",
+      "expected": "用户名或密码错误"
+    },
+    {
+      "usr": "CI",
+      "pwd": "dmdfighting!",
+      "expected": "授权有效期只有：3天, 请联系管理员授权"
+    }
+  ]
+}

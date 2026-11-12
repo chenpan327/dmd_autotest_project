@@ -1,0 +1,29 @@
+# allure-plugin.yml（YAML 格式，注意缩进！）
+id: custom-logo-plugin  # 插件ID，必须唯一
+name: Custom Logo Plugin  # 插件名称
+description: Replace Allure default logo with custom one  # 描述
+resources:
+  # 声明静态资源：指向 static 下的 logo.svg
+  - path: static/logo.svg  # 自定义 Logo 路径
+    target: static/logo.svg  # 输出路径（无需改）
+  # 可选：添加 favicon.ico 替换浏览器标签页图标
+  - path: static/favicon.ico
+    target: static/favicon.ico
+css:
+  # 强制覆盖默认 Logo 样式（核心：优先级高于默认模板）
+  - |
+    /* 替换左上角 Logo */
+    .navbar-brand > img {
+        content: url('plugins/custom-logo-plugin/static/logo.svg') !important;
+        height: 40px !important;  /* 调整 Logo 高度，适配你的图标 */
+        width: auto !important;   /* 宽度自适应，避免变形 */
+        margin-left: 10px !important;
+    }
+    /* 隐藏默认 Logo 背景（若有） */
+    .navbar-brand {
+        background-image: none !important;
+    }
+    /* 可选：替换浏览器 favicon */
+    link[rel="icon"], link[rel="shortcut icon"] {
+        href: "plugins/custom-logo-plugin/static/favicon.ico" !important;
+    }

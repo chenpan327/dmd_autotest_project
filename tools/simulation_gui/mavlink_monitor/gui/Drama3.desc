@@ -1,0 +1,170 @@
+
+Drama3.proto"B
+PositionKeyFrame
+frame (	
+x (	
+y (	
+z ("G
+PoseKeyFrame
+frame (
+pitch (
+roll (
+yaw ("/
+PayloadLight	
+r (	
+g (	
+b ("@
+PayloadLazer	
+r (	
+g (	
+b (
+channel ("
+PayloadNova
+power ("T
+PayloadFireworks
+	firedPort (-
+fireworkAngles (2.PayloadFireworkAngle"D
+PayloadFireworkAngle
+channel (
+angle (
+type ("
+PayloadLantern
+isOn ("9
+PayloadGimbal
+pitch (
+roll (
+yaw ("G
+PayloadGimbalVector	
+x (	
+y (	
+z (
+channel ("A
+PayloadLightFrame
+frame (
+lights (2.PayloadLight">
+PayloadNovaFrame
+frame (
+novas (2.PayloadNova"L
+PayloadFireworksFrame
+frame ($
+	fireworks (2.PayloadFireworks"G
+PayloadLanternFrame
+frame (!
+lanterns (2.PayloadLantern"q
+PayloadGimbalFrame
+frame (
+gimbals (2.PayloadGimbal+
+gimbalVectors (2.PayloadGimbalVector"f
+PayloadLazerFrame
+frame (#
+legacyLazers (2.PayloadLazer
+lazers (2.PayloadLazer"#
+PayloadParachute
+channel ("R
+PayloadParachuteFrame
+
+frameIndex (%
+
+parachutes (2.PayloadParachute"G
+PayloadFoldLantern
+isOn (
+lanternStyle (
+power ("W
+PayloadFoldLanternFrame
+
+frameIndex ((
+foldLantern (2.PayloadFoldLantern"&
+PayloadKongMingLantern
+isOn ("c
+PayloadKongMingLanternFrame
+
+frameIndex (0
+kongMingLantern (2.PayloadKongMingLantern"#
+PayloadPeachLantern
+isOn ("Z
+PayloadPeachLanternFrame
+
+frameIndex (*
+peachLantern (2.PayloadPeachLantern""
+PayloadFishLantern
+isOn ("W
+PayloadFishLanternFrame
+
+frameIndex ((
+fishLantern (2.PayloadFishLantern"
+PayloadConfetti
+isOn ("N
+PayloadConfettiFrame
+
+frameIndex ("
+confetti (2.PayloadConfetti"/
+Vector3Proto	
+x (	
+y (	
+z ("/
+LaserAreaProto
+points (2.Vector3Proto"a
+DramaRangeInfo(
+groundLazerArea (2.LaserAreaProto%
+skyLazerArea (2.LaserAreaProto"ì
+Drone
+
+id (
+	droneType (
+
+returnType (
+playTime (,
+positionKeyFrames (2.PositionKeyFrame)
+lightKeyFrame (2.PayloadLightFrame'
+novaKeyFrame (2.PayloadNovaFrame1
+fireworksKeyFrame (2.PayloadFireworksFrame-
+lanternKeyFrame	 (2.PayloadLanternFrame+
+gimbalKeyFrame
+ (2.PayloadGimbalFrame)
+lazerKeyFrame (2.PayloadLazerFrame$
+poseKeyFrames (2.PoseKeyFrame
+totalPointFrameCount (
+totalPayloadFrameCount (.
+extendNovaKeyFrames (2.PayloadNovaFrame2
+parachuteKeyFrames (2.PayloadParachuteFrame6
+payloadFoldKeyFrames (2.PayloadFoldLanternFrame>
+kongMingLanternKeyFrames (2.PayloadKongMingLanternFrame8
+peachLanternKeyFrames (2.PayloadPeachLanternFrame6
+fishLanternKeyFrames (2.PayloadFishLanternFrame0
+confettiKeyFrames (2.PayloadConfettiFrame"›
+MapInfo
+rotate (
+name (
+
+widthScale (
+heightScale (
+radius (	
+x (	
+y (	
+z (
+lon	 (
+lat
+ ("V
+SegmentInfo
+
+startFrame (
+endFrame (
+type (
+description ("™
+Drama3
+dramaId (
+
+droneCount (
+	sceneName (
+description (
+
+payloadFps (
+pointFps (
+dramaVersion (
+drones (2.Drone
+map	 (2.MapInfo
+	segmInfos
+ (2.SegmentInfo
+
+authorName ("
+	rangeInfo (2.DramaRangeInfobproto3

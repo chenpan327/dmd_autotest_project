@@ -1,0 +1,118 @@
+{
+    "drama3":{
+        "dramaId": "",
+        "droneCount": "",
+        "sceneName": "",
+        "description": "",
+        "payloadFps": "",
+        "pointFps": "",
+        "dramaVersion": "",
+        "drones": [
+            {
+                "id": "",
+                "droneType": "",
+                "returnType": "",
+                "playTime": "",
+                "positionKeyFrames": [
+                    {
+                        "frame": "",
+                        "x": "",
+                        "y": "",
+                        "z": ""
+                    }
+                ],
+                "lightKeyFrames": [
+                    {
+                        "frame": "",
+                        "lights": {
+                            "r": "",
+                            "g": "",
+                            "b": ""
+                        }
+                    }
+                ],
+                "novaKeyFrames": [
+                    {
+                        "frame": "",
+                        "novas": {
+                            "power": ""
+                        }
+                    }
+                ],
+                "fireworksKeyFrames": [
+                    {
+                        "frame": "",
+                        "fireworks": {
+                            "firedPort": "",
+                            "fireworkAngles": [
+                                {
+                                    "channel": "",
+                                    "angle": "" 
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "lanternKeyFrames": [
+                    {
+                        "frame": "",
+                        "lanterns": {
+                            "isOn": ""
+                        }
+                    }
+                ],
+                "gimbalKeyFrames": [
+                    {
+                        "frame": "",
+                        "gimbals": {
+                            "pitch": "",
+                            "roll": "",
+                            "yaw": ""
+                        }
+                    }
+                ],
+                "lazerKeyFrames": [
+                    {
+                        "frame": "",
+                        "lazers": {
+                            "r": "",
+                            "g": "",
+                            "b": ""
+                        }
+                    }
+                ],
+                "poseKeyFrames": [
+                    {
+                        "frame": "",
+                        "pitch": "",
+                        "roll": "",
+                        "yaw": ""
+                    }
+                ],
+                "totalPointFrameCount": "",
+                "totalPayloadFrameCount": ""
+            }
+        ],
+        "map": {
+            "rotate": "",
+            "name": "",
+            "widthScale": "",
+            "heightScale": "",
+            "radius": "",
+            "x": "",
+            "y": "",
+            "z": "",
+            "lon": "",
+            "lat": ""
+        },
+        "segmInfos": [
+            {
+            "startFrame": "",
+            "endFrame": "",
+            "type": "",
+            "description": ""
+            }
+        ],
+        "authorName": ""
+    }
+}
