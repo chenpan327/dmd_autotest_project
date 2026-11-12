@@ -30,3 +30,4 @@ Script/Drone_Show/X1/Functional_Testing/Common_Testing/
 # Simulation GUI local artifacts
 tools/simulation_gui/output/
 tools/simulation_gui/tests/
+tools/java-install-package/

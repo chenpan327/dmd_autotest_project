@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>嵌入式 CI/CD 全链路 —— GitLab + Nexus + 飞书项目的自动发布体系</title>
+<style>
+body { max-width: 60em; margin: 2em auto; padding: 0 1.2em;
+       font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+       line-height: 1.75; color: #24292f; }
+h1, h2 { border-bottom: 1px solid #d8dee4; padding-bottom: .3em; margin-top: 1.8em; }
+h3, h4 { margin-top: 1.4em; }
+code { background: #f6f8fa; border-radius: 4px; padding: .15em .35em;
+        font-family: Consolas, "Courier New", monospace; font-size: .92em; }
+pre { background: #f6f8fa; border-radius: 6px; padding: .9em; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+table { border-collapse: collapse; margin: 1em 0; display: block;
+         overflow-x: auto; max-width: 100%; }
+th, td { border: 1px solid #d0d7de; padding: .38em .7em; text-align: left; }
+th { background: #f0f2f4; }
+tr:nth-child(even) td { background: #fafbfc; }
+blockquote { border-left: 4px solid #a5b1bd; margin: 1em 0; padding: .2em 1em;
+              color: #57606a; background: #f6f8fa; }
+</style>
+</head>
+<body>
+<h1 id="title">嵌入式 CI/CD 全链路 —— GitLab + Nexus + 飞书项目的自动发布体系</h1>
+<blockquote>
+<p><strong>定位</strong>：面向本项目全体研发/测试同事的使用与原理手册。以 <code>strobe_light</code> 固件仓库的 <code>.gitlab-ci.yml</code> 为实例，讲清三件事：<strong>GitLab CI/CD 的运行原理与我们这条完整链路长什么样（第 1–2 章）</strong>；<strong>日常开发与发版该怎么操作、每个环节能看到什么（第 3 章）</strong>；<strong>这套机制凭什么保证版本稳定可回溯、凭什么收敛研发工作（第 4 章）</strong>。第 5 章为一页纸速查表。</p>
+<p><strong>统一骨架</strong>：每个主题按「是什么 / 为什么 → 怎么配的 → 怎么用 → 出问题怎么看」展开。所有路径、变量名、字段 key、错误码均来自当前真实流水线，可直接对照系统核对。</p>
+<p><strong>阅读方式</strong>：只想学会发版 → 直接看第 3.2 节的两条命令；想理解整条链路 → 顺序读第 1、2 章；负责维护与排障 → 重点看第 2.5 节与第 3.6 节错误码表。</p>
+</blockquote>
+<hr />
+<h2 id="toc">目录</h2>
+<ul>
+<li><a href="#ch0">0. 全景图：一条 tag 触发的完整自动化链路</a></li>
+<li><a href="#ch1">1. GitLab CI/CD 工作原理</a></li>
+<li><a href="#ch2">2. 本项目流水线解剖：四个 stage 各自在做什么</a></li>
+<li><a href="#ch3">3. 使用指南：日常开发、发版、通知测试与排障</a></li>
+<li><a href="#ch4">4. 为什么这么设计：稳定、可回溯与收敛</a></li>
+<li><a href="#ch5">5. 速查表</a></li>
+</ul>
+<hr />
+<h2 id="ch0">0. 全景图：一条 tag 触发的完整自动化链路</h2>
+<p>这套体系回答两个问题：<strong>代码合并之后，谁来做"编译、检查、归档、通知"这些重复劳动</strong>；以及<strong>当别人问"线上这个版本到底是哪次提交、产物在哪、发给谁了"，我们能不能 30 秒内给出答案</strong>。全部链路只有一个人工入口——打附注 tag：</p>
+<pre><code> 开发者日常                     发版（唯一人工动作：打 tag）
+ ─────────────────             ────────────────────────────────────────────────────────
+ git push (普通提交)            git tag -a test_0.1.1 -m "test_0.1.1 需求:m-xxx"
+        │                              │ git push origin test_0.1.1
+        ▼                              ▼
+ ┌──────────────┐        ┌────────────────────────────────────────────────┐
+ │ cppcheck     │        │ GitLab 识别 tag → 调度 runner 执行流水线        │
+ │ 静态扫描     │        │   stage1 code_check : cppcheck 静态分析        │
+ └──────┬───────┘        │   stage2 build      : (仅验证, tag流水线跳过)   │
+        ▼                │   stage3 release    : west 全量编译            │
+ ┌──────────────┐        │                       → 生成 MD5 校验文件      │
+ │ build_job    │        │                       → 上传 Nexus 制品库      │
+ │ west 编译验证│        │                       → 生成 ci_report 留档     │
+ └──────┬───────┘        │   stage4 notify     : 取 plugin_token 鉴权     │
+        ▼                │                       → 工作项自动评论(制品清单)│
+  验证通过即完成         │                       → 回填交付物(版本/产物)    │
+  (不上传不通知)         │                       → 节点自动流转(推进状态)   │
+                         │                       → (可选)群机器人通知测试   │
+                         └────────────────────────────────────────────────┘
+                                        │
+              ┌─────────────────────────┼─────────────────────────┐
+              ▼                         ▼                         ▼
+      Nexus 制品库               飞书项目工作项              流水线日志/制品留档
+   按 版本/时间戳/conf 归档      评论+交付物+节点状态       ci_report 保留 30 天
+   .bin + .md5 成对存在         全程可查可追溯             出问题可复盘
+</code></pre>
+<h3 id="ch0-1">0.1 三个系统各司其职</h3>
+<table>
+<thead>
+<tr><th>系统</th><th>地址 / 标识</th><th>在本链路中的职责</th></tr>
+</thead>
+<tbody>
+<tr><td>GitLab</td><td><code>gitlab.dmduav.com/ind/firmware/dmd_apps/strobe_light</code></td><td>代码托管 + 流水线调度。保存 <code>.gitlab-ci.yml</code>（流水线定义），在特定事件（push / MR / tag）时把 job 派发给 runner 执行</td></tr>
+<tr><td>Nexus 制品库</td><td><code>http://10.10.2.25:8081</code>，仓库 <code>strobe_light</code></td><td>编译产物的唯一归档地。按 <code>仓库/tag/时间戳/conf</code> 四级目录存放 .bin 与 .md5，任何版本随时可取回</td></tr>
+<tr><td>飞书项目</td><td><code>project.feishu.cn/tgrjrf</code>（空间 key）</td><td>研发过程管理。工作项（需求/缺陷/项目/嵌软开发）承载发布信息：自动评论、交付物字段回填、节点流转</td></tr>
+</tbody>
+</table>
+<h3 id="ch0-2">0.2 流水线定义的唯一真相源</h3>
+<p>整条流水线的全部逻辑都在仓库根目录的 <code>.gitlab-ci.yml</code> 一个文件里，约 640 行。<strong>改流水线 = 改这个文件并提交</strong>，与改代码走完全相同的评审与追溯流程。文件头部自带使用说明（含 tag 命名规范），忘记用法时打开文件即可。</p>
+<hr />
+<h2 id="ch1">1. GitLab CI/CD 工作原理</h2>
+<h3 id="ch1-1">1.1 核心概念与组件</h3>
+<table>
+<thead>
+<tr><th>概念</th><th>是什么</th><th>在本项目中的对应物</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Pipeline（流水线）</strong></td><td>一次完整的自动化执行，由若干 stage 组成，同一 stage 内的 job 并行、stage 间串行</td><td>每次 push / MR / 打 tag 都会生成一条，可在 GitLab 网页 CI/CD → Pipelines 看到全部历史</td></tr>
+<tr><td><strong>Stage（阶段）</strong></td><td>逻辑分组与顺序控制：前一个 stage 全部成功才进入下一个；任一 job 失败则整条流水线停在该 stage</td><td><code>code_check → build → release → notify</code> 四段</td></tr>
+<tr><td><strong>Job（任务）</strong></td><td>最小执行单元，一段在 runner 上真实运行的 shell 脚本</td><td><code>cppcheck-analysis</code> / <code>build_job</code> / <code>release_job</code> / <code>feishu_notify</code></td></tr>
+<tr><td><strong>Runner（执行器）</strong><br></td><td>实际干活的机器上的代理进程，认领 job 并执行脚本</td><td><code>dmd_cicd_runner_A</code>，shell 执行器，宿主机 10.10.2.25（编译在 Docker 容器内进行）</td></tr>
+<tr><td><strong>Artifact（制品）</strong></td><td>job 运行中产生的文件，可上传回 GitLab 供下载或传递给后续 job</td><td>cppcheck 的 <code>index.html</code> 报告；release 的 <code>ci_report/</code>（30 天）</td></tr>
+<tr><td><strong>Variable（变量）</strong></td><td>注入 job 环境的键值对。来源：yml 内 <code>variables:</code>、GitLab 设置页（优先级更高）、流水线手动运行时手动填入</td><td><code>NEXUS_URL</code>、<code>FEISHU_PLUGIN_ID</code> 等；密钥类一律配在 GitLab 设置页并勾选 Masked</td></tr>
+<tr><td><strong>Rule（触发规则）</strong></td><td>决定"这个 job 在什么条件下要不要运行"的判断式</td><td>见 1.4 节：同一个 yml 同时服务日常 push、MR 和 tag 三种场景</td></tr>
+</tbody>
+</table>
+<h3 id="ch1-2">1.2 一次流水线的执行过程（原理）</h3>
+<ol>
+<li><strong>事件触发</strong>：git push / 创建 MR / 推送 tag 到 GitLab，GitLab 按事件类型 + yml 的 rules 决定创建什么样的流水线、包含哪些 job；</li>
+<li><strong>调度派发</strong>：GitLab 服务端把待执行的 job 放入队列，注册在线的 runner 按标签（<code>tags: dmd_cicd_runner_A</code>）认领；</li>
+<li><strong>准备环境</strong>：runner 在宿主机准备好工作目录，按 yml 的 <code>before_script → script → after_script</code> 顺序执行 shell 命令（本项目 before_script 里做 Docker 环境检查，after_script 里清理编译容器）；</li>
+<li><strong>产物回收</strong>：job 成功后，yml 里 <code>artifacts:</code> 声明的文件被上传回 GitLab 存储，供网页下载或被 <code>needs</code> 声明的下游 job 拉取；</li>
+<li><strong>状态汇报</strong>：每个命令的退出码决定成败（非 0 即失败），配合 <code>set -euo pipefail</code>（任何一条命令失败立即终止）实现"fail-fast"，日志实时回传网页。</li>
+</ol>
+<p>两个关键机制值得单独强调：</p>
+<ul>
+<li><strong><code>needs</code> 依赖（DAG）</strong>：<code>feishu_notify</code> 声明了 <code>needs: release_job</code>，含义有二——必须等 release_job 成功才开始（发布失败绝不发通知），并自动下载它的 <code>ci_report/</code> 产物。这把"发布成功"变成了通知的<strong>硬前提</strong>而非口头约定；</li>
+<li><strong><code>artifacts</code> 传递</strong>：release_job 在编译现场生成 <code>artifacts.tsv</code>（每个制品的 conf / 文件名 / 下载链接 / MD5），notify 阶段直接读这份"清单"发评论、回填交付物——<strong>两个 stage 之间不靠约定的文件路径传话，靠 GitLab 的制品机制交接</strong>。</li>
+</ul>
+<h3 id="ch1-3">1.3 触发规则：一份 yml 服务三种场景</h3>
+<table>
+<thead>
+<tr><th>场景</th><th>触发事件</th><th>跑哪些 job</th><th>目的</th></tr>
+</thead>
+<tbody>
+<tr><td>日常开发</td><td>push 到任意分支（无 tag）</td><td>cppcheck + build_job</td><td>每次提交都被编译验证与静态扫描，<strong>问题在提交当场暴露</strong></td></tr>
+<tr><td>代码评审</td><td>创建 / 更新 Merge Request</td><td>同上</td><td>合并前就能看到"这段代码能不能编译过、扫出什么问题"</td></tr>
+<tr><td><strong>正式发版</strong></td><td>推送 tag</td><td>cppcheck + <strong>release_job</strong> + <strong>feishu_notify</strong></td><td>编译 → 归档 → 通知全自动</td></tr>
+</tbody>
+</table>
+<p>对应的 yml 片段（节选）——注意 cppcheck 对 C/C++ 文件变更才触发（纯文档提交不浪费算力），release 与 notify 只认 tag：</p>
+<pre><code class="language-yaml">cppcheck-analysis:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push" &amp;&amp; $CI_COMMIT_TAG == null
+      changes: ["**/*.c", "**/*.cpp", "**/*.h", ...]   # 改了C/C++才扫
+    - if: $CI_COMMIT_TAG                               # 发版必扫
+release_job:
+  rules:
+    - if: $CI_COMMIT_TAG                               # 只有tag触发
+feishu_notify:
+  needs: [release_job]                                 # 发布成功才通知
+  rules:
+    - if: $CI_COMMIT_TAG
+</code></pre>
+<h3 id="ch1-4">1.4 编译环境的隔离与复用</h3>
+<p>固件编译依赖 Zephyr/west 工具链，直接装在 runner 宿主机会污染环境。做法是<strong>每个 job 起一个一次性 Docker 容器</strong>（镜像 <code>dmd_uav_env_image:v2</code>，容器名含 job ID 天然防冲突），流程为：起容器 → 注入 SSH 私钥（拉 west 模块仓库用）→ <code>west init/update</code> 拉取 manifest 与依赖 → 对 <code>strobe_light/config/</code> 下<strong>自动发现的全部 conf 逐个编译</strong> → 校验每个 conf 都产出 .bin → <code>docker cp</code> 拷出产物 → 销毁容器。新增编译目标只需要往 config 目录加 conf 文件，<strong>不用改流水线</strong>。</p>
+<hr />
+<h2 id="ch2">2. 本项目流水线解剖：四个 stage 各自在做什么</h2>
+<h3 id="ch2-1">2.1 stage1 — cppcheck 静态分析</h3>
+<ul>
+<li>在 <code>code_check:latest</code> 容器内对仓库源码跑 <code>cppcheck --enable=all</strong>，输出 XML 报告；</li>
+<li>用 Python 把 XML 转成可按严重级别筛选的 <code>index.html</code>，作为 artifact 保留 7 天，在 job 页面 Artifacts 处下载；</li>
+<li><code>allow_failure: true</code>：扫描发现问题<strong>不阻断</strong>流水线（当前定位为参考报告，后续可收紧为门禁）。</li>
+</ul>
+<h3 id="ch2-2">2.2 stage2 — build_job 构建验证（日常/MR）</h3>
+<ul>
+<li>完整跑一遍与发版完全相同的编译流程，但<strong>不上传、不通知</strong>；</li>
+<li>价值：把"我本地能编过"升级为"在标准环境里能编过"，消灭"本地环境差异"这类最磨人的问题。</li>
+</ul>
+<h3 id="ch2-3">2.3 stage3 — release_job 发布（tag 触发）</h3>
+<p>与 build_job 相同的编译流程之外，多做四件事：</p>
+<ol>
+<li><strong>生成 MD5 校验文件</strong>：每个 .bin 配一个 <code>xxx.bin_时间戳.md5</code>，烧录前可校验完整性；</li>
+<li><strong>上传 Nexus</strong>：目标路径 <code>http://10.10.2.25:8081/repository/strobe_light/&lt;tag&gt;/&lt;时间戳&gt;/&lt;conf名&gt;/</code>，.bin 与 .md5 成对上传；</li>
+<li><strong>生成 ci_report 制品报告</strong>：<code>artifacts.tsv</code>（conf/文件名/下载链接/MD5值/MD5链接 五列清单）+ <code>release_meta.env</code>（tag、时间戳、流水线链接、触发人等），保留 30 天——这是下游一切"自动通知"的数据源；</li>
+<li>任何一步失败（编译失败、产物缺失、上传失败）整条流水线红掉，<strong>不会产出半个版本</strong>。</li>
+</ol>
+<h3 id="ch2-4">2.4 stage4 — feishu_notify 回链通知（tag 触发）</h3>
+<p>这个 job 是"编译世界"与"研发管理世界"的桥梁，依次做五件事（全部只读 release_job 的 ci_report，不碰编译）：</p>
+<ol>
+<li><strong>解析工作项 ID</strong>：四个来源取并集——手动运行流水线时的变量 <code>FEISHU_WORKITEM_IDS</code> &gt; <strong>tag 注释</strong>（正则 <code>\b前缀-数字</code>，带词边界防止 self-5 / conf-123 这类英文词误伤）&gt; <strong>tag 所指 commit 的提交信息</strong>（把"关联工作项: …"写在 commit message 里同样生效）&gt; 已合并 MR 的标题/描述（需配 GITLAB_API_TOKEN）；</li>
+<li><strong>非强制设计</strong>：四个来源都没写 ID 时，发布照常完成（编译 + 上传 Nexus），只是跳过飞书回链 / 流转 / 交付物回填，<strong>流水线不报错</strong>；</li>
+<li><strong>飞书鉴权</strong>：用插件的 plugin_id/secret 换取 plugin_token（token 约十分钟有效，每次现取）；</li>
+<li><strong>逐工作项发评论</strong>：调 OpenAPI 把制品清单（下载链接、MD5、流水线链接）评论到工作项的「评论/备注」；</li>
+<li><strong>交付物回填</strong>：把 <code>版本信息</code> 字段写为 tag、<code>产物信息</code> 字段写为 Nexus 页面链接（字段 key 按工作项类型在 <code>FEISHU_DELIVERABLE_FIELDS</code> 中配置）；</li>
+<li><strong>节点流转</strong>：对配置了动作的工作项自动 confirm 当前节点（推进工作流），<strong>必填的节点表单会自动用发布链接代填</strong>，避免被 400 卡住；</li>
+<li>（可选）群机器人卡片通知——GitLab 变量 <code>FEISHU_BOT_WEBHOOK_URL</code> 配上测试群机器人地址即启用，未配置自动跳过。</li>
+</ol>
+<blockquote>
+<p><strong>踩坑实录（维护者必读）</strong>：这条链路的每一环都"坏得很有性格"。已验证的失败模式与解法见第 3.6 节错误码表；两条最重要的经验——<strong>① 飞书 API 的工作项类型 key 是随机串</strong>（工作项 URL 里的 <code>embed_dev</code> 只是前端别名，API 不认，真实 key 要调 <code>work_item/all-types</code> 查）；<strong>② 新增的 feishu_post 调用必须显式带 X-PLUGIN-TOKEN / X-USER-KEY 鉴权头</strong>，漏了会收到 401 但 job 依然绿（降级设计会吞错），只能从「流转汇总」日志里发现。</p>
+</blockquote>
+<h3 id="ch2-5">2.5 关键配置项一览（都在 yml variables 区）</h3>
+<table>
+<thead>
+<tr><th>变量</th><th>当前值（示例）</th><th>作用</th></tr>
+</thead>
+<tbody>
+<tr><td><code>FEISHU_WORK_ITEM_TYPES</code></td><td><code>"m=story f=issue p=6aa792b4... e=6a9fd83e..."</code></td><td>ID 前缀 → 飞书真实 type_key 映射，加新工作项类型只改这一行</td></tr>
+<tr><td><code>FEISHU_WORK_ITEM_FLOW</code></td><td><code>"e=confirm"</code></td><td>发版后对哪些前缀的工作项做节点 confirm；留空则不流转</td></tr>
+<tr><td><code>FEISHU_DELIVERABLE_FIELDS</code></td><td><code>"e=field_09bdd0,field_224a2e"</code></td><td>前缀 → (版本信息字段, 产物信息字段)；留空则不回填</td></tr>
+<tr><td><code>FEISHU_DRY_RUN</code></td><td><code>"false"</code></td><td>true 时只打印请求不真发——调试飞书链路的安全开关</td></tr>
+<tr><td><code>NEXUS_URL / NEXUS_REPO</code></td><td><code>http://10.10.2.25:8081 / strobe_light</code></td><td>制品库地址与仓库名</td></tr>
+<tr><td>密钥类（GitLab 设置页）</td><td><code>FEISHU_PLUGIN_ID/SECRET</code>、<code>FEISHU_USER_KEY</code>、<code>FEISHU_PROJECT_KEY</code> 等</td><td>均勾选 Masked，不在代码中出现</td></tr>
+</tbody>
+</table>
+<hr />
+<h2 id="ch3">3. 使用指南：日常开发、发版、通知测试与排障</h2>
+<h3 id="ch3-1">3.1 日常开发：你只需要正常写代码</h3>
+<ol>
+<li>正常提交、正常 push——后台自动跑 cppcheck + 全量编译验证，<strong>编译不过当场红掉</strong>，Pipelines 页面点进失败 job 看日志；</li>
+<li>提 MR 走评审——MR 流水线同样自动验证，评审者可以直接引用"流水线绿了"作为可合并依据；</li>
+<li>cppcheck 报告在对应流水线的 cppcheck-analysis job → Artifacts → <code>index.html</code>，浏览器打开可按严重级别筛选。</li>
+</ol>
+<h3 id="ch3-2">3.2 发版：两条命令，其余全自动</h3>
+<pre><code class="language-bash"># 1) 打附注 tag（-a 必须带！注释里写工作项ID，需求m-/缺陷f-可写多个）
+git tag -a test_0.1.1 -m "test_0.1.1 发布 需求:m-7153472781 缺陷:f-123"
+
+# 2) 推送 tag —— 从这一秒起全自动
+git push origin test_0.1.1
+</code></pre>
+<p>推送后无需任何操作，约十几分钟后以下内容全部就位：</p>
+<table>
+<thead>
+<tr><th>环节</th><th>在哪里看到</th><th>内容</th></tr>
+</thead>
+<tbody>
+<tr><td>编译产物</td><td>Nexus：<code>10.10.2.25:8081 →Browse→ strobe_light → test_0.1.1 → 时间戳 → conf名</code></td><td>strobe_light.bin + MD5 校验文件</td></tr>
+<tr><td>工作项评论</td><td>飞书工作项 → 评论/备注</td><td>「[CI 自动回链]」：Tag、Commit、流水线链接、每个制品的下载地址与 MD5</td></tr>
+<tr><td>交付物回填</td><td>飞书工作项 → 交付物 → 交付</td><td>版本信息 = tag 名；产物信息 = Nexus 页面链接（点击直达）</td></tr>
+<tr><td>节点流转</td><td>飞书工作项 → 节点详情</td><td>当前节点自动 confirm，推进到下一节点</td></tr>
+<tr><td>测试群通知</td><td>飞书群（配置机器人后）</td><td>卡片：版本、制品数、触发人、流水线与日志链接</td></tr>
+</tbody>
+</table>
+<h3 id="ch3-3">3.3 tag 命名规范（前缀即用途声明）</h3>
+<table>
+<thead>
+<tr><th>前缀</th><th>用途</th><th>示例</th></tr>
+</thead>
+<tbody>
+<tr><td><code>debug_x.y.z</code></td><td>研发自测版本</td><td><code>debug_0.1.1</code></td></tr>
+<tr><td><code>test_x.y.z</code></td><td>发测试组验证</td><td><code>test_0.1.1</code></td></tr>
+<tr><td><code>dmd_x.y.z</code></td><td>发生产 / 技术支持</td><td><code>dmd_0.1.1</code></td></tr>
+</tbody>
+</table>
+<p>注释里的工作项 ID 前缀：需求 <code>m-</code>、缺陷 <code>f-</code>、项目 <code>p-</code>、嵌软开发 <code>e-</code>（大小写随意，可一次关联多个，逗号分隔）。ID 写在 <strong>tag 注释</strong>或 <strong>tag 所指 commit 的提交信息</strong>里均可；两处都不写时发布照常完成，只是不通知飞书（回链为非强制特性）。</p>
+<h3 id="ch3-4">3.4 失败重试：不用重新打 tag</h3>
+<p>评论 / 回填 / 流转环节失败时，<strong>编译与上传都是成功的</strong>，不需要重新打 tag。直接在对应流水线页面（CI/CD → Pipelines → 点进 tag 那条）对失败的 <code>feishu_notify</code> job 点 Retry——它会重新下载 ci_report、重新解析 tag 注释并重试飞书侧操作，几十秒出结果。修好 GitLab 设置页的变量后，同样用 Retry 验证。</p>
+<h3 id="ch3-5">3.5 通知测试群（一次性配置）</h3>
+<ol>
+<li>测试群里添加飞书自定义机器人，复制 Webhook 地址；</li>
+<li>GitLab → 项目 → Settings → CI/CD → Variables → 新增 <code>FEISHU_BOT_WEBHOOK_URL</code>（Masked）；</li>
+<li>此后每次发版，群内自动收到卡片：版本号、制品数、触发人、流水线与日志直达链接。删掉该变量即停用，不影响其它环节。</li>
+</ol>
+<h3 id="ch3-6">3.6 排障速查：错误码 → 含义 → 处理</h3>
+<table>
+<thead>
+<tr><th>现象 / 错误码</th><th>含义</th><th>处理</th></tr>
+</thead>
+<tbody>
+<tr><td>发版后工作项里没有收到评论/回填</td><td>tag 注释和 commit 提交信息里都没写工作项 ID（回链为非强制，流水线会绿但日志提示"跳过飞书回链"）</td><td>手动运行流水线传变量 <code>FEISHU_WORKITEM_IDS=m-xxx</code> 后 Retry notify；或下次发版时在 tag 注释里写上 ID</td></tr>
+<tr><td><code>50006 workitem object not match</code></td><td>请求的类型 key 与工作项真实类型不匹配（<strong>工作项 URL 里的字符串是前端别名，API 不认</strong>）</td><td>用真实 type_key：查 <code>GET /open_api/{key}/work_item/all-types</code>，把 <code>FEISHU_WORK_ITEM_TYPES</code> 映射更新</td></tr>
+<tr><td><code>30005 WorkItem Not Found</code> / <code>20003 Wrong WorkItemType Param</code></td><td>同上——ID 或 type_key 对不上</td><td>同上</td></tr>
+<tr><td><code>10301 Check Token Perm Failed</code></td><td>插件没申请该接口的权限 scope</td><td>openapp → 插件 → 权限管理申请对应权限 → <strong>发布新版本</strong> → 空间插件管理里更新</td></tr>
+<tr><td><code>10021 Token Not Exist</code>（出现在流转/回填段）</td><td>该调用没带鉴权头（代码问题，非配置问题）</td><td>对照 feishu_notify 里评论调用的写法，补 <code>X-PLUGIN-TOKEN / X-USER-KEY</code> 头</td></tr>
+<tr><td><code>10429 rate limit</code></td><td>触发飞书接口限流（单接口 15 QPS）</td><td>正常重试即可，批量场景降低频率</td></tr>
+<tr><td>Nexus 直链在浏览器打不开（404）</td><td>未登录 Nexus 的会话无下载权限</td><td>浏览器登录 Nexus 后再访问；或使用交付物字段里的 browse 页面链接</td></tr>
+<tr><td>流转汇总显示"无进行中节点"</td><td>该工作项流程已全部走完</td><td>正常降级，无需处理；新流程节点上再打 tag 即恢复</td></tr>
+</tbody>
+</table>
+<p>调试技巧：<code>FEISHU_DRY_RUN=true</code>（GitLab 变量）可让 notify 只打印请求不真发，用于验证 ID 解析与 payload 组装；日志里「节点流转汇总」「交付物回填汇总」两段是这两个环节的直接证据。</p>
+<hr />
+<h2 id="ch4">4. 为什么这么设计：稳定、可回溯与收敛</h2>
+<h3 id="ch4-1">4.1 版本稳定可回溯：四个"锚点"串成证据链</h3>
+<p>"可回溯"的本质是：任何一次发布，都能沿一条<strong>完整的、无断点的引用链</strong>回答"谁、在什么时候、把哪次提交、编译成了什么、放在哪里、通知了谁"。这套链路用四个锚点把链焊死：</p>
+<table>
+<thead>
+<tr><th>锚点</th><th>机制</th><th>回答的问题</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>tag = 版本身份</strong></td><td>附注 tag 指向确定的 commit，注释携带工作项 ID；tag 一旦推送不可变（重打即新版本）</td><td>这个版本对应哪次代码？为了哪个需求？</td></tr>
+<tr><td><strong>commit SHA 全程携带</strong></td><td>评论、交付物、ci_report 里都写入完整 40 位 SHA</td><td>产物与代码仓库如何互相对上？</td></tr>
+<tr><td><strong>Nexus 目录即存证</strong></td><td><code>tag/时间戳/conf</code> 三级目录 + .md5 校验文件成对存在，只增不删</td><td>这个版本的固件文件现在在哪？和当时上传的一致吗？</td></tr>
+<tr><td><strong>飞书工作项 = 过程账本</strong></td><td>评论（谁触发的、链接清单）+ 交付物字段 + 节点流转记录全部落库，ci_report 留档 30 天兜底</td><td>这次发布通知了谁？测试依据什么验收？</td></tr>
+</tbody>
+</table>
+<p>对比手工流程的典型断链：本地编译的 bin 通过聊天窗口传输（无版本锚点、无 MD5、无归档）→ 测试出问题后"复现不了当时的状态"。自动化链路里<strong>不存在"环境不一致"和"文件对不上"这两类事故的生存空间</strong>——因为根本不存在手工环节。</p>
+<h3 id="ch4-2">4.2 收敛研发工作：一个入口，N 个出口</h3>
+<p>"无序发散"的根源是<strong>多入口</strong>：每个人按自己的习惯打包、按自己的路径传文件、按自己的措辞通知——信息格式不一、责任不清、遗漏难免。收敛的办法不是"要求大家细心"，而是<strong>把入口收窄到只有一个动作（打 tag），把其余全部变成机器行为</strong>：</p>
+<table>
+<thead>
+<tr><th>环节</th><th>手工方式</th><th>本链路</th></tr>
+</thead>
+<tbody>
+<tr><td>编译</td><td>各自电脑，环境各异</td><td>标准容器内全 conf 编译，环境唯一</td></tr>
+<tr><td>质量检查</td><td>看心情</td><td>每次提交自动 cppcheck + 编译验证</td></tr>
+<tr><td>产物交付</td><td>聊天窗口传文件，易丢失版本</td><td>Nexus 按版本归档，链接永久有效</td></tr>
+<tr><td>完整性校验</td><td>无</td><td>.md5 成对生成</td></tr>
+<tr><td>通知测试</td><td>群里@谁看运气</td><td>群卡片自动推送（含全部链接）</td></tr>
+<tr><td>需求/缺陷关联</td><td>靠口头或事后补录</td><td>tag 注释即关联，工作项自动评论</td></tr>
+<tr><td>流程推进</td><td>手工点节点，容易漏</td><td>发布成功自动 confirm 推进</td></tr>
+<tr><td>事后追溯</td><td>翻聊天记录考古</td><td>工作项一页看完全链路</td></tr>
+</tbody>
+</table>
+<p>同时注意这套机制<strong>收敛但不僵化</strong>的三处设计：日常 push 的验证是后台的，不打断写码节奏；cppcheck 当前是报告不是门禁，可以先推广意识再收紧标准；流转动作按前缀配置（<code>FEISHU_WORK_ITEM_FLOW</code>），哪些类型的工作项"发版即推进"是可以商量的策略，改一行配置即可调整。</p>
+<h3 id="ch4-3">4.3 对研发流程的三个正向约束</h3>
+<ol>
+<li><strong>发布纪律前置</strong>：想在注释里写清需求 ID，就得先在飞书里立项建工作项——发布动作反过来倒逼"先有需求记录，再有版本产出"；</li>
+<li><strong>质量门槛前置</strong>：编译不过的提交立即暴露，"攒到发版才发现编不过"的雪崩场景消失；MR 流水线让"合并"有了客观依据；</li>
+<li><strong>测试验收有据</strong>：测试拿到的每个版本都自带 tag、MD5、工作项关联，提 bug 时引用 tag 即可精确定位，"你测的是哪个版本"永远不再是问题。</li>
+</ol>
+<h3 id="ch4-4">4.4 已知边界与演进方向</h3>
+<ul>
+<li>cppcheck 目前 <code>allow_failure</code>，建议运行一段时间后按基线收紧为门禁（新增 error 阻断合并）；</li>
+<li>产物信息链接当前取第一条制品，多 conf 多制品时可改为文本字段拼接清单；</li>
+<li>节点流转策略（哪些类型、推进到哪个节点）建议与项目管理流程对齐后固化到 yml 注释；</li>
+<li>所有飞书侧配置（字段 key、类型映射）集中在 yml variables 区，换空间/改模板只动一处。</li>
+</ul>
+<hr />
+<h2 id="ch5">5. 速查表</h2>
+<h3 id="ch5-1">5.1 高频命令</h3>
+<pre><code class="language-bash"># 发版（唯一需要背的两条命令）
+git tag -a test_0.1.1 -m "test_0.1.1 发布 需求:m-xxx 缺陷:f-xxx"
+git push origin test_0.1.1
+
+# 回链失败重试（不用重新打tag）：Pipelines → debug/test/dmd那条 → feishu_notify → Retry
+
+# 删错tag重打
+git tag -d test_0.1.1 &amp;&amp; git push origin :refs/tags/test_0.1.1
+</code></pre>
+<h3 id="ch5-2">5.2 关键地址</h3>
+<table>
+<thead>
+<tr><th>什么</th><th>哪里</th></tr>
+</thead>
+<tbody>
+<tr><td>流水线列表 / job 日志</td><td><code>gitlab.dmduav.com → 项目 → CI/CD → Pipelines</code></td></tr>
+<tr><td>制品库浏览</td><td><code>http://10.10.2.25:8081 → Browse → strobe_light</code></td></tr>
+<tr><td>cppcheck 报告</td><td>流水线 → cppcheck-analysis → Artifacts → index.html</td></tr>
+<tr><td>飞书项目空间</td><td><code>project.feishu.cn/tgrjrf</code></td></tr>
+<tr><td>流水线定义</td><td>仓库根 <code>.gitlab-ci.yml</code>（头部有使用说明）</td></tr>
+</tbody>
+</table>
+<h3 id="ch5-3">5.3 环境变量（GitLab Settings → CI/CD → Variables）</h3>
+<table>
+<thead>
+<tr><th>变量</th><th>作用</th><th>缺失后果</th></tr>
+</thead>
+<tbody>
+<tr><td><code>FEISHU_PLUGIN_ID / FEISHU_PLUGIN_SECRET</code></td><td>飞书项目插件凭证</td><td>回链整体无法鉴权</td></tr>
+<tr><td><code>FEISHU_USER_KEY</code></td><td>评论落库用户（建议服务账号）</td><td>同上</td></tr>
+<tr><td><code>FEISHU_PROJECT_KEY</code></td><td>飞书空间 key（tgrjrf）</td><td>同上</td></tr>
+<tr><td><code>FEISHU_BOT_WEBHOOK_URL</code></td><td>测试群机器人（可选）</td><td>仅群通知跳过，其余不受影响</td></tr>
+<tr><td><code>GITLAB_API_TOKEN</code></td><td>已合并 MR 解析（可选）</td><td>ID 解析少一个来源</td></tr>
+</tbody>
+</table>
+<h3 id="ch5-4">5.4 工作项 ID 前缀对照</h3>
+<table>
+<thead>
+<tr><th>注释里写</th><th>飞书类型</th><th>真实 type_key（yml 已配好）</th></tr>
+</thead>
+<tbody>
+<tr><td><code>m-数字</code></td><td>需求</td><td><code>story</code></td></tr>
+<tr><td><code>f-数字</code></td><td>缺陷</td><td><code>issue</code></td></tr>
+<tr><td><code>p-数字</code></td><td>项目</td><td><code>6aa792b4...（随机串）</code></td></tr>
+<tr><td><code>e-数字</code></td><td>嵌软开发</td><td><code>6a9fd83e...（随机串）</code></td></tr>
+<tr><td><code>fc- / td-数字</code></td><td>FC开发 / 测试开发</td><td>对应随机串（见 yml）</td></tr>
+</tbody>
+</table>
+<p><strong>最后一句</strong>：这套链路的价值不在于省下的那十几分钟，而在于<strong>它让"发布"从一件靠人盯的事变成一件由系统保证的事</strong>。所有配置都在仓库里，所有历史都可查询——用起来，改起来，让它跟着团队一起演进。</p>
+</body>
+</html>

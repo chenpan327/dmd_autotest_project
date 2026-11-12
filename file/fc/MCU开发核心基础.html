@@ -1,0 +1,3621 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MCU 开发核心基础 —— 从芯片选型到驱动落地</title>
+<style>
+body { max-width: 60em; margin: 2em auto; padding: 0 1.2em;
+       font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+       line-height: 1.75; color: #24292f; }
+h1, h2 { border-bottom: 1px solid #d8dee4; padding-bottom: .3em; margin-top: 1.8em; }
+h3, h4 { margin-top: 1.4em; }
+code { background: #f6f8fa; border-radius: 4px; padding: .15em .35em;
+        font-family: Consolas, "Courier New", monospace; font-size: .92em; }
+pre { background: #f6f8fa; border-radius: 6px; padding: .9em; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+table { border-collapse: collapse; margin: 1em 0; display: block;
+         overflow-x: auto; max-width: 100%; }
+th, td { border: 1px solid #d0d7de; padding: .38em .7em; text-align: left; }
+th { background: #f0f2f4; }
+tr:nth-child(even) td { background: #fafbfc; }
+blockquote { border-left: 4px solid #a5b1bd; margin: 1em 0; padding: .2em 1em;
+              color: #57606a; background: #f6f8fa; }
+</style>
+</head>
+<body>
+<h1 id="mcu-开发核心基础-从芯片选型到驱动落地">MCU 开发核心基础 —— 从芯片选型到驱动落地</h1>
+<blockquote>
+<p><strong>定位</strong>：面向从测试 / 上位机 / 算法方向转入 MCU 固件开发的工程师的系统性手册。第 0–2 章解决「选什么芯片」（知识地图、选型参数、主流平台对比），第 3 章解决「工程怎么搭」（CubeMX 生成与代码结构），第 4–8 章解决「驱动怎么写」（UART、SPI、I2C、CAN FD、DMA 五大件），第 9 章解决「内存怎么管」（地址空间、区域分配、碎片治理），第 10 章解决「坏了怎么查」（HardFault 与症状速查）。</p>
+<p><strong>统一骨架</strong>：每个外设章节按「协议原理 → STM32 外设工作机制 → CubeMX 配置要点 → 驱动代码（可直接落地的 C 语言实例）→ 常见坑」展开。主线芯片为 <strong>STM32F407</strong>（Cortex-M4，168 MHz，最经典的入门主力）与 <strong>STM32H743 / STM32G431</strong>（分别用于内存篇与 CAN FD 篇，因为这两项能力是 F4 没有的）。代码以 HAL 库为主、关键处给寄存器写法，两者对照便于读懂每一行在做什么。</p>
+<p><strong>阅读方式</strong>：章节按依赖关系排序，建议顺序通读；只查某个具体问题（如「I2C 总线卡死怎么恢复」「DMA buffer 该放哪块 RAM」）可直接跳第 10.3 节速查表定位章节。前置基础只需 C 语言（指针、结构体、位运算）。</p>
+</blockquote>
+<hr />
+<h2 id="目录">目录</h2>
+<p><strong>基础篇（第 0–3 章：芯片怎么选，工程怎么搭）</strong></p>
+<ul>
+<li><a href="#0-全景图mcu-开发的知识地图">0. 全景图：MCU 开发的知识地图</a></li>
+<li><a href="#1-芯片选型参数逐项解读">1. 芯片选型：参数逐项解读</a></li>
+<li><a href="#2-主流-mcu-平台对比">2. 主流 MCU 平台对比</a></li>
+<li><a href="#3-开发环境与-cubemx-基础工程">3. 开发环境与 CubeMX 基础工程</a></li>
+</ul>
+<p><strong>驱动篇（第 4–8 章：五大件逐个击破）</strong></p>
+<ul>
+<li><a href="#4-uart-异步串口与不定长接收">4. UART：异步串口与不定长接收</a></li>
+<li><a href="#5-spi-高速同步总线的正确用法">5. SPI：高速同步总线的正确用法</a></li>
+<li><a href="#6-i2c-两线总线的坑与解法">6. I2C：两线总线的坑与解法</a></li>
+<li><a href="#7-can-与-can-fd-从总线协议到-fdcan-驱动">7. CAN 与 CAN FD：从总线协议到 FDCAN 驱动</a></li>
+<li><a href="#8-dma-让数据搬运脱离-cpu">8. DMA：让数据搬运脱离 CPU</a></li>
+</ul>
+<p><strong>系统篇（第 9–10 章：内存与调试）</strong></p>
+<ul>
+<li><a href="#9-内存-地址空间区域分配与碎片治理">9. 内存：地址空间、区域分配与碎片治理</a></li>
+<li><a href="#10-调试与实战-从-hardfault-到稳定交付">10. 调试与实战：从 HardFault 到稳定交付</a></li>
+<li><a href="#附录术语速查表">附录：术语速查表</a></li>
+</ul>
+<hr />
+<h2 id="0-全景图mcu-开发的知识地图">0. 全景图：MCU 开发的知识地图</h2>
+<p>MCU（Microcontroller Unit，微控制器）的本质是<strong>把 CPU、存储器（Flash / SRAM）和常用外设（串口、定时器、ADC 等）集成在一片芯片上的单芯片计算机</strong>。它和 PC 最大的区别不是性能低，而是「程序直接跑在裸金属上」：没有操作系统帮你管理内存和外设时（裸机开发），每一字节的去向、每一个中断的时序，都是工程师自己的责任。整个 MCU 开发的知识体系因此分成四层：</p>
+<pre><code> 应用层     状态机 / 任务调度 / 协议解析(MAVLink, Modbus) / 日志 / 故障管理
+ ─────────────────────────────────────────────────────────────
+ 中间件     FreeRTOS(实时操作系统) / FatFs(文件系统) / LwIP(网络) / USB 协议栈
+ ─────────────────────────────────────────────────────────────
+ 驱动层     HAL(意法半导体的通用硬件抽象库) / LL(轻量寄存器封装) / 直接写寄存器
+ ─────────────────────────────────────────────────────────────
+ 硬件层     Cortex-M 内核 + 时钟树(RCC) + 中断控制器(NVIC)
+            + 外设: UART / SPI / I2C / CAN / ADC / 定时器 / DMA
+            + 存储: Flash(放代码) / SRAM(放变量) / 备份域
+</code></pre>
+<p>本手册的章节正好沿着这个分层自底向上：先选芯片和搭工程（硬件层 + 驱动层入口），再逐个吃透外设驱动（驱动层），最后管内存、查故障（支撑系统稳定运行的横切能力）。</p>
+<h3 id="01-历史时间线">0.1 历史时间线</h3>
+<table>
+<thead>
+<tr>
+<th>年代</th>
+<th>事件</th>
+<th>对今天开发者的意义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1971–1976</td>
+<td>Intel 4004 → TI TMS1000 → Intel 8048</td>
+<td>微处理器诞生，「单芯片计算机」（MCU）概念成型</td>
+</tr>
+<tr>
+<td>1980</td>
+<td>Intel 8051（MCS-51）</td>
+<td>史上最长寿 MCU 架构，国内教材与产线至今仍在用，其继任者（如 STC、Silabs EFM8）还在出货</td>
+</tr>
+<tr>
+<td>1990s</td>
+<td>PIC16、Motorola 68HC11、Atmel AVR（1997）</td>
+<td>8 位机黄金期；AVR 后来成为 Arduino 的心脏</td>
+</tr>
+<tr>
+<td>1994</td>
+<td>ARM7TDMI</td>
+<td>32 位 ARM 进入嵌入式，为 Cortex-M 铺路</td>
+</tr>
+<tr>
+<td>2004</td>
+<td>ARM 发布 Cortex-M3；Luminary Micro 首家授权</td>
+<td>为「MCU」重新定义内核：低中断延迟、确定性执行、低成本授权</td>
+</tr>
+<tr>
+<td>2007</td>
+<td>ST 发布 STM32F1（Cortex-M3，72 MHz）</td>
+<td>Cortex-M 生态引爆点，「STM32 ≈ 32 位 MCU 事实标准」由此确立</td>
+</tr>
+<tr>
+<td>2010–2012</td>
+<td>Cortex-M4（带 FPU 与 DSP 指令）；STM32F407（168 MHz）</td>
+<td>浮点硬件下放，电机控制 / 飞控等算法密集应用成为可能</td>
+</tr>
+<tr>
+<td>2014–2017</td>
+<td>Cortex-M7 → STM32F7（216 MHz）→ H7（480 MHz，双精度总线、大缓存）</td>
+<td>MCU 性能逼近十年前的 PC；缓存与多域内存成为新课题</td>
+</tr>
+<tr>
+<td>2016</td>
+<td>乐鑫 ESP32（WiFi + BLE 双核 SoC）</td>
+<td>「带无线的 MCU」成为独立品类，物联网终端成本骤降</td>
+</tr>
+<tr>
+<td>2016</td>
+<td>ARMv8-M（Cortex-M23 / M33，TrustZone）</td>
+<td>安全隔离机制从应用处理器下沉到 MCU</td>
+</tr>
+<tr>
+<td>2018–2021</td>
+<td>兆易 GD32VF103（RISC-V）、WCH CH32V003（约 1 元级）</td>
+<td>RISC-V 开源指令集成为第二内核生态，国产替代加速</td>
+</tr>
+<tr>
+<td>2020s</td>
+<td>汽车电动化推动车规 MCU（英飞凌 AURIX、NXP S32K）扩张；缺货潮后国产二供全面铺开</td>
+<td>选型除了「性能够不够」，还要回答「十年后还买不买得到」</td>
+</tr>
+</tbody>
+</table>
+<h3 id="02-mcu-与它的亲戚">0.2 MCU 与它的亲戚</h3>
+<p>选型第一步是确认「我到底需要哪类芯片」。MCU 与 MPU（应用处理器）、DSP、无线 SoC 的边界经常被混淆，下表给出判据：</p>
+<table>
+<thead>
+<tr>
+<th>类别</th>
+<th>代表</th>
+<th>程序与系统</th>
+<th>强项</th>
+<th>弱项</th>
+<th>典型用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MCU（本手册对象）</td>
+<td>STM32、GD32、CH32、RA、AURIX</td>
+<td>裸机或 RTOS，代码在片内 Flash 就地执行</td>
+<td>微秒级实时性、低功耗、上电即跑、外设丰富</td>
+<td>算力有限（通常不超过数千 CoreMark），不适合跑通用操作系统</td>
+<td>电机控制、飞控、传感器节点、车身控制</td>
+</tr>
+<tr>
+<td>MPU（应用处理器）</td>
+<td>i.MX8、RK3568、树莓派芯片</td>
+<td>Linux / Android，代码在外挂 DDR / eMMC</td>
+<td>千兆级算力、通用操作系统生态</td>
+<td>启动慢（秒级）、功耗高、实时性弱（毫秒抖动）</td>
+<td>视觉处理、HMI、网关</td>
+</tr>
+<tr>
+<td>DSP（数字信号处理器）</td>
+<td>TI C2000、C6000</td>
+<td>裸机 / RTOS，乘加与滤波指令专用化</td>
+<td>数字电源、电机 FOC 中的高频滤波与变换</td>
+<td>通用外设与生态弱于主流 MCU</td>
+<td>数字电源、逆变器</td>
+</tr>
+<tr>
+<td>无线 SoC</td>
+<td>ESP32、Nordic nRF52</td>
+<td>MCU 内核 + 射频收发器集成</td>
+<td>无线连接开箱即用、社区生态（Arduino / ESP-IDF）</td>
+<td>模拟外设（ADC）精度一般，硬实时不如 STM32</td>
+<td>物联网终端、遥测链路</td>
+</tr>
+<tr>
+<td>异构双芯系统</td>
+<td>无人机算力板（实时 MCU + Linux SoC 分工）</td>
+<td>两颗芯片各跑各的系统，经串口 / 网口互联</td>
+<td>实时与算力兼得</td>
+<td>两套工具链、联调复杂</td>
+<td>无人机、机器人主控</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>判断口诀：<strong>需要微秒级确定响应、电池供电、单芯片解决 → MCU；需要跑 Linux、看视频、跑大模型 → MPU；两者都要 → 异构组合</strong>。</p>
+</blockquote>
+<h3 id="03-各工程域的典型问题与本手册对应章节">0.3 各工程域的典型问题与本手册对应章节</h3>
+<table>
+<thead>
+<tr>
+<th>工程域</th>
+<th>典型问题</th>
+<th>对应章节</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>无人机飞控</td>
+<td>姿态环 1 kHz 实时性；IMU 高速 SPI 读取；GPS / 数传不定长串口；电调 CAN 或 PWM</td>
+<td>第 4、5、7 章</td>
+</tr>
+<tr>
+<td>电机驱动 / 数字电源</td>
+<td>ADC 同步采样 + 高分辨率 PWM 相位配合；DMA 双缓冲搬运采样流</td>
+<td>第 8 章</td>
+</tr>
+<tr>
+<td>BMS / 工业传感节点</td>
+<td>I2C / SPI 多传感器总线；低功耗选型；电池备份 SRAM 存故障记录</td>
+<td>第 1、6、9 章</td>
+</tr>
+<tr>
+<td>车载 ECU / 测试台架</td>
+<td>CAN FD 位时序配置；总线错误恢复（BUS-OFF）；报文过滤</td>
+<td>第 7 章</td>
+</tr>
+<tr>
+<td>任何长期运行设备</td>
+<td>内存碎片导致数天后分配失败；栈溢出引发随机死机</td>
+<td>第 9、10 章</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="1-芯片选型参数逐项解读">1. 芯片选型：参数逐项解读</h2>
+<p>选型的原则是<strong>「由需求倒推参数，而不是由参数追逐性能」</strong>：先列出接口清单（几个串口、要不要 CAN、ADC 几路），再估算算力与内存，最后用电气参数与商务因素收口。新手最常见的两个错误是「按主频选芯片」（主频只代表整数运算吞吐，不代表外设与实时性）和「预留过度」（为一个可能永远不做的功能多花一倍成本）。本章按参数重要性逐项展开。</p>
+<h3 id="11-内核与计算性能">1.1 内核与计算性能</h3>
+<p>内核决定「每兆赫兹能算多少」，主频决定「一共能算多快」，两者相乘才是真实算力。Cortex-M 家族的分级如下：</p>
+<table>
+<thead>
+<tr>
+<th>内核</th>
+<th>流水线</th>
+<th>DMIPS/MHz</th>
+<th>CoreMark/MHz</th>
+<th>FPU</th>
+<th>DSP 指令</th>
+<th>TrustZone</th>
+<th>典型芯片</th>
+<th>定位</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cortex-M0</td>
+<td>3 级</td>
+<td>约 0.9</td>
+<td>约 2.3</td>
+<td>无</td>
+<td>无</td>
+<td>无</td>
+<td>STM32F0</td>
+<td>替换 8 位机的 32 位入门</td>
+</tr>
+<tr>
+<td>Cortex-M0+</td>
+<td>2 级</td>
+<td>约 0.95</td>
+<td>约 2.4</td>
+<td>无</td>
+<td>无</td>
+<td>无</td>
+<td>STM32G0、RP2040</td>
+<td>超低功耗 / 超低成本</td>
+</tr>
+<tr>
+<td>Cortex-M3</td>
+<td>3 级</td>
+<td>1.25</td>
+<td>约 3.4</td>
+<td>无</td>
+<td>无</td>
+<td>无</td>
+<td>STM32F1、GD32F103</td>
+<td>经典通用，无浮点</td>
+</tr>
+<tr>
+<td>Cortex-M4</td>
+<td>3 级 + 分支预测</td>
+<td>1.25</td>
+<td>约 3.4</td>
+<td>单精度</td>
+<td>有</td>
+<td>无</td>
+<td>STM32F4、G4</td>
+<td>主力：算法 + 实时兼顾</td>
+</tr>
+<tr>
+<td>Cortex-M7</td>
+<td>6 级双发射</td>
+<td>约 2.1</td>
+<td>约 5.0</td>
+<td>单精度（可配双精度）</td>
+<td>有</td>
+<td>无</td>
+<td>STM32F7 / H7</td>
+<td>高性能：大缓存、TCM</td>
+</tr>
+<tr>
+<td>Cortex-M33</td>
+<td>3 级 +</td>
+<td>约 1.5</td>
+<td>约 4.0</td>
+<td>单精度可选</td>
+<td>可选</td>
+<td>有</td>
+<td>STM32L5 / U5 / H5</td>
+<td>带安全隔离的新一代中端</td>
+</tr>
+<tr>
+<td>Cortex-M85</td>
+<td>超标量</td>
+<td>约 3.8</td>
+<td>约 6.6</td>
+<td>双精度</td>
+<td>Helium 向量扩展</td>
+<td>有</td>
+<td>Renesas RA8</td>
+<td>当前 MCU 顶级内核</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>DMIPS（Dhrystone MIPS）与 CoreMark 是两个业界基准分数，<strong>乘以主频即得总性能</strong>。例如 STM32F407（M4，168 MHz）：1.25 × 168 ≈ 210 DMIPS，3.4 × 168 ≈ 570 CoreMark；STM32H743（M7，480 MHz）约 1027 DMIPS、约 2400 CoreMark。不同厂家编译优化等级不同，实际有 10% 左右浮动。</p>
+</blockquote>
+<p>算力估算的正确姿势是<strong>把最重的那一个实时任务算清楚</strong>，而不是笼统比分数。以飞控姿态环为例：1 kHz 中断内做一次四元数姿态解算 + 三轴 PID，乘加次数约 200 次（M4 的 DSP 指令单周期乘加），加传感器读取与滤波，单次约 5–10 μs，占 1 ms 周期的 1%——任何 M4 都绰绰有余；但若再加上卡尔曼滤波的 4×4 矩阵求逆（含除法），单次升到 50–100 μs，仍然安全；一旦出现「要跑 1024 点 FFT 频谱分析（约 1–2 ms）」这类需求，就必须确认 FPU 存在且采样 buffer 放对内存。结论：<strong>M0/M3 适合逻辑控制，凡是涉及浮点控制律、滤波、FFT 的应用，从 M4F 起步</strong>。</p>
+<h4>FPU 与编译选项的隐藏关联</h4>
+<p>硬件 FPU 只有配合正确的编译选项才生效。GCC 下 <code>-mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=hard</code> 表示使用 F4 的单精度浮点单元并以硬浮点 ABI 传参；如果误用 <code>-mfloat-abi=soft</code>，所有浮点运算退化成软件模拟（慢 10–100 倍），主频再高也救不回来。Keil（MDK）同理，在 Target 对话框里确认「Floating Point Hardware」已选 Single Precision。另外注意：<strong>M4/M7（H7 系列）的 FPU 是单精度的</strong>，代码里的 <code>double</code> 字面量（如 <code>3.14159</code> 默认就是 double）会掉进软件浮点——写成 <code>3.14159f</code> 强制单精度是嵌入式 C 的关键习惯。</p>
+<h3 id="12-存储资源">1.2 存储资源</h3>
+<p>存储决定「程序装不装得下、变量放不放得下、数据存不存得住」，选型时按三个维度核对：</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>关键参数</th>
+<th>解读与经验值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Flash 容量</td>
+<td>代码 + 常量 + 文件系统占用</td>
+<td>裸机逻辑程序典型 32–128 KB；带 RTOS + 网络协议栈 256 KB 起步；带字库 / 图标资源看资源大小。选型时留 30% 余量给迭代</td>
+</tr>
+<tr>
+<td>Flash 寿命</td>
+<td>擦写次数（1 万–10 万次）</td>
+<td>参数掉电保存不能直接写 Flash——1 秒写一次，3 万次擦写不到一天就写穿；应写入 9.7 节的磨损均衡方案或外挂 EEPROM / FRAM</td>
+</tr>
+<tr>
+<td>SRAM 容量</td>
+<td>静态变量 + 栈 + 堆 + DMA 缓冲</td>
+<td>估算方法：所有全局数组加起来 × 1.5（余量），再加 2–8 KB 栈。缓冲密集应用（如 CAN 报文队列、串口环形缓冲）单独列表核对。内存区域细节见第 9 章</td>
+</tr>
+</tbody>
+</table>
+<p>另一个容易忽视的维度是<strong>内存结构</strong>：同样的 192 KB RAM，F407 是「128 KB 普通 SRAM + 64 KB CPU 专用 CCM」，H743 是「128 KB 全速 TCM + 864 KB 分域 SRAM + 可选缓存」——<strong>容量相同，带宽和可访问性完全不同</strong>（例如 F4 的 CCM 区 DMA 不可达，放串口缓冲就是死路）。这个问题复杂到值得单独一章，见第 9 章。</p>
+<h3 id="13-外设资源清单">1.3 外设资源清单</h3>
+<p>外设清单是选型中最「硬」的约束——数量不够没有软件手段可救。逐项核对时关注的重点如下：</p>
+<table>
+<thead>
+<tr>
+<th>外设</th>
+<th>选型关注点</th>
+<th>常见的坑</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>UART</td>
+<td>数量；是否有 FIFO（F4 无、F7/H7 有 16 字节）；最高波特率；流控引脚</td>
+<td>数量按「每个设备一条」清点：GPS、数传、调试、RS485 各占一条，5 个设备就需要 5 个 UART</td>
+</tr>
+<tr>
+<td>SPI</td>
+<td>数量；最高速率（APB 时钟 ÷ 2）；是否支持 16 位帧；F7/H7 的 FIFO 深度</td>
+<td>速率上限取决于所在总线：F407 的 SPI1 挂在 84 MHz 的 APB2 上限 42 Mbps，SPI2/3 挂在 42 MHz 的 APB1 上限只有 21 Mbps</td>
+</tr>
+<tr>
+<td>I2C</td>
+<td>数量；支持速率（100 k / 400 k / 1 MHz）；数字滤波能力</td>
+<td>F1/F4 的旧版 I2C 外设时序 quirks 多（见 6.2 节），对外设密集的总线建议选 F7/G4/H7 的新版 IP</td>
+</tr>
+<tr>
+<td>CAN</td>
+<td>数量；经典 CAN 还是 CAN FD；过滤器组数量与深度</td>
+<td>F4 的 bxCAN 只有经典 CAN；需要 CAN FD 必须选 G4（3 路）/H7/L5/U5 等带 FDCAN 的型号</td>
+</tr>
+<tr>
+<td>ADC</td>
+<td>位数（12/16 bit）；采样率；通道数；是否多 ADC 交替采样；注入通道</td>
+<td>「12 bit」不等于「12 bit 有效」：实际有效位数（ENOB）通常少 1–2 bit，与布局和参考电压强相关</td>
+</tr>
+<tr>
+<td>定时器</td>
+<td>高级定时器（带死区互补 PWM，电机 / 电源必需）数量；32 位定时器数量</td>
+<td>编码器接口模式需要两个通道正交解码，占用一个通用定时器的全部 4 个通道</td>
+</tr>
+<tr>
+<td>USB</td>
+<td>FS（12 Mbps）/ HS（480 Mbps，F4 需外接 ULPI PHY）；设备 / 主机 / OTG</td>
+<td>「有 USB」不等于「有高速」：HS 模式大多需要外挂 PHY 芯片，BOM 成本与布线难度陡增</td>
+</tr>
+<tr>
+<td>SDMMC / Ethernet</td>
+<td>SDIO 4 线；以太网 MAC 是否带 PHY（多数不带，需外挂）</td>
+<td>大容量数据记录（飞控日志）优先核对 SDMMC 是否存在，否则只能 SPI 卡，写入速率差一个量级</td>
+</tr>
+<tr>
+<td>QSPI</td>
+<td>是否支持内存映射执行代码（XIP）</td>
+<td>大程序放外部 QSPI Flash 时，XIP 性能受限于 QSPI 带宽，热点函数应拷到片内 RAM 执行</td>
+</tr>
+</tbody>
+</table>
+<h3 id="14-电气参数与功耗">1.4 电气参数与功耗</h3>
+<p>电气参数决定芯片「能不能在你的板子上活下来、省不省电」，以下项目逐条核对：</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>典型值</th>
+<th>注意事项</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>供电范围</td>
+<td>2.0–3.6 V（主流）/ 1.71–3.6 V（H7）</td>
+<td>主流 MCU 都是 3.3 V 供电；5 V 直连会损坏，5 V 系统需 LDO 降压</td>
+</tr>
+<tr>
+<td>IO 电平与耐压</td>
+<td>多数引脚 3.3 V；标「FT」的引脚 5 V 耐受</td>
+<td>接 5 V 传感器输出时必须确认该脚是 FT（Five-volt Tolerant）脚，且 FT 脚不能配置为模拟 / 开漏上拉模式</td>
+</tr>
+<tr>
+<td>IO 驱动能力</td>
+<td>±8 mA 保证，峰值 20–40 mA（视型号）</td>
+<td>直接驱动 LED / 蜂鸣器可以，驱动继电器 / 电机必须加三极管或驱动芯片</td>
+</tr>
+<tr>
+<td>运行功耗</td>
+<td>约 0.1–0.3 mA/MHz（视工艺与频率）</td>
+<td>168 MHz 全速运行约 30–40 mA；H7 480 MHz 可达 200 mA 以上</td>
+</tr>
+<tr>
+<td>低功耗模式</td>
+<td>Sleep（μs 级唤醒）/ Stop（μA 级）/ Standby（nA 级，唤醒即复位）</td>
+<td>电池产品选型时逐档核对电流值：同级芯片 Stop 模式电流可能差 5–10 倍</td>
+</tr>
+<tr>
+<td>备份域</td>
+<td>RTC + 4 KB 备份 SRAM，VBAT 纽扣电池供电</td>
+<td>断电保存标定参数 / 故障记录的硬件基础，见 9.6 节</td>
+</tr>
+<tr>
+<td>复位与监控</td>
+<td>POR / PDR（上下电复位）、BOR（欠压复位）、独立看门狗 IWDG</td>
+<td>电源缓慢爬升场景必须使能 BOR，否则可能停在中间电压状态跑飞</td>
+</tr>
+<tr>
+<td>温度等级</td>
+<td>消费 0–85 ℃ / 工业 −40–85 ℃ / 车规 −40–125 ℃（AEC-Q100 Grade 1–3）</td>
+<td>户外与车载必须工业级起步；同一内核不同温度等级差价明显</td>
+</tr>
+</tbody>
+</table>
+<h3 id="15-封装与硬件设计相关">1.5 封装与硬件设计相关</h3>
+<p>封装影响的不只是焊接难度，还有信号完整性与散热。</p>
+<table>
+<thead>
+<tr>
+<th>封装</th>
+<th>引脚间距</th>
+<th>适用场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SOIC / TSSOP</td>
+<td>1.27 / 0.65 mm</td>
+<td>小引脚数（8–28 脚）入门芯片，烙铁可焊</td>
+</tr>
+<tr>
+<td>LQFP</td>
+<td>0.5 / 0.8 mm</td>
+<td>原型与小批量主力（F407VGT6 即 LQFP-100），热风枪或风枪返修可行</td>
+</tr>
+<tr>
+<td>QFN / DFN</td>
+<td>0.5 mm，底部带散热焊盘</td>
+<td>量产省空间；底部焊盘需回流焊，手工返修困难</td>
+</tr>
+<tr>
+<td>BGA</td>
+<td>0.65–0.8 mm 球栅</td>
+<td>大引脚数高性能芯片（H743 部分封装），必须工厂回流，飞线几乎不可能</td>
+</tr>
+</tbody>
+</table>
+<p>两个与选型直接相关的硬件问题：<strong>其一，时钟精度</strong>。内部 RC 振荡器（HSI）精度约 ±1%，对 UART 115200 波特率（要求总误差约小于 2%）勉强够用，但 CAN 总线（要求约 0.5% 以内）和 USB 必须用外部晶振（±10~±30 ppm）——选型时确认所用外设对时钟源的要求，别为省一个晶毁掉整条总线。<strong>其二，引脚复用冲突</strong>。MCU 每个引脚可复用为多种外设功能，但同一时刻只能一种；把外设需求列表逐脚映射时（CubeMX 会自动标红冲突），常见冲突点是大引脚数外设（SDMMC、8080 并口 LCD）与定时器通道抢占同组引脚。</p>
+<h3 id="16-商务与生态因素">1.6 商务与生态因素</h3>
+<table>
+<thead>
+<tr>
+<th>因素</th>
+<th>核对内容</th>
+<th>为什么重要</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>价格</td>
+<td>万片价而非单片价；同性能档位横向比较</td>
+<td>1 万片量级下，同性能国产与进口差价可达 2–5 倍</td>
+</tr>
+<tr>
+<td>供货与生命周期</td>
+<td>官方生命周期状态（NRND = 不推荐新设计）；工业产品通常要求 10 年以上持续供货</td>
+<td>2021–2023 缺货潮的教训：主料必须设计二供（第二供应商）</td>
+</tr>
+<tr>
+<td>二供兼容性</td>
+<td>国产替代（GD32 / APM32 / AT32 等）与原型的兼容度</td>
+<td>详见 2.4 节——寄存器兼容不等于等效替换</td>
+</tr>
+<tr>
+<td>开发生态</td>
+<td>图形化配置工具（CubeMX / RA Smart Config）、HAL 库成熟度、社区资料量、开发板可得性</td>
+<td>生态差距直接换成工时：STM32 一个驱动半天，冷门芯片可能一周</td>
+</tr>
+<tr>
+<td>认证资质</td>
+<td>工业 IEC 61508（功能安全 SIL）、车规 ISO 26262（ASIL）、AEC-Q100</td>
+<td>目标市场有强制认证要求时，认证芯片清单之外没有选择权</td>
+</tr>
+</tbody>
+</table>
+<h3 id="17-选型决策流程与实例">1.7 选型决策流程与实例</h3>
+<pre><code> 需求输入
+ │
+ ├─ ① 接口清单: UART×?  SPI×?  I2C×?  CAN? CAN FD?  USB?  SDMMC?
+ │      → 淘汰外设数量不够的型号（硬约束，无解）
+ │
+ ├─ ② 算力估算: 最重实时任务(浮点? 滤波? FFT?) → 定内核档次
+ │      逻辑控制 → M0/M3   浮点控制律/滤波 → M4F   大数据量/多任务 → M7
+ │
+ ├─ ③ 内存估算: 代码量→Flash   静态变量+栈+缓冲→RAM
+ │
+ ├─ ④ 电气: 供电/耐压/温度等级/低功耗档位
+ │
+ ├─ ⑤ 硬件: 封装可焊性/晶振需求/引脚冲突(CubeMX 摆引脚验证)
+ │
+ └─ ⑥ 商务: 价格/供货/二供/生态 → 定最终型号
+</code></pre>
+<p><strong>实例：四旋翼飞控选型推演</strong>。需求：IMU 读取（SPI，1 kHz）、GPS（UART）、数传（UART）、调试（UART）、SD 卡日志（SDMMC 优先）、电调接口（DShot 单线或 CAN）、姿态环 + 卡尔曼（浮点密集，M4F 起步）、板载 LED 与调试口。</p>
+<table>
+<thead>
+<tr>
+<th>候选</th>
+<th>符合项</th>
+<th>取舍分析</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>STM32F405RGT6</td>
+<td>M4F 168 MHz、3×SPI、4+×UART、SDIO、168 针资源、LQFP-64 可焊</td>
+<td>Betaflight / PX4 小机型事实标准，资料最多，二供有 APM32F405；选它</td>
+</tr>
+<tr>
+<td>STM32H743VIT6</td>
+<td>M7 480 MHz、2 MB Flash、1 MB RAM、CAN FD</td>
+<td>ArduPilot / PX4 大机型选择；算力与内存余量大，但 BGA/LQFP-100、功耗高，小机型杀鸡用牛刀</td>
+</tr>
+<tr>
+<td>GD32F450VGT6</td>
+<td>M4F 200 MHz、兼容 F4 生态</td>
+<td>成本敏感量产时的二供选项；ADC 精度与 FT 引脚分布需回归验证（2.4 节清单）</td>
+</tr>
+<tr>
+<td>ESP32-S3</td>
+<td>自带 WiFi 遥测很诱人</td>
+<td>ADC 精度与硬实时不足，姿态环不稳；可作为「加装遥测链路」的协处理器而非飞控主控</td>
+</tr>
+</tbody>
+</table>
+<p>结论路径具有普适性：<strong>原型期选生态最好的（少踩坑），量产期在兼容候选里做验证后降成本，特殊功能（CAN FD、无线）作为硬性分水岭提前排除</strong>。</p>
+<hr />
+<h2 id="2-主流-mcu-平台对比">2. 主流 MCU 平台对比</h2>
+<p>没有「最好的 MCU」，只有「与你的团队、供应链、目标市场匹配的 MCU」。本章按「大厂全线 → ST 家族谱系 → 场景化推荐 → 国产替代注意」四步给出横向对比，所有结论都落到「什么场景选什么」上。</p>
+<h3 id="21-市场格局总览">2.1 市场格局总览</h3>
+<table>
+<thead>
+<tr>
+<th>厂商</th>
+<th>代表系列（内核）</th>
+<th>优势</th>
+<th>劣势</th>
+<th>典型应用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ST（意法半导体）</td>
+<td>STM32 全家桶（M0+ ~ M7、M33）</td>
+<td>生态第一（CubeMX/HAL/社区/开发板），型号矩阵最全，从 8 KB 到 2 MB Flash 无缝升级</td>
+<td>价格中等；缺货史让客户建立二供习惯</td>
+<td>从玩具到工业到飞控的通用默认选项</td>
+</tr>
+<tr>
+<td>GigaDevice 兆易创新</td>
+<td>GD32（M3/M4/M33，兼容路线）、GD32V（RISC-V）</td>
+<td>价格低约 30–50%，主频略高于对应 ST 型号（F470 达 240 MHz），货源稳</td>
+<td>外设细节与 ST 有差异（ADC 精度、FT 引脚、Flash 等待策略），社区资料少于 ST</td>
+<td>STM32 的国产二供首选，量产降本</td>
+</tr>
+<tr>
+<td>WCH 南京沁恒</td>
+<td>CH32F（M3）、CH32V（RISC-V，含 CH32V003）</td>
+<td>极致性价比（V003 约 1 元级、内置 USB 下载），自有 RISC-V 生态（MounRiver 工具链）</td>
+<td>产品线偏入门与中端，外设丰富度与文档深度有限</td>
+<td>消费电子、简单控制、价格敏感节点</td>
+</tr>
+<tr>
+<td>NXP（恩智浦）</td>
+<td>i.MX RT 跨界 MCU（M7，最高 1 GHz）、LPC、Kinetis、S32K（车规 M4/M7 锁步）</td>
+<td>RT 系列「MCU 速度天花板」，LPC 久经考验，车规 S32K 生态成熟</td>
+<td>型号命名混乱（三大家族合并史），社区热度弱于 ST</td>
+<td>HMI、高端电机、车身域控</td>
+</tr>
+<tr>
+<td>TI（德州仪器）</td>
+<td>MSP430（16 位超低功耗）、C2000（DSP 型控制）、TM4C、Hercules TMS570（双核锁步车规）</td>
+<td>C2000 在数字电源 / 电机控制领域近乎垄断（高分辨率 PWM + 专用 CLA 协处理器）；MSP430 静态电流极低</td>
+<td>除 C2000 外通用生态弱；价格偏高</td>
+<td>数字电源、逆变器、超低功耗仪表</td>
+</tr>
+<tr>
+<td>Infineon（英飞凌）</td>
+<td>AURIX TC3xx/TC4x（TriCore 多核锁步）、PSoC（可编程模拟）</td>
+<td>车规 ASIL-D 事实标准（发动机、底盘、域控），PSoC 模拟阵列灵活</td>
+<td>消费 / 工业通用市场存在感低；TriCore 工具链封闭且贵</td>
+<td>汽车 ECU、工业安全系统</td>
+</tr>
+<tr>
+<td>Renesas（瑞萨）</td>
+<td>RA（M4/M23/M33/M85）、RX（自有内核）、RL78（低功耗）</td>
+<td>车规市占率第一梯队（RH850），RA8 的 M85 内核当前性能领先，品质口碑好</td>
+<td>国内社区资料少，学习曲线偏陡</td>
+<td>汽车、工控仪表、家电</td>
+</tr>
+<tr>
+<td>Nordic Semiconductor</td>
+<td>nRF52（M4F）/ nRF53 / nRF54（BLE SoC）</td>
+<td>低功耗蓝牙事实标准，SoftDevice 协议栈稳定，功耗标杆</td>
+<td>专注无线，外设通用性一般</td>
+<td>可穿戴、无线传感、BLE 外设</td>
+</tr>
+<tr>
+<td>乐鑫 Espressif</td>
+<td>ESP32（双核 Xtensa）、ESP32-C3/S3/C6（RISC-V）</td>
+<td>WiFi+BLE 集成度与价格无对手，Arduino/ESP-IDF 生态火爆</td>
+<td>硬实时与模拟外设（ADC 精度）弱，功耗高于 STM32，工业可靠性案例少</td>
+<td>物联网终端、遥测、智能家居</td>
+</tr>
+<tr>
+<td>Microchip</td>
+<td>AVR（ATmega）、PIC、SAM（M4/M7）</td>
+<td>AVR 即 Arduino 经典款，PIC 生命周期超长，文档友好</td>
+<td>高性能线（SAM）声量小</td>
+<td>教育、小家电、长生命周期产品</td>
+</tr>
+<tr>
+<td>Silicon Labs</td>
+<td>EFM32（Gecko，M0+/M33）</td>
+<td>能效管理精细（低功耗模式架构教科书级），无线 SoC 线完整</td>
+<td>国内生态小众</td>
+<td>电池仪表、无线传感</td>
+</tr>
+<tr>
+<td>华大 / 灵动 / 极海 等国产</td>
+<td>HC32（M4）、MM32（M0+/M4/M33）、APM32（兼容 F1/F4）</td>
+<td>价格低、交付快、本地 FAE 支持，车规线（HC32 车规系列）逐步成熟</td>
+<td>文档与工具链质量参差，长期供货承诺需合同确认</td>
+<td>工业变频、家电、两轮车、国产化项目</td>
+</tr>
+</tbody>
+</table>
+<h3 id="22-stm32-家族谱系">2.2 STM32 家族谱系</h3>
+<p>STM32 型号命名「字母 + 数字」本身就编码了定位，掌握谱系后看到型号即可判断档次：</p>
+<table>
+<thead>
+<tr>
+<th>系列</th>
+<th>内核 / 主频</th>
+<th>Flash / RAM 典型值</th>
+<th>特色</th>
+<th>定位</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>STM32C0</td>
+<td>M0+ / 48 MHz</td>
+<td>32 KB / 12 KB</td>
+<td>极致低价（约 0.5 美元级）</td>
+<td>替换 8 位机</td>
+</tr>
+<tr>
+<td>STM32F0 / G0</td>
+<td>M0 / M0+ / 48–64 MHz</td>
+<td>16–512 KB / 4–144 KB</td>
+<td>G0 带汽车级型号，性价比工业入门</td>
+<td>简单控制、传感器</td>
+</tr>
+<tr>
+<td>STM32F1</td>
+<td>M3 / 72 MHz</td>
+<td>16 KB–1 MB / 6–96 KB</td>
+<td>2007 年元老，中文资料最多；外设较老（无 FPU、旧 I2C）</td>
+<td>教学、存量项目维护</td>
+</tr>
+<tr>
+<td>STM32F4</td>
+<td>M4F / 84–180 MHz</td>
+<td>128–2 MB / 32–384 KB</td>
+<td>带单精度 FPU；F407（168 MHz）是本手册主线</td>
+<td>通用主力，型号最全</td>
+</tr>
+<tr>
+<td>STM32G4</td>
+<td>M4F / 170 MHz</td>
+<td>32–512 KB / 10–128 KB</td>
+<td>内置运放 / 比较器 / 高分辨率定时器 / <strong>3×CAN FD</strong></td>
+<td>电机驱动、数字电源首选</td>
+</tr>
+<tr>
+<td>STM32F7</td>
+<td>M7 / 216 MHz</td>
+<td>512 KB–2 MB / 256–512 KB</td>
+<td>引入 Cache 与 TCM（H7 的预演）</td>
+<td>GUI（带 LCD-TFT 控制器）</td>
+</tr>
+<tr>
+<td>STM32H7</td>
+<td>M7 / 480–550 MHz（双核 H745：M7+M4）</td>
+<td>1–2 MB / 1 MB+（含 128 KB DTCM）</td>
+<td>性能与内存天花板，多域总线架构</td>
+<td>高端工业、飞控大机型、音频</td>
+</tr>
+<tr>
+<td>STM32L0/L4/L5</td>
+<td>M0+ / M4F / M33</td>
+<td>16 KB–1 MB</td>
+<td>Stop 模式电流低至数百 nA 级，动态功耗调节</td>
+<td>电池供电仪表、可穿戴</td>
+</tr>
+<tr>
+<td>STM32U5</td>
+<td>M33 / 160 MHz</td>
+<td>2 MB / 786 KB</td>
+<td>低功耗工艺旗舰 + TrustZone</td>
+<td>高端可穿戴、安全终端</td>
+</tr>
+<tr>
+<td>STM32H5 / WB / WL</td>
+<td>M33 / M4+无线</td>
+<td>—</td>
+<td>H5 安全主控；WB 双核 BLE；WL LoRa</td>
+<td>安全与无线终端</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>选系列的最快路径：<strong>看两个硬条件——要不要 CAN FD（要则 G4/H7/L5），要不要低功耗电池供电（要则 L/U 系列）</strong>；其余场景按算力在 F1 → F4 → F7/H7 之间对号入座。</p>
+</blockquote>
+<h3 id="23-场景化推荐">2.3 场景化推荐</h3>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>首推</th>
+<th>备选与理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>学习入门</td>
+<td>STM32F103 / F407 开发板</td>
+<td>资料量碾压一切；F4 多了 FPU，可一路学到高性能</td>
+</tr>
+<tr>
+<td>无人机飞控（本行业）</td>
+<td>STM32F405/407（小机型）、H743（大机型）</td>
+<td>PX4/ArduPilot/Betaflight 生态；备选 APM32F405、GD32F450 二供</td>
+</tr>
+<tr>
+<td>电机 FOC / 数字电源</td>
+<td>STM32G431（带 FDCAN 与高分辨率定时器）</td>
+<td>TI C2000（对精度与认证要求更高时）</td>
+</tr>
+<tr>
+<td>车载 CAN 节点 / 台架模拟器</td>
+<td>STM32G431（3 路 CAN FD）、S32K3（车规量产）</td>
+<td>量产按 OEM 指定清单执行</td>
+</tr>
+<tr>
+<td>物联网遥测终端</td>
+<td>ESP32-C3（自带 WiFi/BLE）+ STM32 主控分工</td>
+<td>单芯片求简可直接 ESP32，但硬实时部分慎放</td>
+</tr>
+<tr>
+<td>超低功耗电池仪表</td>
+<td>STM32L0/L4</td>
+<td>MSP430（静态电流极致场景）</td>
+</tr>
+<tr>
+<td>安全关键（功能安全）</td>
+<td>AURIX TC3xx / S32K3 / TMS570（锁步核）</td>
+<td>按目标 ASIL 等级与客户清单定</td>
+</tr>
+</tbody>
+</table>
+<h3 id="24-国产替代的注意事项">2.4 国产替代的注意事项</h3>
+<p>「兼容 STM32」的真实含义是<strong>寄存器与封装兼容，不保证模拟精度、时序细节与极限参数等效</strong>。已知的常见差异点：</p>
+<table>
+<thead>
+<tr>
+<th>差异点</th>
+<th>典型表现</th>
+<th>验证方法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Flash 等待周期</td>
+<td>GD32 内置加速机制，同主频下取指等待少，循环基准测试比 ST 快——反之也可能暴露 ST 上没出现的时序敏感代码</td>
+<td>跑同一段基准代码对比周期数（DWT 计数器，10.1 节）</td>
+</tr>
+<tr>
+<td>5V 耐压（FT）引脚分布</td>
+<td>GD32F103 等型号多数引脚不耐 5V，而对应 ST 引脚是 FT 脚——硬件直接替换可能损坏 IO</td>
+<td>逐脚核对数据手册 Pin Definition 表</td>
+</tr>
+<tr>
+<td>ADC 精度与噪声</td>
+<td>实测 INL / DNL、温漂与原厂有差距，精密采样场景（称重、电量计）直接受影响</td>
+<td>恒压源全通道扫描 + 温箱拉偏</td>
+</tr>
+<tr>
+<td>内部 RC 精度</td>
+<td>HSI 精度略差于 ST，无晶振走 UART 的设计风险升高</td>
+<td>多台设备量产抽测波特率误差</td>
+</tr>
+<tr>
+<td>外设行为细节</td>
+<td>个别标志位时序、DMA 请求映射、USB 枚举细节有出入，HAL 库是各家自己维护的移植版</td>
+<td>全接口自动化回归（串口全波特率收发、SPI 全模式、Flash 擦写循环、深度睡眠电流）</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>二供导入的正确姿势：<strong>软件按「同一套应用代码 + 各家 HAL」编译，硬件按「逐脚核对 + 抽样上电」验证，最终以一套自动化回归测试通过为准</strong>——这与测试台架上验证固件版本是同一套方法论。</p>
+</blockquote>
+<hr />
+<h2 id="3-开发环境与-cubemx-基础工程">3. 开发环境与 CubeMX 基础工程</h2>
+<p>STM32 的开发流程已高度工具化：<strong>CubeMX 负责图形化配置时钟、引脚与外设并生成初始化代码，IDE 负责编译调试</strong>。本章以 STM32F407VGT6 为例，从零生成一个可编译、可烧录、可打印的基础工程，并读懂生成的每一部分。</p>
+<h3 id="31-工具链全景">3.1 工具链全景</h3>
+<table>
+<thead>
+<tr>
+<th>环节</th>
+<th>选项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>配置工具</td>
+<td>STM32CubeMX（免费，图形化）</td>
+<td>生成 HAL 初始化代码；同一配置可导出给不同 IDE</td>
+</tr>
+<tr>
+<td>IDE / 编译器</td>
+<td>STM32CubeIDE（免费，Eclipse+GCC）；Keil MDK（业界存量最大）；IAR（安全认证项目）；VSCode + CMake + arm-none-eabi-gcc（现代开源路线）</td>
+<td>初学选 CubeIDE 一站式；企业按存量与认证要求选</td>
+</tr>
+<tr>
+<td>烧录调试器</td>
+<td>ST-Link V2/V3（官方）、J-Link（行业级）、DAP-Link（开源）</td>
+<td>一个调试器 = 烧录器 + 在线断点调试器，是嵌入式开发的核心装备</td>
+</tr>
+<tr>
+<td>调试接口</td>
+<td>SWD（4 线：SWDIO、SWCLK、GND、3V3，可选 nRST）</td>
+<td>JTAG（20 线）在 Cortex-M 上基本被 SWD 取代；SWD 还带 SWO 单根 trace 输出</td>
+</tr>
+<tr>
+<td>串口终端</td>
+<td>MobaXterm、PuTTY、Tera Term</td>
+<td>调试输出的第一窗口</td>
+</tr>
+</tbody>
+</table>
+<h3 id="32-cubemx-配置五步法">3.2 CubeMX 配置五步法</h3>
+<p>以「168 MHz 主频 + SWD 调试 + USART1 打印 + LED」为目标，CubeMX 操作顺序如下（顺序本身有讲究，最后才摆功能引脚）：</p>
+<ol>
+<li><strong>选型</strong>：New Project → MCU/MPU Selector → 搜 <code>STM32F407VGT6</code> → Start Project。</li>
+<li><strong>调试口</strong>：左侧 System Core → SYS → Debug 选 <code>Serial Wire</code>。<strong>不选的后果</strong>：PA13/PA14 被释放为普通 GPIO，烧录一次程序后 SWD 被复用占用，调试器再也连不上（只能 connect under reset 抢救）。这是新手第一大坑。</li>
+<li><strong>时钟源</strong>：System Core → RCC → HSE（外部高速晶振）选 <code>Crystal/Ceramic Resonator</code>。前面 1.5 节说过，UART/USB/ADC 精度场景必须外部晶振。</li>
+<li><strong>时钟树</strong>：Clock Configuration 页，输入 HSE = 8 MHz，按下面路径逐级设置（CubeMX 会自动解算，也可手输回车确认）：</li>
+</ol>
+<pre><code> HSE 8 MHz
+   │  /M = 4
+   ▼
+ 2 MHz ──(PLL 锁相环 ×N = 168)──► 336 MHz VCO
+                                     │ /P = 2
+                                     ▼
+                          SYSCLK = 168 MHz（系统主频）
+                            │ /AHB = 1  → HCLK  = 168 MHz（CPU/ DMA / SRAM）
+                            │ /APB1 = 4 → APB1  =  42 MHz（低速外设: UART2~5, SPI2/3, I2C, CAN1/2, TIM2~7）
+                            │ /APB2 = 2 → APB2  =  84 MHz（高速外设: UART1, SPI1, ADC, TIM1/8~11）
+   注: 挂在 APB 上的定时器时钟自动 ×2（APB 分频大于 1 时）, 如 TIM2 时钟 = 84 MHz
+</code></pre>
+<p>时钟树是 STM32 的「总闸」：<strong>所有外设的实际速率（波特率、SPI 分频、ADC 采样率）都从这里的三个总线时钟派生</strong>，后面每一章算参数时都会回到这组数字（168 / 42 / 84 MHz）。</p>
+<ol start="5">
+<li><strong>外设与引脚</strong>：本例勾选 USART1（Mode: Asynchronous，115200），PB0 设为 GPIO_Output（LED）；然后 Project Manager 页设工程名与 IDE，Code Generator 页勾选「Generate peripheral initialization as a pair of '.c/.h' files per peripheral」（外设初始化分文件，工程大后必要）与「Copy only the necessary library files」（只拷用到的库）。GENERATE CODE。</li>
+</ol>
+<h3 id="33-生成代码的结构与-user-code-机制">3.3 生成代码的结构与 USER CODE 机制</h3>
+<pre><code>MyProject/
+├─ Core/
+│  ├─ Src/
+│  │  ├─ main.c              ← main() 与外设初始化入口
+│  │  ├─ gpio.c              ← GPIO 初始化（按外设分文件的产物）
+│  │  ├─ usart.c             ← USART1 初始化
+│  │  ├─ stm32f4xx_hal_msp.c ← MSP 回调: 外设底层(时钟/引脚/中断)使能
+│  │  ├─ stm32f4xx_it.c      ← 所有中断服务函数入口
+│  │  ├─ stm32f4xx_hal_timebase_*.c（若改过时基）
+│  │  └─ system_stm32f4xx.c  ← SystemInit(): 时钟相关系统初始化
+│  └─ Inc/                   ← 对应头文件 + main.h（引脚宏定义在此）
+├─ Drivers/
+│  ├─ CMSIS/                 ← ARM 内核头文件 + 启动文件(startup_stm32f407xx.s)
+│  └─ STM32F4xx_HAL_Driver/  ← HAL 库源码(只拷了用到的模块)
+└─ MDK-ARM/ 或 CMakeLists.txt / .project 等（按所选 IDE）
+</code></pre>
+<p>有两个文件值得提前理解。<strong>其一是启动文件</strong> <code>startup_stm32f407xx.s</code>：复位后 CPU 从这里执行——先把 <code>.data</code> 段（有初值的全局变量）从 Flash 复制到 RAM，再把 <code>.bss</code> 段（无初值全局变量）清零，然后跳进 <code>main()</code>。段的概念在第 9 章展开。<strong>其二是 USER CODE 区</strong>：生成的 <code>main.c</code> 里到处是这样的注释对：</p>
+<pre><code>/* USER CODE BEGIN 2 */
+  用户代码只能写在这对注释之间
+/* USER CODE END 2 */
+</code></pre>
+<p>CubeMX 重新生成代码时<strong>只改注释对之外的内容，注释对之内的用户代码原样保留</strong>。把代码写在注释对之外等于写在沙子上，下次生成必被覆盖——这是 CubeMX 工作流的第一纪律。</p>
+<h3 id="34-hal-库的两种打开方式与点灯">3.4 HAL 库的两种打开方式与点灯</h3>
+<p>HAL（Hardware Abstraction Layer）是 ST 的官方抽象库，把「配置寄存器」封装成「结构体 + API」；它的轻量替代是 LL（Low-Layer）库，直接对应寄存器操作，无运行时开销。两者取舍：</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>HAL</th>
+<th>LL</th>
+<th>寄存器直写</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>代码效率</td>
+<td>较低（参数检查、状态机开销）</td>
+<td>高（内联宏）</td>
+<td>最高</td>
+</tr>
+<tr>
+<td>开发速度</td>
+<td>最快，CubeMX 深度集成</td>
+<td>较快，CubeMX 可生成 LL 代码</td>
+<td>最慢，需通读参考手册</td>
+</tr>
+<tr>
+<td>可移植性</td>
+<td>同系列内换型号几乎零成本</td>
+<td>同系列内良好</td>
+<td>换型号需逐寄存器核对</td>
+</tr>
+<tr>
+<td>适用</td>
+<td></td>
+<td>应用层、原型、多数商业项目</td>
+<td>时序敏感的内外层（中断里翻转 IO）</td>
+<td>极致性能点（如 1 kHz 控制环内层）</td>
+</tr>
+</tbody>
+</table>
+<p>典型策略：<strong>外设初始化交给 CubeMX 生成（HAL 或 LL），性能关键路径用 LL 或寄存器改写</strong>。点灯示例（CubeMX 已生成 <code>MX_GPIO_Init()</code>，用户代码写在 USER CODE 区）：</p>
+<pre><code class="language-c">int main(void)
+{
+  HAL_Init();                 // 1) HAL 库初始化: 配 SysTick 1ms 时基、NVIC 优先级分组
+  SystemClock_Config();       // 2) 时钟树配置(上面 168MHz 的那条路径), CubeMX 生成
+  MX_GPIO_Init();             // 3) 外设初始化, CubeMX 生成, 顺序 = CubeMX 里的勾选顺序
+  MX_USART1_UART_Init();
+
+  /* USER CODE BEGIN WHILE */
+  while (1)
+  {
+    HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);   // 翻转 PB0
+    HAL_Delay(500);                          // 阻塞延时 500ms, 基于 SysTick 中断计 1ms 次数
+  }
+  /* USER CODE END WHILE */
+}
+</code></pre>
+<p>LED 闪烁起来了，工程就「通了」：编译链、烧录器、最小硬件全部验证完毕。之后每加一个外设都应遵循同样的节奏——<strong>先让最小验证程序跑通，再逐步加功能</strong>。</p>
+<h3 id="35-printf-重定向与-hal-库的底层机制">3.5 printf 重定向与 HAL 库的底层机制</h3>
+<p>嵌入式没有控制台，<code>printf</code> 需要重定向到串口。GCC（CubeIDE / VSCode）重定向 <code>_write</code>，Keil 重定向 <code>fputc</code>：</p>
+<pre><code class="language-c">/* GCC(CubeIDE): 重定向 _write 到 USART1 */
+#include &lt;unistd.h&gt;
+int _write(int fd, char *ptr, int len)
+{
+  HAL_UART_Transmit(&amp;huart1, (uint8_t *)ptr, (uint16_t)len, 100);  // 阻塞发送, 100ms 超时
+  return len;
+}
+/* 用法: printf("boot ok, sysclk=%lu\n", HAL_RCC_GetSysClockFreq()); */
+
+/* Keil MDK: 重定向 fputc, 且建议勾选 Use MicroLIB(精简 C 库) */
+#include &lt;stdio.h&gt;
+int fputc(int ch, FILE *f)
+{
+  uint8_t c = (uint8_t)ch;
+  HAL_UART_Transmit(&amp;huart1, &amp;c, 1, 100);
+  return ch;
+}
+</code></pre>
+<p>两个注意点：打印浮点时 GCC 的 newlib-nano 默认裁掉了 <code>%f</code> 支持，链接选项加 <code>-u _printf_float</code> 才能恢复（代价是 Flash 多约 8 KB）；<code>printf</code> 不可重入——中断里调用 <code>printf</code> 可能与主循环的打印交错损坏输出，中断内调试输出应改用「写环形缓冲，主循环再发」或 SWO。</p>
+<h3 id="36-hal-库的三个底层机制">3.6 HAL 库的三个底层机制</h3>
+<p>读懂这三个机制，HAL 的所有外设章节就都顺了：</p>
+<h4>（1）句柄（Handle）结构体</h4>
+<p>每个外设实例对应一个句柄：<code>UART_HandleTypeDef huart1</code>、<code>SPI_HandleTypeDef hspi1</code>、<code>CAN_HandleTypeDef hcan1</code>。句柄里装着配置参数（波特率、数据位……）、运行状态（HAL_UART_STATE_READY / BUSY）和缓冲区指针。HAL API 的第一个参数永远是句柄——<strong>HAL 是有状态的库</strong>，状态机错误（如 BUSY 状态下再次调用）是常见故障源。</p>
+<h4>（2）MSP 回调：初始化的两段式</h4>
+<p>调用 <code>HAL_UART_Init(&amp;huart1)</code> 时，HAL 会自动回调 <code>HAL_UART_MspInit()</code>（MCU Support Package，MCU 支持包），后者负责「这个外设挂在哪个引脚、开哪个时钟、配哪个中断」——这部分代码 CubeMX 生成在 <code>stm32f4xx_hal_msp.c</code>。于是初始化被拆成两层：<strong>Init 配置「协议参数」（与板子无关），MSP 配置「物理连接」（与板子强相关）</strong>。改板子只动 MSP，换波特率只动 Init，这就是两段式的意义。</p>
+<h4>（3）回调（Callback）：中断的面向对象化</h4>
+<p>中断服务函数（<code>stm32f4xx_it.c</code> 里的 <code>USART1_IRQHandler</code> 等）先调用 <code>HAL_UART_IRQHandler(&amp;huart1)</code>，HAL 判断事件类型后再回调弱定义函数：<code>HAL_UART_RxCpltCallback()</code>（收到指定字节数）、<code>HAL_UART_TxCpltCallback()</code>（发送完成）、<code>HAL_UART_ErrorCallback()</code>（错误）。用户的业务逻辑写在这些弱函数的重写版里。<strong>注意：这些回调不分外设实例</strong>——函数参数里给的是句柄指针，用 <code>if (huart == &amp;huart1)</code> 区分是哪个串口触发的事件。</p>
+<h3 id="37-工程实践四要点">3.7 工程实践四要点</h3>
+<ol>
+<li><strong>错误处理不能裸奔</strong>：CubeMX 生成的每个 <code>Init</code> 失败都会进 <code>Error_Handler()</code>（默认死循环）。量产代码至少应记录错误码并尝试降级运行，死循环等于现场黑屏。</li>
+<li><strong>HAL_Delay 的适用边界</strong>：<code>HAL_Delay</code> 依赖 SysTick 中断计数，在中断服务函数里调用会死锁（中断里 SysTick 进不来，计数值永远不动）。中断内延时用 DWT 周期计数器（10.1 节）或定时器。另外 FreeRTOS 工程里 <code>vTaskDelay</code>（让出 CPU）才是正解，<code>HAL_Delay</code> 只配做纳秒级粗延时。</li>
+<li><strong>NVIC 优先级分组一次定死</strong>：<code>HAL_Init()</code> 里已设 <code>NVIC_PRIORITYGROUP_4</code>（4 位全做抢占优先级，0 位子优先级）。Cortex-M 推荐只用抢占、不用子优先级；上 FreeRTOS 后还要遵守 <code>configMAX_SYSCALL_INTERRUPT_PRIORITY</code>（低于此优先级的中断不能调用 FreeRTOS 的 FromISR API），优先级规划应在建工程时画一张表。</li>
+<li><strong>时基源切换</strong>：FreeRTOS 默认占用 SysTick，CubeMX 会提示把 HAL 时基改为另一个基本定时器（如 TIM6）。不改的后果是两套系统抢同一个 SysTick，延时全乱。CubeMX 在 FreeRTOS 使能时会自动处理，手工建工程时容易漏。</li>
+</ol>
+<hr />
+<h2 id="4-uart-异步串口与不定长接收">4. UART：异步串口与不定长接收</h2>
+<p>UART（通用异步收发器）是嵌入式调试与低速通信的第一通道，看似简单，但「收不定长的报文」是所有新手都会撞上的第一道真正的设计题。本章从帧格式与波特率误差讲起，给出三级递进的接收方案（轮询 → 中断环形缓冲 → DMA 空闲检测），后两者是面试与实战的必备题。</p>
+<h3 id="41-协议原理帧格式与波特率">4.1 协议原理：帧格式与波特率</h3>
+<p>UART 是<strong>异步</strong>协议：没有时钟线，收发双方靠事先约定的波特率各自计时。一帧数据的结构：</p>
+<pre><code> 空闲(高电平)
+ ────┐      ┌───┬───┬───┬───┬───┬───┬───┬───┬──────────
+     │ 起始 │ D0   D1   D2   D3   D4   D5   D6   D7 │ 校验  停止
+     ▼      ▼                                      ▼
+     ______ ┌──┐    ┌───────┐         ┌──┐   ┌────────────
+           ││  │ ...│       │........ │  │...│
+           └┘  └    └───────┘         └──┘
+     最低位先发; 每位宽度 = 1/波特率
+     115200 baud → 每位约 8.68 μs, 一帧(1+8+1位)约 86.8 μs
+</code></pre>
+<p>接收方在每一位的<strong>中点采样</strong>（STM32 以 16 倍波特率过采样，取第 7/8/9 个采样点的多数表决），因此对时钟误差有一定容忍度：<strong>收发双方波特率总误差应控制在 2%–3% 以内</strong>（一帧 10 位累计相位偏移不超过半位）。误差来源两边各占一半，所以单边约 1%–1.5% 是安全线。</p>
+<table>
+<thead>
+<tr>
+<th>电平标准</th>
+<th>逻辑 1 / 逻辑 0</th>
+<th>距离与场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TTL UART（MCU 引脚直连）</td>
+<td>3.3 V / 0 V</td>
+<td>板内互联，几十厘米内；交叉连接（本机 TX 接对方 RX）</td>
+</tr>
+<tr>
+<td>RS-232</td>
+<td>−3~−15 V / +3~+15 V（负逻辑）</td>
+<td>老式工控设备，需 MAX3232 电平转换芯片</td>
+</tr>
+<tr>
+<td>RS-485（差分）</td>
+<td>两线压差判断</td>
+<td>数百米至 1 km，工业现场总线，半双工需方向控制（4.6 节）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="42-stm32-usart-的波特率发生器">4.2 STM32 USART 的波特率发生器</h3>
+<p>波特率由总线时钟分频得到：<code>波特率 = f<sub>CK</sub> / (16 × USARTDIV)</code>（16 倍过采样模式），USARTDIV 是 12 位整数 + 4 位小数的 BRR 寄存器值。<strong>算一遍真实误差</strong>，理解「哪些波特率是安全的」：</p>
+<pre><code>例: USART2 挂在 APB1 (42 MHz), 目标 115200
+  USARTDIV = 42 MHz / (16 × 115200) = 22.786
+  BRR     = 整数 22 | 小数 0.786 × 16 ≈ 12.6 → 取 13 (0xD)
+  实际值   = 22 + 13/16 = 22.8125
+  实际波特率 = 42e6 / (16 × 22.8125) = 115115.2
+  误差   = (115115.2 − 115200) / 115200 = −0.074%   ✔ 安全
+
+例: 同一时钟, 目标 921600
+  USARTDIV = 42e6 / (16 × 921600) = 2.849 → 取 2.875
+  实际波特率 = 913043, 误差 = −0.93%              ⚠ 单边已近 1% 安全线
+  对端若也偏 +0.9%, 总误差逼近 2%, 高温漂移下偶发误码
+</code></pre>
+<p>工程结论：<strong>波特率越高，时钟源质量越重要</strong>。使用内部 HSI（±1%）时 115200 勉强可用，921600 以上必须外部晶振；CubeMX 会自动算 BRR 并显示误差百分比，配置页直接可查。另外 F4 的 USART1 挂在 84 MHz 的 APB2 上，同样的波特率误差比 APB1 上的串口更小——高速串口优先用挂在高速总线的 USART1/6。</p>
+<h3 id="43-三种收发方式对比">4.3 三种收发方式对比</h3>
+<table>
+<thead>
+<tr>
+<th>方式</th>
+<th>CPU 占用</th>
+<th>实现复杂度</th>
+<th>适用场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>轮询（阻塞）</td>
+<td>100% 忙等</td>
+<td>最低</td>
+<td>初始化打印、简单脚本交互；<strong>禁止用于连续接收</strong></td>
+</tr>
+<tr>
+<td>中断（逐字节）</td>
+<td>每字节一次中断（115200 下约每 87 μs 一次，各约 1–2 μs）</td>
+<td>中（需环形缓冲）</td>
+<td>中低速率、字节数少的交互协议</td>
+</tr>
+<tr>
+<td>DMA + 空闲中断</td>
+<td>几乎为零，收完一帧才进一次中断</td>
+<td>中高（需理解 DMA 与 IDLE 标志）</td>
+<td>GPS/数传不定长报文、高速连续数据流</td>
+</tr>
+</tbody>
+</table>
+<h3 id="44-中断-环形缓冲接收完整驱动">4.4 中断 + 环形缓冲接收：完整驱动</h3>
+<p>设计要点有三个。<strong>其一</strong>，中断里只做一件事——把字节塞进环形缓冲，绝不解析协议（中断要短）。<strong>其二</strong>，环形缓冲用「单生产者-单消费者」无锁写法：head 只有中断改，tail 只有主循环改，两者都是 <code>volatile</code> 单向推进，天然线程安全，不需要关中断保护。<strong>其三</strong>，缓冲区大小取 2 的幂，用按位与代替取模求余。</p>
+<pre><code class="language-c">/* uart_ring.c —— 中断+环形缓冲接收驱动 (F407, USART2, 寄存器版) */
+#define UART_RB_SIZE 256          /* 必须是 2 的幂 */
+
+typedef struct {
+    volatile uint16_t head;        /* 写指针: 只有中断服务程序修改 */
+    volatile uint16_t tail;        /* 读指针: 只有主循环(或消费者任务)修改 */
+    uint8_t buf[UART_RB_SIZE];
+} ringbuf_t;
+
+static ringbuf_t uart2_rb;
+
+/* 中断服务函数: stm32f4xx_it.c 里由向量表调用 */
+void USART2_IRQHandler(void)
+{
+    if (USART2-&gt;SR &amp; USART_SR_RXNE) {              /* 收到一个字节 */
+        uint8_t byte = (uint8_t)USART2-&gt;DR;         /* 读 DR, 同时自动清 RXNE 标志 */
+        uint16_t next = (uart2_rb.head + 1) &amp; (UART_RB_SIZE - 1);
+        if (next != uart2_rb.tail) {                /* 满: 留一个空位用于区分空/满 */
+            uart2_rb.buf[uart2_rb.head] = byte;
+            uart2_rb.head = next;
+        }                                           /* else: 缓冲满, 丢弃并可在主循环告警 */
+    }
+    if (USART2-&gt;SR &amp; USART_SR_ORE) {               /* 溢出错误: 见 4.6 节, 必须显式清除 */
+        (void)USART2-&gt;SR;
+        (void)USART2-&gt;DR;
+    }
+}
+
+/* 主循环消费: 返回实际读取的字节数 */
+int uart2_read(uint8_t *dst, int maxlen)
+{
+    int n = 0;
+    while (n &lt; maxlen &amp;&amp; uart2_rb.tail != uart2_rb.head) {
+        dst[n++] = uart2_rb.buf[uart2_rb.tail];
+        uart2_rb.tail = (uart2_rb.tail + 1) &amp; (UART_RB_SIZE - 1);
+    }
+    return n;
+}
+
+/* 阻塞发送: 先填数据寄存器(TXE), 最后等移位完成(TC) */
+void uart2_write(const uint8_t *data, int len)
+{
+    while (len--) {
+        while (!(USART2-&gt;SR &amp; USART_SR_TXE)) { }   /* 等待发送寄存器空 */
+        USART2-&gt;DR = *data++;
+    }
+    while (!(USART2-&gt;SR &amp; USART_SR_TC)) { }        /* 等待最后一位移出芯片 */
+}
+</code></pre>
+<p>配套的中断使能（CubeMX 勾选 USART2 全局中断即可，或代码里 <code>__HAL_UART_ENABLE_IT(&amp;huart2, UART_IT_RXNE); HAL_NVIC_EnableIRQ(USART2_IRQn);</code>）。主循环里以 <code>uart2_read(buf, sizeof buf)</code> 非阻塞取数，取到后交给协议解析状态机。这套结构覆盖 90% 的中低速串口需求，请务必亲手敲一遍并烧板验证。</p>
+<h3 id="45-dma-空闲中断不定长接收">4.5 DMA + 空闲中断：不定长接收的正解</h3>
+<p>GPS 报文、数传帧、Modbus 帧——长度不固定、字节间隔不均匀。逐字节中断在 921600 波特率下每 11 μs 进一次中断，CPU 不堪重负；而「DMA 收满固定长度再通知」又对不定长帧无能为力。<strong>解法是 IDLE（空闲）检测：串口检测到总线空闲超过 1 个字节时间，硬件自动置 IDLE 标志并触发中断</strong>——一次中断 = 一帧完整的报文。新版 HAL 把「DMA + IDLE」封装成了一个 API：</p>
+<pre><code class="language-c">/* ============ 初始化: 启动一次, 之后由回调自我续期 ============ */
+#define RX_DMA_SIZE 128
+static uint8_t rx_dma_buf[RX_DMA_SIZE];        /* DMA 缓冲: 不能放 CCM(见第8/9章) */
+
+void uart_start_idle_rx(void)
+{
+    /* 半满/全满/空闲 任一事件都会触发回调, Size=已收字节数 */
+    HAL_UARTEx_ReceiveToIdle_DMA(&amp;huart2, rx_dma_buf, RX_DMA_SIZE);
+    /* 若只想要"整帧"通知, 可关掉半满中断: */
+    /* __HAL_DMA_DISABLE_IT(huart2.hdmarx, DMA_IT_HT); */
+}
+
+/* ============ 回调: 每收完一帧(或缓冲满)进入一次 ============ */
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
+{
+    if (huart == &amp;huart2) {
+        frame_process(rx_dma_buf, Size);          /* Size = 本帧字节数 */
+        HAL_UARTEx_ReceiveToIdle_DMA(&amp;huart2, rx_dma_buf, RX_DMA_SIZE);  /* 重新武装 */
+    }
+}
+</code></pre>
+<p>工作过程可以画成：<code>DMA 在后台把字节搬进 rx_dma_buf → 报文发完, 总线静默 1 字节时间 → 硬件置 IDLE → 进一次回调, Size 即帧长 → 处理后重启 DMA</code>。有三个细节决定可靠性：<strong>其一</strong>，帧间隔若小于 1 字节时间（连续流数据），IDLE 不会触发，靠半满/全满中断兜底；<strong>其二</strong>，<code>frame_process</code> 在中断上下文执行，长处理应拷贝数据后交主循环或投递到队列；<strong>其三</strong>，处理与重启之间的字节会丢——严格不丢帧的应用改用「双缓冲/乒乓」或循环模式 + 读指针方案（思想同 8.5 节）。</p>
+<h3 id="46-常见坑清单">4.6 常见坑清单</h3>
+<table>
+<thead>
+<tr>
+<th>症状</th>
+<th>根因</th>
+<th>解法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>上电后收几个字节就再也收不到</td>
+<td>ORE（溢出）标志未清除——RXNE 没及时读走，后续字节把移位寄存器覆盖，硬件置 ORE 后 RXNE 中断被屏蔽</td>
+<td>寄存器版：读 SR 再读 DR（4.4 节代码已处理）；HAL 版：<code>HAL_UART_ErrorCallback</code> 里 <code>__HAL_UART_CLEAR_OREFLAG</code> 并重启接收</td>
+</tr>
+<tr>
+<td>发送的最后一字节被截断（RS485 切方向早了）</td>
+<td>等了 TXE（发送寄存器空）就切方向，但移位寄存器里还有半字节没发出去</td>
+<td>必须等 <strong>TC（Transmission Complete）</strong>标志再拉高方向脚；HAL 里用 <code>HAL_UART_Transmit_IT/DMA</code> 时在 TxCpltCallback 里切</td>
+</tr>
+<tr>
+<td>打印输出乱码</td>
+<td>时钟树配错（例如 HSE 值填成 25 MHz 实际焊 8 MHz），所有波特率按错误基准分频</td>
+<td>先查 <code>HAL_RCC_GetSysClockFreq()</code> 实际返回值，再查 CubeMX HSE 输入值；乱码永远是时钟问题先于串口问题</td>
+</tr>
+<tr>
+<td>printf 期间进中断就输出错乱</td>
+<td>printf 不可重入（3.5 节）</td>
+<td>中断里只写缓冲，主循环统一打印；或用互斥锁包裹</td>
+</tr>
+<tr>
+<td>DMA 发送函数返回 BUSY，再也发不出</td>
+<td>上一次 DMA 发送未完成（或超时后状态机卡死）</td>
+<td>发送前检查 <code>HAL_UART_GetState()</code>；超时后在 ErrorCallback 里 <code>HAL_UART_Abort()</code> 恢复</td>
+</tr>
+<tr>
+<td>9 位数据 / 校验位配了不生效</td>
+<td>把「校验位」当成第 9 位理解错了：STM32 配 8 位 + 校验时，字长要设 9 位（校验占第 9 位）</td>
+<td>CubeMX 里 Word Length 选 9Bits（含校验）——这是 F4 语义，H7 语义又不同，以手册为准</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="5-spi-高速同步总线的正确用法">5. SPI：高速同步总线的正确用法</h2>
+<p>SPI（Serial Peripheral Interface）以「有时钟线、主从架构、全双工交换」三个特征区别于 UART，速率可达数十 Mbps，是 IMU、Flash、屏幕、ADC 等高速芯片的标准接口。它的坑集中在两个概念：<strong>CPOL/CPHA 四种模式</strong>与<strong>「读也是写」的全双工本质</strong>。</p>
+<h3 id="51-协议原理四线-四模式与全双工交换">5.1 协议原理：四线、四模式与全双工交换</h3>
+<p>四根信号线各司其职：SCK（时钟，主机产生）、MOSI（主出从入）、MISO（从出主入）、CS/NSS（片选，主机拉低选中目标）。与 UART 的关键差异：<strong>SPI 有时钟线，每位在时钟边沿上对齐，因此没有波特率误差问题，速度上限只受电气特性约束</strong>。</p>
+<p>CPOL（Clock Polarity，空闲电平）与 CPHA（Clock Phase，采样边沿）组合出四种模式，通信双方必须一致：</p>
+<table>
+<thead>
+<tr>
+<th>模式</th>
+<th>CPOL</th>
+<th>CPHA</th>
+<th>采样发生在</th>
+<th>典型器件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mode 0</td>
+<td>0（空闲低）</td>
+<td>0</td>
+<td>SCK 第一个（上升）边沿</td>
+<td>W25Q Flash、多数传感器</td>
+</tr>
+<tr>
+<td>Mode 1</td>
+<td>0</td>
+<td>1</td>
+<td>SCK 第二个（下降）边沿</td>
+<td>少数 TFT 屏</td>
+</tr>
+<tr>
+<td>Mode 2</td>
+<td>1（空闲高）</td>
+<td>0</td>
+<td>SCK 第一个（下降）边沿</td>
+<td>少见</td>
+</tr>
+<tr>
+<td>Mode 3</td>
+<td>1</td>
+<td>1</td>
+<td>SCK 第二个（上升）边沿</td>
+<td>SD 卡 SPI 模式、MPU9250 可选</td>
+</tr>
+</tbody>
+</table>
+<pre><code>Mode 0 时序 (最常见):
+CS    ────▔╲____________________________╱▔▔───   拉低选中
+SCK   _______╱▔╲___╱▔╲___╱▔╲___╱▔╲______╱▔▔───   空闲低, 上升沿采样
+MOSI  ──x──═D7═╲═D6═╲═D5═╲ ... ═D0═╲____________  数据在上升沿前建立
+MISO  ──x───────────═R7═╲═R6═╲ ... ═R0═╲________  从机同一位率回送
+      x = 高阻(未选中)      一个字节 = 8 个时钟周期
+</code></pre>
+<p>「全双工交换」是理解一切 SPI 代码的钥匙：<strong>主机与从机各有一个 8 位移位寄存器，首尾相连成一个 16 位环；主机发一个字节的同时，从机的字节被顶进来</strong>。因此「读一个字节」=「发一个无意义的 dummy 字节来产生时钟」。而多从机共享同一组 MISO/MOSI/SCK，用各自的 CS 区分——同一时刻只能有一个 CS 有效，且 MOSI/MISO 在非选中器件侧呈高阻。</p>
+<h3 id="52-stm32-spi-外设要点">5.2 STM32 SPI 外设要点</h3>
+<ul>
+<li><strong>速率</strong>：主模式下 <code>SCK = 所在总线时钟 / (2, 4, 8, …, 256)</code>。F407 的 SPI1 挂 APB2（84 MHz）最高 42 Mbps；SPI2/3 挂 APB1（42 MHz）最高 21 Mbps。选外设时先看它挂在哪条总线。</li>
+<li><strong>NSS 引脚</strong>：硬件 NSS 只适合「单一从机且从机支持被硬件选中」的场景，实际工程几乎都用 <strong>软件片选</strong>——任意 GPIO 拉低/拉高，控制自由（如先发命令再拉高）且规避硬件 NSS 时序限制。CubeMX 里 NSS 选 Disable，CS 配成 GPIO_Output。</li>
+<li><strong>FIFO</strong>：F4 的 SPI 无 FIFO（一次一个字节，高速率下 CPU 需持续喂）；F7/H7 的 SPI 带 16 字节 FIFO，配 DMA 后高速传输 CPU 占用骤降。</li>
+<li><strong>帧格式</strong>：支持 8/16 位帧（F4），H7 可配到 32 位。8 位帧最通用。</li>
+</ul>
+<h3 id="53-基础驱动寄存器读写模板">5.3 基础驱动：寄存器读写模板</h3>
+<p>绝大多数 SPI 传感器遵循同一套寄存器模型：<strong>第一个字节 = 寄存器地址（最高位 1 表示读、0 表示写，具体看器件手册），后续字节 = 数据</strong>。把这套模板写熟，换任何 SPI 器件只改命令位约定：</p>
+<pre><code class="language-c">/* spi_dev.c —— SPI 器件寄存器读写模板 (软件片选) */
+#define CS_LOW()   HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_RESET)
+#define CS_HIGH()  HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_SET)
+
+/* 全双工交换 1 字节: 发 tx 的同时收回 rx —— SPI 读写都是"交换" */
+static uint8_t spi_xfer_byte(uint8_t tx)
+{
+    uint8_t rx;
+    HAL_SPI_TransmitReceive(&amp;hspi1, &amp;tx, &amp;rx, 1, 20);
+    return rx;
+}
+
+uint8_t imu_read_reg(uint8_t reg)   /* 例: imu_read_reg(0x75) 读 WHO_AM_I */
+{
+    uint8_t val;
+    CS_LOW();
+    spi_xfer_byte(reg | 0x80);      /* 地址字节, MSB=1 表示读 */
+    val = spi_xfer_byte(0x00);      /* dummy 字节产生时钟, 收回寄存器值 */
+    CS_HIGH();                       /* 必须在完整字节边界后拉高 */
+    return val;
+}
+
+void imu_write_reg(uint8_t reg, uint8_t val)
+{
+    CS_LOW();
+    spi_xfer_byte(reg &amp; 0x7F);      /* MSB=0 表示写 */
+    spi_xfer_byte(val);
+    CS_HIGH();
+}
+
+/* 连续读多字节(地址自动+1): FIFO/批量采样用 */
+void imu_read_regs(uint8_t reg, uint8_t *buf, uint16_t len)
+{
+    CS_LOW();
+    spi_xfer_byte(reg | 0x80);
+    for (uint16_t i = 0; i &lt; len; i++)
+        buf[i] = spi_xfer_byte(0x00);
+    CS_HIGH();
+}
+</code></pre>
+<p>上电自检三板斧：读 <code>WHO_AM_I</code> 核对器件 ID → 写一个配置寄存器再读回核对 → 读数据寄存器看数值合理性。三步全过再往下写驱动，能把排障范围瞬间缩小一半。</p>
+<h3 id="54-dma-高速传输以-w25q-flash-为例">5.4 DMA 高速传输：以 W25Q Flash 为例</h3>
+<p>轮询收发在 42 Mbps 下每字节约 190 ns，CPU 根本来不及喂——命令与地址段（几个字节）用轮询没问题，<strong>大块数据段必须交给 DMA</strong>。以 W25Q128 读数据为例（命令 0x03 + 24 位地址 + 连续数据流）：</p>
+<pre><code class="language-c">/* 命令+地址段很短, 轮询发送; 数据段长, 交给 DMA */
+void w25q_read(uint32_t addr, uint8_t *rx, uint16_t len)
+{
+    uint8_t cmd[4] = { 0x03,
+                       (uint8_t)(addr &gt;&gt; 16), (uint8_t)(addr &gt;&gt; 8), (uint8_t)addr };
+
+    CS_LOW();
+    HAL_SPI_Transmit(&amp;hspi1, cmd, 4, 20);            /* 轮询发命令+地址 */
+    HAL_SPI_Receive_DMA(&amp;hspi1, rx, len);              /* DMA 后台收数据 */
+    while (HAL_SPI_GetState(&amp;hspi1) != HAL_SPI_STATE_READY) { }  /* RTOS 下换信号量等待 */
+    CS_HIGH();                                          /* 时序: 必须等 DMA+SPI 全部收尾 */
+}
+</code></pre>
+<p>两点深化：<strong>其一</strong>，「等待完成」在裸机里可以用 <code>HAL_SPI_GetState</code> 轮询（如上），在 RTOS 里应换成「TxCplt/RxCplt 回调里释放信号量」，把 CPU 还给其他任务；<strong>其二</strong>，全双工高速场景（如同时刷新屏幕 + 回读状态）用 <code>HAL_SPI_TransmitReceive_DMA</code> 一次搞定，且发送缓冲必须是<strong>整个传输期间不可改动</strong>的内存（DMA 在后台读它）。SPI 的 DMA 同样受「缓冲区位置」约束（第 8、9 章），CCM 内存里的缓冲区对 DMA 不可见。</p>
+<h3 id="55-常见坑清单">5.5 常见坑清单</h3>
+<table>
+<thead>
+<tr>
+<th>症状</th>
+<th>根因</th>
+<th>解法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>能写不能读，读到全 0xFF 或全 0</td>
+<td>不理解全双工：先 Transmit 再 Receive，中间 CS 没有拉高复位，或读时没发 dummy 字节</td>
+<td>用 <code>TransmitReceive</code>「交换」语义重写；读操作 = 发 dummy 换数据</td>
+</tr>
+<tr>
+<td>寄存器读回来的值错位（移了一位）</td>
+<td>CPOL/CPHA 模式与器件不符（采样边沿错半拍）</td>
+<td>查器件手册时序图：先定 CPOL（空闲电平），再定 CPHA（第几个边沿采样）；逻辑分析仪抓一眼立判</td>
+</tr>
+<tr>
+<td>多字节连读只有第一字节正确</td>
+<td>每读一个字节就把 CS 拉高了——CS 高电平会复位器件内部字节计数</td>
+<td>CS 在整个多字节事务期间保持低电平，结束后才拉高</td>
+</tr>
+<tr>
+<td>低速正常，提速后偶发出错</td>
+<td>走线过长 / 无地回流 / 驱动能力不足导致信号完整性问题</td>
+<td>先降到 1/4 速率验证；缩短走线、保证完整地平面；确实要高速再查端接与摆率配置</td>
+</tr>
+<tr>
+<td>DMA 版偶发丢字节，轮询版正常</td>
+<td>发送缓冲内容在 DMA 传输中被改写（栈变量 / 被别的任务更新）</td>
+<td>发送缓冲用静态或池化内存，传输完成前视为「只读」；栈上大缓冲是高频事故点</td>
+</tr>
+<tr>
+<td>读出来一直是 0xFF 且 CS 正常</td>
+<td>MISO 未接 / 器件未上电 / 读命令位（MSB）约定反了</td>
+<td>逻辑分析仪看 MISO 是否有波形；核对命令字节最高位语义（有的器件 1 是读，有的是 0 是读）</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="6-i2c-两线总线的坑与解法">6. I2C：两线总线的坑与解法</h2>
+<p>I2C（Inter-Integrated Circuit）用两根开漏线（SCL 时钟 + SDA 数据）挂起一串低速器件，省引脚、可热插拔多设备，代价是<strong>时序复杂、总线易卡死</strong>。它是三个常用串行接口里协议最「讲规矩」的一个，也是新手故障率最高的一个——本章把规矩讲透，把卡死的解法给全。</p>
+<h3 id="61-协议原理起始位-应答与地址">6.1 协议原理：起始位、应答与地址</h3>
+<p>I2C 特点：SDA 只允许在 SCL 低电平期间变化（SCL 高时的 SDA 跳变被定义为起始/停止条件）；数据高位在前；<strong>每传一个字节，接收方必须回一个 ACK（第 9 位拉低表示应答）</strong>。</p>
+<pre><code>  起始条件: SCL 高时 SDA 由高→低        停止条件: SCL 高时 SDA 由低→高
+  SCL  ──▔▔▔╲___________                 SCL  ──────▔▔▔╲____▔▔▔
+  SDA  ──▔▔╲_____________                SDA  ──────______╱▔▔▔▔
+
+  一次完整读操作 (7 位地址):
+  [S] [地址+写] [ACK] [寄存器号] [ACK] [Sr=重复起始] [地址+读] [ACK] [数据] [NACK] [P]
+   │      │            │                     │             │
+   │   0x68&lt;&lt;1|0       │                  0x68&lt;&lt;1|1      主机最后不发ACK表示读完了
+   └── 地址字节 = 7位地址左移1位 + 读写位(0写/1读)
+</code></pre>
+<p>两个必须刻进肌肉记忆的细节：<strong>其一</strong>，7 位地址 0x68（MPU6050）在线上是 <code>0x68 &lt;&lt; 1 | 读写位</code>，HAL 库的地址参数就要求传入<strong>已左移的 8 位地址</strong>——直接填 0x68 会访问 0x34。<strong>其二</strong>，I2C 有「时钟拉伸（Clock Stretching）」机制：从机没准备好时可以按住 SCL 拉低不放，强制主机等待——这是 I2C 区别于 SPI 的流控机制，也意味着 SCL 卡低可能是从机的合法行为。</p>
+<h3 id="62-stm32-的两种-i2c-外设旧-ip-与新版-ip">6.2 STM32 的两种 I2C 外设：旧 IP 与新版 IP</h3>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>旧版 I2C（F1/F2/F4 等多数 F 系列）</th>
+<th>新版 I2C（F0/F3/F7/G0/G4/H7/L4+）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>时序配置</td>
+<td>CCR + TRISE 寄存器，按公式手算</td>
+<td>TIMINGR 寄存器一个值搞定，CubeMX 自动生成</td>
+</tr>
+<tr>
+<td>事件模型</td>
+<td>标志位序列（SB → ADDR → BTF …），驱动难写，状态机臭名昭著</td>
+<td>TISR 统一事件中断，驱动干净</td>
+</tr>
+<tr>
+<td>数字滤波</td>
+<td>仅有模拟滤波器</td>
+<td>可编程数字滤波器（按几个 SCL 周期滤毛刺）</td>
+</tr>
+<tr>
+<td>实操建议</td>
+<td>直接用 HAL 阻塞 API，不碰底层标志位</td>
+<td>可放心用中断/DMA 异步方式</td>
+</tr>
+</tbody>
+</table>
+<p>F4 用户（本手册主线）的最佳实践：<strong>旧版 I2C 外设只用 HAL 的阻塞 API（<code>HAL_I2C_Mem_Read/Write</code>），把 I2C 速率压在 100–400 kHz，大事化小</strong>；确实需要高吞吐 I2C（如 OLED 刷屏）时选 F7/G4/H7 新版 IP，或干脆换成 SPI 屏。</p>
+<h3 id="63-阻塞式驱动模板与典型器件">6.3 阻塞式驱动模板与典型器件</h3>
+<p>HAL 的 <code>Mem_Read/Mem_Write</code> 把「地址 + 寄存器 + 数据」的完整事务封装好，是 90% 场景的最优解。两个典型器件示例：</p>
+<pre><code class="language-c">/* 例1: 读 MPU6050 的 WHO_AM_I (寄存器 0x75, 期望 0x68) */
+#define MPU6050_ADDR (0x68 &lt;&lt; 1)     /* HAL 要已左移的 8 位地址 */
+
+uint8_t mpu_who_am_i(void)
+{
+    uint8_t id = 0;
+    HAL_I2C_Mem_Read(&amp;hi2c1, MPU6050_ADDR, 0x75,
+                     I2C_MEMADD_SIZE_8BIT, &amp;id, 1, 100);   /* 100ms 超时 */
+    return id;
+}
+
+/* 例2: AT24C02 EEPROM 页写 —— I2C 器件"写完要等待"的教科书案例 */
+void at24c02_write(uint8_t word_addr, const uint8_t *buf, uint8_t len)
+{
+    /* 页写单次最多 8 字节且不能跨页, 超出会回卷覆盖页首 */
+    HAL_I2C_Mem_Write(&amp;hi2c1, 0x50 &lt;&lt; 1, word_addr,
+                      I2C_MEMADD_SIZE_8BIT, (uint8_t *)buf, len, 100);
+    HAL_Delay(5);      /* 内部写周期 tWR ≈ 5ms: 期间器件不应答, 不等必失败 */
+}
+</code></pre>
+<p>读回校验的习惯同样适用于 I2C：<code>HAL_I2C_Mem_Read</code> 的返回值是 <code>HAL_StatusTypeDef</code>，<strong>必须检查</strong>——返回 HAL_ERROR 往往意味着总线上没有器件应答（NACK），是排查接线与地址的第一手信息。</p>
+<h3 id="64-总线卡死的检测与恢复">6.4 总线卡死的检测与恢复</h3>
+<p>I2C 最著名的故障是「总线卡死」：<strong>主机在传输中途复位（或丢时钟），从机还停在「正在发数据第 n 位」的状态，继续把 SDA 按在低电平等时钟；主机重新上电后看到 SDA 一直为低，任何 START 都发不出来</strong>。检测方法：SCL 为高时读 SDA，若持续为低即为卡死。恢复方法是业界标准九时钟法：</p>
+<pre><code class="language-c">/* i2c_recover.c —— I2C 总线卡死恢复 (九时钟法) */
+void i2c_bus_recover(void)
+{
+    GPIO_InitTypeDef g = {0};
+
+    HAL_I2C_DeInit(&amp;hi2c1);                          /* 1) 先放手, 外设退出总线 */
+
+    /* 2) SCL 切成普通开漏 GPIO, 由 CPU 手动打时钟 */
+    g.Pin = SCL_Pin;  g.Mode = GPIO_MODE_OUTPUT_OD;
+    g.Pull = GPIO_PULLUP;  g.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(SCL_GPIO_Port, &amp;g);
+
+    for (int i = 0; i &lt; 9; i++) {                /* 3) 最多 9 个脉冲: 覆盖 1 字节+ACK */
+        HAL_GPIO_WritePin(SCL_GPIO_Port, SCL_Pin, GPIO_PIN_RESET);
+        for (volatile int d = 0; d &lt; 200; d++) { }   /* 半周期延时(约5us @100kHz) */
+        HAL_GPIO_WritePin(SCL_GPIO_Port, SCL_Pin, GPIO_PIN_SET);
+        for (volatile int d = 0; d &lt; 200; d++) { }
+        if (GPIO_PIN_SET == HAL_GPIO_ReadPin(SDA_GPIO_Port, SDA_Pin))
+            break;                                   /* SDA 释放即可提前结束 */
+    }
+
+    /* 4) 补一个 STOP: SCL 高电平期间 SDA 由低→高, 让从机回到空闲态 */
+    g.Pin = SDA_Pin;  HAL_GPIO_Init(SDA_GPIO_Port, &amp;g);
+    HAL_GPIO_WritePin(SDA_GPIO_Port, SDA_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(SCL_GPIO_Port, SCL_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(SDA_GPIO_Port, SDA_Pin, GPIO_PIN_SET);
+
+    HAL_I2C_Init(&amp;hi2c1);                            /* 5) 重新接管总线 */
+}
+</code></pre>
+<p>原理：从机最多只会持续输出一个字节（8 位）加一个应答位，<strong>打满 9 个时钟后它的移位寄存器必然走完，SDA 自然释放</strong>。工程上把「上电初始化时检测一次 + 通信连续 N 次失败后恢复一次」写成标准流程，I2C 的现场死机率能降一个数量级。</p>
+<h3 id="65-常见坑清单">6.5 常见坑清单</h3>
+<table>
+<thead>
+<tr>
+<th>症状</th>
+<th>根因</th>
+<th>解法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>怎么读都返回 HAL_ERROR（NACK）</td>
+<td>地址没左移；或器件地址脚接法与假设不符（AD0 接地与接高差 1 位）</td>
+<td>先扫地址：从 0x08 到 0x77 逐个发 <code>HAL_I2C_IsDeviceReady</code>，看谁应答</td>
+</tr>
+<tr>
+<td>总线偶发卡死，复位才恢复</td>
+<td>传输中主控复位，从机状态残留（6.4 节）</td>
+<td>上电 + 异常路径里挂九时钟恢复</td>
+</tr>
+<tr>
+<td>400 kHz 下误码率升高，100 kHz 正常</td>
+<td>上拉电阻太大（总线电容充电慢，高电平爬不上去）</td>
+<td>4.7 kΩ @100 kHz → 2.2 kΩ @400 kHz；多器件总线电容大时再减；上拉接 VDD 一侧</td>
+</tr>
+<tr>
+<td>长线 / 干扰环境毛刺误触发</td>
+<td>无数字滤波</td>
+<td>启用新版 IP 的数字滤波（F4 旧 IP 只有模拟滤波，降速 + 屏蔽走线）</td>
+</tr>
+<tr>
+<td>DMA 版 I2C 不定期崩溃</td>
+<td>F4 旧版 IP 的 DMA 支持有限（错误恢复路径复杂）</td>
+<td>F4 上 I2C 就用阻塞 API + 低速率；高吞吐需求换新版 IP 型号或改 SPI 器件</td>
+</tr>
+<tr>
+<td>两个器件地址冲突</td>
+<td>同型号传感器固定地址（如两只 MPU6050）</td>
+<td>用 AD0/AD1 地址脚错开；或挂两条 I2C 总线；或加 I2C 多路开关（TCA9548A）</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="7-can-与-can-fd-从总线协议到-fdcan-驱动">7. CAN 与 CAN FD：从总线协议到 FDCAN 驱动</h2>
+<p>CAN 是车载与工业控制的主干总线，也是多节点「共享一条线还能不打架」的典范设计。本章先讲透经典 CAN 的仲裁与错误管理（这是理解一切 CAN 现象的钥匙），再讲 CAN FD 的增强点，最后给出 STM32 两代 CAN 外设（bxCAN 与 FDCAN）的完整驱动代码与位时序计算方法。</p>
+<h3 id="71-经典-can-协议基础">7.1 经典 CAN 协议基础</h3>
+<p>CAN 用一对差分线（CAN_H / CAN_L）传输，<strong>显性电平（逻辑 0）与隐性电平（逻辑 1）的判定靠两线压差</strong>：显性压差大、隐性压差约等于零。多个节点同时往总线上「写 0」，总线上就是 0——这个「线与」特性是一切仲裁的基础。</p>
+<p><strong>逐位仲裁</strong>：所有节点同一时刻开始发帧，每一位都把电平写上总线再读回来比较——如果自己写的是 1（隐性）而读回 0（显性），说明有更高优先级的帧在发，自己立刻退出转为接收。<strong>ID 数值越小优先级越高</strong>，且仲裁是非破坏性的：赢家一比特都不用重发。这就是 CAN 不需要交换机、集线器也能多主运行的原因。</p>
+<p>数据帧结构（标准帧）：</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>长度</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SOF</td>
+<td>1 位</td>
+<td>帧起始，显性</td>
+</tr>
+<tr>
+<td>Identifier</td>
+<td>11 位（扩展帧 29 位 = 11 + 18）</td>
+<td>报文 ID；既是优先级也是内容分类符（「这是姿态数据」而不是「这是某节点发的」）</td>
+</tr>
+<tr>
+<td>RTR</td>
+<td>1 位</td>
+<td>数据帧（显性）/ 遥控帧（请求远端发送）</td>
+</tr>
+<tr>
+<td>DLC</td>
+<td>4 位</td>
+<td>数据长度 0–8 字节</td>
+</tr>
+<tr>
+<td>Data</td>
+<td>0–8 字节</td>
+<td><strong>经典 CAN 单帧上限 8 字节</strong>（CAN FD 扩到 64）</td>
+</tr>
+<tr>
+<td>CRC + ACK + EOF</td>
+<td>约 16+2+7 位</td>
+<td>CRC 校验；ACK 槽：任何收到且校验通过的节点显性应答</td>
+</tr>
+</tbody>
+</table>
+<p><strong>位填充</strong>：连续 5 个相同电平后自动插入 1 个反向电平，保证每个位边界都有跳变供接收方同步。这意味着「实际总线占用时间比理论位时间多」，计算总线负载率时要留余量。</p>
+<p><strong>错误管理</strong>是 CAN 可靠性的核心，也是现场调试 60% 问题的出处。每个节点维护两个计数器：TEC（发送错误计数）与 REC（接收错误计数），并按计数在三种状态间流转：</p>
+<pre><code>  Error Active (TEC&lt;128 且 REC&lt;128)         正常态: 可主动发"错误帧"打断总线
+      │ 错误计数涨到 128
+      ▼
+  Error Passive (任一 ≥128)                 被动态: 只能发隐性错误标志, 不再干扰别人
+      │ TEC ≥ 256
+      ▼
+  Bus-Off (TEC ≥ 256)                       与总线隔离: 不发不应, 等待恢复
+
+  计数规则速记: 发送失败 +8;  发送成功 -1;  接收出错 +1(或更多);  接收成功 -1
+</code></pre>
+<h3 id="72-can-fd-增强在哪里">7.2 CAN FD：增强在哪里</h3>
+<p>CAN FD（Flexible Data-rate）在保持仲裁机制不变的前提下做了三件事：</p>
+<table>
+<thead>
+<tr>
+<th>增强点</th>
+<th>经典 CAN</th>
+<th>CAN FD</th>
+<th>意义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>数据段变速（BRS 位）</td>
+<td>全程一个速率（典型 500 kbps / 1 Mbps）</td>
+<td>仲裁段慢速（保证多节点同步），数据段加速（典型 2–5 Mbps）</td>
+<td>小 ID 头 + 高速数据，吞吐提升数倍</td>
+</tr>
+<tr>
+<td>数据段加长</td>
+<td>8 字节</td>
+<td>64 字节（DLC 编码 9–15 对应 12/16/20/24/32/48/64）</td>
+<td>UDS 诊断、固件刷写、日志传输单帧搞定</td>
+</tr>
+<tr>
+<td>CRC 增强</td>
+<td>15 位 CRC</td>
+<td>最长 21 位 CRC + 更强的填充位保护</td>
+<td>匹配更高的速率与更长的帧</td>
+</tr>
+</tbody>
+</table>
+<p>代价是<strong>双采样点</strong>：仲裁段与数据段各自有一套位时序参数，配置工作量翻倍（7.4 节给两套算例）。兼容性方面：CAN FD 节点可以发经典帧，经典 CAN 节点挂在 FD 总线上只能收仲裁段——<strong>同一网络混用 FD 帧会让经典节点校验失败并刷错误帧，混合组网时必须全网统一「禁用 BRS」或全升级</strong>。</p>
+<h3 id="73-stm32-的两代-can-外设">7.3 STM32 的两代 CAN 外设</h3>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>bxCAN（F1/F2/F4/C0/G0 等经典 CAN）</th>
+<th>FDCAN（G4 / H7 / L5 / U5）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>协议</td>
+<td>经典 CAN 2.0A/B</td>
+<td>经典 + CAN FD（可逐帧选）</td>
+</tr>
+<tr>
+<td>发送缓冲</td>
+<td>3 个发送邮箱</td>
+<td>Tx Buffer / Tx FIFO / Tx Queue 混合配置（消息 RAM 划分）</td>
+</tr>
+<tr>
+<td>接收缓冲</td>
+<td>2 个接收 FIFO，<strong>各只有 3 帧深</strong></td>
+<td>Rx FIFO 深度软件定义（消息 RAM 里划几十帧）</td>
+</tr>
+<tr>
+<td>过滤器</td>
+<td>28 个过滤器组（CAN1/CAN2 共享），列表 / 掩码两种模式 × 16/32 位两种宽度</td>
+<td>标准 / 扩展过滤器各自独立，数量在消息 RAM 里配置</td>
+</tr>
+<tr>
+<td>存储模型</td>
+<td>固定寄存器 + 512 字节共享 SRAM</td>
+<td>每个实例一段独立消息 RAM，深度自配（划分错会导致收不到发不出）</td>
+</tr>
+<tr>
+<td>本手册示例</td>
+<td>STM32F407（CAN1/CAN2）</td>
+<td>STM32G431 / H743</td>
+</tr>
+</tbody>
+</table>
+<h3 id="74-位时序计算仲裁段与数据段各算一遍">7.4 位时序计算：仲裁段与数据段各算一遍</h3>
+<p>CAN 的位时间被切成若干「时间量子」（Tq，Time Quantum），采样点在位中间偏后：</p>
+<pre><code> 一个位时间 (以 F407 经典 CAN 500 kbps 为例: APB1=42 MHz, 分频 6, 共 14 Tq)
+ |◄─SYNC(固定1Tq)─►|◄──────BS1: 11 Tq──────►|◄─BS2: 2 Tq─►|
+ ▲                                                        ▲
+ 位起点                                                  位终点
+                              ▲ 采样点 = (1+11)/14 ≈ 85.7%
+
+ 位速率 = 总线时钟 / (分频 × Tq总数) = 42 MHz / (6 × 14) = 500 kbps
+ 采样点推荐区间 75% ~ 87.5% (车载常用 80% ~ 87.5%)
+</code></pre>
+<p>配置思路是<strong>从波特率反推 Tq 总数，再把 Tq 分给 BS1/BS2 以落准采样点</strong>。经典 CAN 与 FDCAN 各给一组实例：</p>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>时钟</th>
+<th>分频</th>
+<th>Tq 数（1 + BS1 + BS2）</th>
+<th>波特率</th>
+<th>采样点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>F407 经典 CAN 500 k</td>
+<td>42 MHz（APB1）</td>
+<td>6</td>
+<td>1 + 11 + 2 = 14</td>
+<td>500 kbps</td>
+<td>85.7%</td>
+</tr>
+<tr>
+<td>F407 经典 CAN 1 M</td>
+<td>42 MHz</td>
+<td>3</td>
+<td>1 + 10 + 3 = 14</td>
+<td>1 Mbps</td>
+<td>78.6%</td>
+</tr>
+<tr>
+<td>G4/H7 FDCAN 仲裁段 500 k</td>
+<td>80 MHz（内核时钟）</td>
+<td>10</td>
+<td>1 + 13 + 2 = 16</td>
+<td>500 kbps</td>
+<td>87.5%</td>
+</tr>
+<tr>
+<td>G4/H7 FDCAN 数据段 5 M</td>
+<td>80 MHz</td>
+<td>2</td>
+<td>1 + 6 + 1 = 8</td>
+<td>5 Mbps</td>
+<td>87.5%</td>
+</tr>
+<tr>
+<td>G4/H7 FDCAN 数据段 2 M</td>
+<td>80 MHz</td>
+<td>2</td>
+<td>1 + 16 + 3 = 20</td>
+<td>2 Mbps</td>
+<td>85%</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>实践要点：<strong>全网所有节点的波特率与采样点必须一致</strong>（采样点差几个百分点，长帧就会在累计相位误差下出错）；CAN 位速率对时钟源精度的要求是 0.5% 以内，因此 CAN 必须用外部晶振（1.5 节）；CubeMX 的 FDCAN 配置页会实时显示算得的波特率与采样点，先在配置页对表、再对照手册复核，是双手保险。配置完用 CAN 分析仪（TSMaster / CANoe /CANable）回读实际位时序验证，与台架测试流程一致。</p>
+</blockquote>
+<h3 id="75-bxcan-驱动完整模板f407">7.5 bxCAN 驱动完整模板（F407）</h3>
+<p>把过滤器、发送、接收三块拼齐。<strong>过滤器是 bxCAN 的第一道坎</strong>：不过滤器默认不接收任何报文（收不到报文先查过滤器，其次查总线上有没有其他节点给 ACK）。</p>
+<pre><code class="language-c">/* can_bx.c —— F407 bxCAN 完整收发模板 */
+
+/* ① 过滤器: CAN1 用过滤器组 0, 32 位掩码模式, 只收标准帧 0x300~0x3FF */
+static void can_filter_config(void)
+{
+    CAN_FilterTypeDef f = {0};
+    f.FilterBank           = 0;                    /* 组号 0~27; 双 CAN 时 CAN2 必须用 14 以后 */
+    f.FilterMode           = CAN_FILTERMODE_IDMASK;
+    f.FilterScale          = CAN_FILTERSCALE_32BIT;
+    /* 32 位模式寄存器布局: [31:21]=STID(11位标准ID), 因此 16 位高半字要左移 5 位 */
+    f.FilterIdHigh         = (uint16_t)(0x300 &lt;&lt; 5);   /* 期望 ID = 0x300 */
+    f.FilterIdLow          = 0;
+    f.FilterMaskIdHigh     = (uint16_t)(0x700 &lt;&lt; 5);   /* 掩码: 只比 ID 高 3 位 → 0x300~0x3FF 全收 */
+    f.FilterMaskIdLow      = 0;                    /* 低 16 位(含 RTR/IDE)不参与比较 */
+    f.FilterFIFOAssignment = CAN_RX_FIFO0;
+    f.FilterActivation     = ENABLE;
+    HAL_CAN_ConfigFilter(&amp;hcan1, &amp;f);
+}
+
+/* ② 启动 + 打开 FIFO0 收报中断 */
+void can_start(void)
+{
+    can_filter_config();
+    HAL_CAN_Start(&amp;hcan1);
+    HAL_CAN_ActivateNotification(&amp;hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);
+}
+
+/* ③ 发送: 硬件 3 个邮箱是宝贵的发送队列, 满了就显式拒绝(别覆盖) */
+HAL_StatusTypeDef can_send(uint16_t std_id, const uint8_t *data, uint8_t len)
+{
+    CAN_TxHeaderTypeDef tx = {0};
+    uint32_t mailbox;
+
+    if (HAL_CAN_GetTxMailboxesFreeLevel(&amp;hcan1) == 0)
+        return HAL_BUSY;               /* 总线繁忙(仲裁失败/无ACK重发)时邮箱会被占满 */
+
+    tx.StdId = std_id;
+    tx.IDE   = CAN_ID_STD;
+    tx.RTR   = CAN_RTR_DATA;
+    tx.DLC   = len;
+    return HAL_CAN_AddTxMessage(&amp;hcan1, &amp;tx, (uint8_t *)data, &amp;mailbox);
+}
+
+/* ④ 接收: 硬件 FIFO0 只有 3 帧深, 中断里必须尽快搬空 → 接力到软件队列 */
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
+{
+    CAN_RxHeaderTypeDef rx;
+    uint8_t data[8];
+
+    while (HAL_CAN_GetRxMessage(&amp;hcan1, CAN_RX_FIFO0, &amp;rx, data) == HAL_OK) {
+        msg_t m;
+        m.id  = rx.StdId;
+        m.len = rx.DLC;
+        memcpy(m.data, data, m.len);
+        queue_push(&amp;can_rx_q, &amp;m);      /* 软件 FIFO(环形队列, 见4.4节)供主循环消费 */
+    }
+}
+</code></pre>
+<p>模板要点：<strong>硬件 FIFO 深 3 帧是硬约束</strong>——1 Mbps 下 3 帧报文约 0.5 ms 就会灌满，中断若被更高优先级阻塞超过这个时间，报文将溢出丢失（bxCAN 有 FOV 溢出标志可查）。所以「中断接力软件队列」不是可选项，是必需品。</p>
+<h3 id="76-fdcan-驱动模板g4h7">7.6 FDCAN 驱动模板（G4/H7）</h3>
+<p>FDCAN 的额外工作是把<strong>消息 RAM 划分清楚</strong>（过滤器几个、FIFO 几帧、Tx 几个），划分不够会直接收不到报文。以「仲裁 500 k + 数据 2 M，收 0x300~0x30F，发 FD 帧」为例：</p>
+<pre><code class="language-c">/* ① 初始化要点(CubeMX 骨架之上的关键参数, 以 80MHz FDCAN 内核时钟为例) */
+hfdcan1.Init.FrameFormat        = FDCAN_FRAME_FD_BRS;  /* FD 帧, 数据段变速 */
+hfdcan1.Init.NominalPrescaler   = 10;   /* 仲裁段: 80M/10=8MHz, Seg1=13, Seg2=2 */
+hfdcan1.Init.NominalTimeSeg1    = 13;   /* 500 kbps, 采样点 (1+13)/16=87.5% */
+hfdcan1.Init.NominalTimeSeg2    = 2;
+hfdcan1.Init.DataPrescaler      = 2;    /* 数据段: 80M/2=40MHz, Seg1=16, Seg2=3 */
+hfdcan1.Init.DataTimeSeg1       = 16;   /* 2 Mbps, 采样点 (1+16)/20=85% */
+hfdcan1.Init.DataTimeSeg2       = 3;
+hfdcan1.Init.MessageRAMOffset   = 0;    /* 多路 FDCAN 时, 每路划自己的消息 RAM 段 */
+hfdcan1.Init.StdFiltersNbr      = 8;    /* 以下深度必须 ≤ G4 默认布局上限, 按需分配 */
+hfdcan1.Init.RxFifo0ElmtsNbr    = 32;   /* Rx FIFO0 深 32 帧(比 bxCAN 的 3 帧宽裕得多) */
+hfdcan1.Init.TxElmtNbr          = 8;    /* 发送事件/缓冲区 8 个 */
+HAL_FDCAN_Init(&amp;hfdcan1);
+
+/* ② 过滤器: 掩码语义 = (收到ID &amp; ID2) == (ID1 &amp; ID2) → 收 0x300~0x30F */
+FDCAN_FilterTypeDef f = {0};
+f.IdType       = FDCAN_STANDARD_ID;
+f.FilterIndex  = 0;
+f.FilterType   = FDCAN_FILTER_MASK;
+f.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
+f.FilterID1    = 0x300;
+f.FilterID2    = 0x7F0;
+HAL_FDCAN_ConfigFilter(&amp;hfdcan1, &amp;f);
+
+/* ③ 启动 + 通知 */
+HAL_FDCAN_Start(&amp;hfdcan1);
+HAL_FDCAN_ActivateNotification(&amp;hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE);
+
+/* ④ 发送一帧 CAN FD (64 字节, 数据段变速) */
+HAL_StatusTypeDef fdcan_send64(uint32_t std_id, const uint8_t *data)
+{
+    FDCAN_TxHeaderTypeDef tx = {0};
+    tx.Identifier  = std_id;
+    tx.IdType      = FDCAN_STANDARD_ID;
+    tx.TxFrameType = FDCAN_DATA_FRAME;
+    tx.DataLength  = FDCAN_DLC_BYTES_64;
+    tx.FDFormat    = FDCAN_FD_CAN;        /* FD 帧; 经典帧用 FDCAN_CLASSIC_CAN */
+    tx.BitRateSwitch = FDCAN_BRS_ON;       /* 数据段变速; FDCAN_BRS_OFF 则全程仲裁段速率 */
+    tx.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
+    return HAL_FDCAN_AddMessageToTxfifoQ(&amp;hfdcan1, &amp;tx, data);
+}
+
+/* ⑤ DLC 编码值 → 实际字节数: CAN FD 的 9~15 不等于长度, 必须查表 */
+static const uint8_t dlc_to_len[16] =
+    { 0,1,2,3,4,5,6,7,8,12,16,20,24,32,48,64 };
+
+void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t its)
+{
+    FDCAN_RxHeaderTypeDef rx;
+    uint8_t data[64];
+
+    if (its &amp; FDCAN_IT_RX_FIFO0_NEW_MESSAGE) {
+        while (HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &amp;rx, data) == HAL_OK) {
+            uint8_t len = dlc_to_len[rx.DataLength &amp; 0x0F];
+            msg_t m = { .id = rx.Identifier, .len = len };
+            memcpy(m.data, data, len);
+            queue_push(&amp;can_rx_q, &amp;m);
+        }
+    }
+}
+</code></pre>
+<h3 id="77-错误管理与-bus-off-恢复">7.7 错误管理与 BUS-OFF 恢复</h3>
+<p>CAN 的错误态是<strong>设计出来的自愈机制</strong>，固件必须配合：节点发错时不出声「装死」，而是按 7.1 节的计数规则退避。固件侧要做的是监控 + 主动恢复。bxCAN 的 Bus-Off 默认不会自动恢复（依赖软件重启），FDCAN 可配置自动恢复但工程上通常也用软件管理以便记录事件：</p>
+<pre><code class="language-c">/* 周期健康检查: 主循环每秒调用 */
+void can_health_check(void)
+{
+    uint32_t err = HAL_CAN_GetError(&amp;hcan1);
+
+    /* 读原始错误计数, 上报遥测: ESR 寄存器 [23:16]=TEC, [15:8]=REC */
+    uint32_t esr = hcan1.Instance-&gt;ESR;
+    telemetry_set("can_tec", (esr &gt;&gt; 16) &amp; 0xFF);
+    telemetry_set("can_rec", (esr &gt;&gt; 8)  &amp; 0xFF);
+
+    if (err &amp; HAL_CAN_ERROR_BOF) {          /* Bus-Off: TEC≥256, 已被隔离 */
+        log_event(LOG_CAN_BUSOFF);          /* 先记录(黑匣子), 再恢复 */
+        HAL_CAN_Stop(&amp;hcan1);
+        HAL_Delay(2);                       /* 协议要求恢复序列含 128×11 个隐性位的时间窗 */
+        HAL_CAN_Start(&amp;hcan1);
+        HAL_CAN_ActivateNotification(&amp;hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);
+    }
+}
+</code></pre>
+<h3 id="78-常见坑清单">7.8 常见坑清单</h3>
+<table>
+<thead>
+<tr>
+<th>症状</th>
+<th>根因</th>
+<th>解法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>发送一直失败，TEC 涨到 128+，永远发不出</td>
+<td><strong>总线上没有第二个节点</strong>：CAN 要求至少一个其他节点回 ACK，单机自测收不到确认会无限重发</td>
+<td>自测用回环模式（<code>CAN_MODE_LOOPBACK</code>，不依赖外部节点）；正常模式必须接真实总线</td>
+</tr>
+<tr>
+<td>硬件接好、配置正确，就是收不到任何报文</td>
+<td>过滤器没配（bxCAN 无过滤器默认全拒）</td>
+<td>先配过滤器；调试期可临时用「掩码全 0」全接收验证链路，再收紧</td>
+</tr>
+<tr>
+<td>CAN2 收发全无反应，CAN1 正常</td>
+<td>双 CAN 共享 28 组过滤器，<strong>CAN2 必须从组 14 开始划分</strong></td>
+<td><code>FilterBank</code>：CAN1 用 0–13，CAN2 用 14–27（<code>SlaveStartFilterBank=14</code>）</td>
+</tr>
+<tr>
+<td>波形正常、ID 正确，CRC 恒错</td>
+<td>位时序与全网不一致（采样点偏差、分频算错）</td>
+<td>7.4 节对表；用分析仪读出实际波特率与采样点逐一核对</td>
+</tr>
+<tr>
+<td>FDCAN 消息 RAM 划分后莫名收不到</td>
+<td><code>RxFifo0ElmtsNbr</code> 等深度声明超出了该实例的消息 RAM 空间，划分非法</td>
+<td>按 G4 默认布局起步（过滤器 28 / FIFO 3 / Tx 3），确认能收发后再逐步调大并核对上限</td>
+</tr>
+<tr>
+<td>偶尔报文内容乱但不报错</td>
+<td>软件队列并发问题：中断与主循环同时 push/pop 无保护</td>
+<td>队列操作用「单生产者-单消费者」无锁结构（4.4 节）；多生产者时加临界区</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="8-dma-让数据搬运脱离-cpu">8. DMA：让数据搬运脱离 CPU</h2>
+<p>DMA（Direct Memory Access，直接内存访问）是一个专职「搬数据」的硬件引擎：CPU 只下一条指令（源、目的、长度），数据搬运就由 DMA 控制器在后台完成，搬完发一个中断。它是「高速外设 + 实时系统」的标配——ADC 连续采样、串口收帧、屏幕刷显存，背后都是 DMA。本章的重点不是「怎么开 DMA」（CubeMX 两个勾），而是三个真正决定成败的问题：<strong>缓冲区放在哪块内存（可达性）、数据到底搬没搬对（宽度与对齐）、搬完 CPU 读到的是不是新的（缓存一致性）</strong>。</p>
+<h3 id="81-为什么需要-dma-总线视角">8.1 为什么需要 DMA：总线视角</h3>
+<p>Cortex-M 系列的芯片内部是一片「总线矩阵」，CPU、DMA、各外设都是矩阵上的主设备（Master），Flash 与 SRAM 是从设备（Slave）。以 F407 为例：</p>
+<pre><code>                     ┌──────────── 总线矩阵 BusMatrix ────────────┐
+  Cortex-M4 CPU      │                                            │
+  ├─ I-Bus ─────────►│─► Flash (代码区, 0x08000000)                │
+  ├─ D-Bus ─────────►│─► SRAM1/SRAM2 (0x20000000, 128K)           │
+  └─ S-Bus           │                                            │
+  DMA1 (8 Stream) ──►│──► APB1 / APB2 / AHB1 外设端口              │
+  DMA2 (8 Stream) ──►│      (UART/SPI/I2C/ADC/TIM 寄存器/数据口)   │
+                     │                                            │
+                     │  ※ DMA1/DMA2 到不了 CCM (0x10000000) !      │
+                     └────────────────────────────────────────────┘
+ DMA 与 CPU 竞争同一条 SRAM 总线: 仲裁按 DMA 优先级 &gt; CPU(通常), 大批量搬运会"偷走"总线带宽
+</code></pre>
+<p>这个视角直接导出三条工程规律：<strong>其一</strong>，DMA 不是零成本的——搬运期间 CPU 的取指与访存会与 DMA 仲裁，大批量 M2M 搬运会拖慢 CPU（反之亦然）；<strong>其二</strong>，缓冲区「放在哪」先于「怎么配」——放错内存区域，DMA 静默不工作（下一节）；<strong>其三</strong>，实时性设计要把「搬运流量」算进总线预算，而不是只算 CPU 周期。</p>
+<h3 id="82-可达性矩阵缓冲区放错位置-dma-就是哑的">8.2 可达性矩阵：缓冲区放错位置，DMA 就是哑的</h3>
+<p>这是 DMA 篇最重要的知识点。STM32 的不同内存区域「挂在不同的总线上」，DMA 控制器只能访问它总线能到达的区域——<strong>访问不可达区域不会报错，DMA 直接静默失败，缓冲区里什么都没有</strong>，排查起来极其隐蔽：</p>
+<table>
+<thead>
+<tr>
+<th>内存区域</th>
+<th>地址（F407 / H743）</th>
+<th>F407 DMA1/DMA2</th>
+<th>H7 DMA1/DMA2（D2 域）</th>
+<th>H7 MDMA</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>主 Flash</td>
+<td>0x08000000</td>
+<td>可读</td>
+<td>可读</td>
+<td>可</td>
+</tr>
+<tr>
+<td>主 SRAM（F4 的 SRAM1/2，128 K）</td>
+<td>0x20000000</td>
+<td><strong>可（默认去处）</strong></td>
+<td>—（H7 该地址是 DTCM）</td>
+<td>—</td>
+</tr>
+<tr>
+<td>CCM（F4 的 64 K CPU 专用 RAM）</td>
+<td>0x10000000</td>
+<td><strong>不可</strong>（高频翻车点）</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>DTCM（H7 的 128 K 全速 RAM）</td>
+<td>0x20000000</td>
+<td>—</td>
+<td><strong>不可</strong>（默认链接到这，DMA 却够不着！）</td>
+<td><strong>可</strong></td>
+</tr>
+<tr>
+<td>AXI SRAM（H7 的 512 K）</td>
+<td>0x24000000</td>
+<td>—</td>
+<td><strong>可</strong></td>
+<td>可</td>
+</tr>
+<tr>
+<td>D2 域 SRAM1/2/3（H7 的 288 K）</td>
+<td>0x30000000</td>
+<td>—</td>
+<td><strong>可</strong></td>
+<td>可</td>
+</tr>
+<tr>
+<td>D3 域 SRAM4（H7 的 64 K）</td>
+<td>0x38000000</td>
+<td>—</td>
+<td><strong>不可</strong>（D3 只有 DMA3/DMA4 与 MDMA 能到）</td>
+<td>可</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>两张「必背」结论卡：<strong>F407</strong>——所有 DMA 缓冲放 0x20000000 的主 SRAM，别放 CCM；<strong>H743</strong>——默认全局变量被链接到 DTCM，而 D2 域的 DMA1/DMA2 到不了 DTCM，<strong>DMA 缓冲必须显式挪到 AXI SRAM（0x24000000）或 D2 SRAM（0x30000000）</strong>，或改用 MDMA。检查手段：看 map 文件里缓冲区实际地址，对号入座。</p>
+</blockquote>
+<h3 id="83-核心配置项逐个看懂">8.3 核心配置项逐个看懂</h3>
+<p>F4 的 DMA 是「控制器 × 8 Stream」结构，每个 Stream 就是一条独立搬运流水线。CubeMX 生成的配置里每个字段都对应一个物理行为：</p>
+<table>
+<thead>
+<tr>
+<th>配置项</th>
+<th>取值</th>
+<th>物理含义与选择依据</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Direction</td>
+<td>P2M / M2P / M2M</td>
+<td>外设→内存（接收）/ 内存→外设（发送）/ 内存→内存（只有 DMA2 支持 M2M）</td>
+</tr>
+<tr>
+<td>Peripheral Increment</td>
+<td>Enable / Disable</td>
+<td>外设地址是否自增——外设数据寄存器只有一个，<strong>永远 Disable</strong></td>
+</tr>
+<tr>
+<td>Memory Increment</td>
+<td>Enable / Disable</td>
+<td>内存地址自增——存进/取自缓冲区数组，<strong>几乎总是 Enable</strong></td>
+</tr>
+<tr>
+<td>Data Width（外设/内存）</td>
+<td>Byte / Half Word / Word</td>
+<td>与外设数据寄存器宽度一致（UART 是 Byte，ADC 12 位对齐后可 Half Word）；两侧宽度可不同（窄进宽出自动打包，如 4×byte 打包成 1×word 减少总线访问次数）</td>
+</tr>
+<tr>
+<td>Mode</td>
+<td>Normal / Circular</td>
+<td>Normal 搬完即停；<strong>Circular 循环模式</strong>——搬完自动回卷重新开始，连续采集（ADC 流、串口流）必选</td>
+</tr>
+<tr>
+<td>FIFO / Burst</td>
+<td>Disable / FIFO 模式 + 突发长度</td>
+<td>F4 的每个 Stream 带 4 字 FIFO：FIFO + 突发（一次搬 4/8/16 个单位）能显著减少总线仲裁次数，高带宽场景（LCD、摄像头）必开；小流量直接模式即可</td>
+</tr>
+<tr>
+<td>Priority</td>
+<td>VeryHigh → Low</td>
+<td>同控制器内多 Stream 仲裁用；原则「实时性要求越高优先级越高」，但把所有流都设 VeryHigh 等于都没设</td>
+</tr>
+<tr>
+<td>中断</td>
+<td>TC / HT / TE</td>
+<td>全满（Transmission Complete）/ 半满（Half Transfer）/ 错误。半满 + 全满 = 乒乓处理的基本盘（8.5 节）</td>
+</tr>
+</tbody>
+</table>
+<p>另一个隐形约束是<strong>请求映射表</strong>：F4 上「哪个外设能接到哪个 DMA 的哪个 Stream」是芯片设计时定死的（例如 ADC1 只能接 DMA2 的 Stream0/Stream4，USART2_RX 只能接 DMA1 的 Stream5）。CubeMX 会自动选，但多路 DMA 冲突时需要查参考手册 RM0090 的 DMA 请求映射表手工挪位置。</p>
+<h3 id="84-循环模式-半满-全满-乒乓处理完整模板">8.4 循环模式 + 半满/全满：乒乓处理完整模板</h3>
+<p>连续数据流（ADC 每微秒一个采样点）的经典问题：<strong>DMA 在写的缓冲区，CPU 同时在处理——读一半时数据被改写怎么办？</strong>答案是乒乓（Ping-Pong）：把循环缓冲从中间分开，DMA 写后半时 CPU 处理前半，DMA 回卷写前半时 CPU 处理后半，半满/全满两个中断正好是「交接棒」的时刻：</p>
+<pre><code class="language-c">/* adc_pingpong.c —— ADC 连续采样 + DMA 循环 + 乒乓处理 */
+#define ADC_BUF_LEN 512            /* 半缓冲长度, 总缓冲 2×512 */
+static uint16_t adc_buf[2 * ADC_BUF_LEN];   /* 必须在 DMA 可达区域(8.2节)! */
+
+void adc_stream_start(void)
+{
+    /* CubeMX 已配: DMA2-Stream0, Circular, HalfWord, 半满+全满中断 */
+    HAL_ADC_Start_DMA(&amp;hadc1, (uint32_t *)adc_buf, 2 * ADC_BUF_LEN);
+}
+
+/* 半满回调: DMA 正在写后半 [512..1023], 前半 [0..511] 是完整冻结的数据 */
+void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc)
+{
+    process_block(&amp;adc_buf[0], ADC_BUF_LEN);      /* 滤波/FFT/均值, 尽快返回 */
+}
+
+/* 全满回调: DMA 已回卷写前半, 后半 [512..1023] 是完整冻结的数据 */
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
+{
+    process_block(&amp;adc_buf[ADC_BUF_LEN], ADC_BUF_LEN);
+}
+</code></pre>
+<p>成立条件只有一条，也是唯一可能被破坏的约定：<strong><code>process_block</code> 必须在半个缓冲的处理时限内完成</strong>（例如 512 点 @ 100 ksps = 5.12 ms），否则 DMA 回卷会把还没处理完的数据踩掉。超期检测可以在回调里比较处理耗时（DWT 周期计数，10.1 节），一旦超限立刻告警——这类「时序违约」在正常运行时绝不发生，只有负载突变时才暴露，必须有自监控。</p>
+<h3 id="85-缓存一致性m7-专属但必须提前学">8.5 缓存一致性（M7 专属，但必须提前学）</h3>
+<p>Cortex-M4 没有数据缓存（D-Cache），「DMA 写内存 → CPU 读内存」天然是最新数据。但 Cortex-M7（F7/H7）在 CPU 与内存之间加了缓存，<strong>问题随之而来：缓存里可能存着内存的旧拷贝</strong>：</p>
+<pre><code> 问题一 (DMA 发送):  CPU 改了 buf[0]=1 → 只改在 Cache 里, 内存里还是 0
+                     → DMA 从内存搬运 → 把 0 发了出去 (发了旧数据!)
+
+ 问题二 (DMA 接收):  DMA 把新数据写进内存 → CPU 的 Cache 里还是旧值
+                     → CPU 读 buf 读到 Cache 命中的旧数据 (读了旧数据!)
+
+        CPU 核心          Cache (几行后述)          SRAM (真实存放处)
+        ┌──────┐  读写   ┌─────────┐   回写      ┌─────────┐
+        │ ALU  │◄───────►│ 拷贝副本 │ ─────不即时─►│ 真身数据 │◄──DMA 只认这里
+        └──────┘         └─────────┘             └─────────┘
+</code></pre>
+<p>三种解法按推荐顺序：</p>
+<p><strong>解法一：缓存维护指令（最通用）</strong>。发送前把 Cache「清」（Clean，写回内存），接收前把 Cache「作废」（Invalidate，扔掉副本下次重读）：</p>
+<pre><code class="language-c">/* 发送: Clean 把 CPU 在 Cache 里改的内容写回内存, DMA 才能拿到新数据 */
+SCB_CleanDCache_by_Addr((uint32_t *)tx_buf, TX_LEN);
+HAL_SPI_Transmit_DMA(&amp;hspi1, tx_buf, TX_LEN);
+
+/* 接收: Invalidate 丢掉 Cache 里的旧副本, CPU 下次读强制从内存取 DMA 写的新数据 */
+SCB_InvalidateDCache_by_Addr((uint32_t *)rx_buf, RX_LEN);
+HAL_SPI_Receive_DMA(&amp;hspi1, rx_buf, RX_LEN);
+</code></pre>
+<p><strong>关键细节：缓存行 32 字节对齐</strong>。Clean/Invalidate 以 32 字节缓存行为最小单位，操作范围会向上/向下取整到整行——如果缓冲区首尾紧挨着无关变量，<strong>作废操作会把邻居变量的 Cache 一并扔掉（安全），但发送 Clean 若邻居还没写回，可能把邻居「顺便」写回（无害）</strong>；真正危险的是 Invalidate 落在别人正在编辑的同一行上，丢掉的是别人的新数据。所以规范是：</p>
+<pre><code class="language-c">static uint8_t dma_rx_buf[RX_LEN] __attribute__((aligned(32)));  /* 首对齐 */
+/* 长度取整: RX_LEN 也应是 32 的倍数, 或末尾用填充凑齐 — 尾对齐 */
+</code></pre>
+<p><strong>解法二：MPU 划一块非缓存区（最省心，推荐）</strong>。把一块内存整体配成 Non-cacheable，DMA 缓冲全放这里，彻底没有一致性问题，代价是 CPU 访问这块区域不走缓存略慢——对缓冲区来说通常无感：</p>
+<pre><code class="language-c">/* 把 H7 的 SRAM4 (0x38000000, 64KB) 整块配为非缓存区, 专放 DMA 缓冲 */
+void mpu_config_dma_region(void)
+{
+    MPU_Region_InitTypeDef m = {0};
+    HAL_MPU_Disable();
+
+    m.Enable            = MPU_REGION_ENABLE;
+    m.Number            = MPU_REGION_NUMBER0;
+    m.BaseAddress       = 0x38000000;
+    m.Size              = MPU_REGION_SIZE_64KB;
+    m.AccessPermission  = MPU_REGION_FULL_ACCESS;
+    m.IsCacheable       = MPU_ACCESS_NOT_CACHEABLE;   /* 关键: 关缓存 */
+    m.IsBufferable      = MPU_ACCESS_NOT_BUFFERABLE;
+    m.IsShareable       = MPU_ACCESS_SHAREABLE;
+    m.DisableExec       = MPU_INSTRUCTION_ACCESS_DISABLE;
+    HAL_MPU_ConfigRegion(&amp;m);
+    HAL_MPU_Enable(MPU_PRIVILEGED_DEFAULT);
+}
+/* 之后把所有 DMA 缓冲的地址定在这块区域(链接脚本加段, 见 9.6 节), 一劳永逸 */
+</code></pre>
+<p><strong>解法三：放 DTCM（H7 特供）</strong>。DTCM 不经过缓存，天然一致，且 CPU 全速访问——但它只有 MDMA 能访问（8.2 节），适合「MDMA 搬运 + CPU 高频处理」的场景。</p>
+<h3 id="86-常见坑清单">8.6 常见坑清单</h3>
+<table>
+<thead>
+<tr>
+<th>症状</th>
+<th>根因</th>
+<th>解法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DMA 配置正确，缓冲区里永远没有数据</td>
+<td>缓冲区放在 DMA 不可达区域（F4 的 CCM / H7 的 DTCM / SRAM4）</td>
+<td>查 map 文件确认缓冲地址 → 对照 8.2 节矩阵搬家；这是 DMA 类问题的第一嫌疑</td>
+</tr>
+<tr>
+<td>改了发送缓冲内容，对方收到的还是旧数据</td>
+<td>M7 缓存未回写（8.5 节问题一）</td>
+<td>Clean 或放非缓存区</td>
+</tr>
+<tr>
+<td>接收数据「时对时错」，重上电又变</td>
+<td>M7 缓存命中旧数据（8.5 节问题二），错误模式随缓存状态漂移</td>
+<td>Invalidate 或放非缓存区</td>
+</tr>
+<tr>
+<td>Invalidate 之后偶尔把别的变量也弄丢</td>
+<td>缓冲区没做 32 字节对齐，作废操作波及同一缓存行的邻居</td>
+<td>缓冲区 <code>aligned(32)</code> 且长度取整（8.5 节）</td>
+</tr>
+<tr>
+<td>开了循环模式但收完一轮就停</td>
+<td>用了 Normal 模式，或循环模式下手动重启逻辑冲突</td>
+<td>Mode 选 Circular；检查代码里是否有残留的「收完重启」旧逻辑</td>
+</tr>
+<tr>
+<td>中断里访问 DMA 缓冲，偶读到撕裂的半新半旧数据</td>
+<td>16/32 位变量在搬运中途被读（非原子）</td>
+<td>按乒乓方案只在「半冻结」区间处理（8.4 节）；或关中断读</td>
+</tr>
+<tr>
+<td>多路 DMA 同开，某路周期性丢数据</td>
+<td>总线带宽争抢（大流量 M2M 压过外设流），或请求映射冲突</td>
+<td>重排优先级；大块 M2M 挪到空闲时段；核对请求映射表</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="9-内存-地址空间区域分配与碎片治理">9. 内存：地址空间、区域分配与碎片治理</h2>
+<p>内存管理是 MCU 开发从「能跑」到「稳跑」的分水岭。PC 上内存错误表现为崩溃；MCU 上表现为<strong>随机 HardFault、数据偶发错乱、运行数天后才复现的死机</strong>——问题与案发时间相隔十万八千里。本章回答四个问题：内存有哪些区域（地址空间与 STM32 内存地图）、变量怎么被放进内存（段与启动流程）、怎么把变量精确放到指定区域（链接脚本与属性）、以及为什么嵌入式慎用 malloc 并如何用内存池根治碎片；最后进阶走读 FreeRTOS 的默认堆实现 heap_4（9.7 节），看工业级通用分配器如何用「首次适配 + 空闲块合并」在通用性与实时性之间取平衡。</p>
+<h3 id="91-cortex-m-的-4gb-地址空间地图">9.1 Cortex-M 的 4GB 地址空间地图</h3>
+<p>ARM 把 32 位地址空间预划分为几个大区，<strong>访问哪个区就是访问哪种资源</strong>——这是理解一切内存问题的坐标系：</p>
+<pre><code> 0x0000_0000 ┌──────────────────────────────────────────────┐
+             │ 代码区: Flash 别名(0x00000000, 由 BOOT 脚决定)  │
+             │   主 Flash 0x08000000 (程序+常量)              │
+             │   系统 bootloader 0x1FFF0000 (ST 串口烧录固件)  │
+             │   H7 的 ITCM 0x00000000 (指令紧耦合内存)        │
+ 0x2000_0000 ├──────────────────────────────────────────────┤
+             │ SRAM 区: F4 主 SRAM 128K / H7 的 DTCM 128K     │
+             │   F4 的 CCM 在 0x10000000 (SRAM 区之下)        │
+             │   H7 的 AXI SRAM 0x24000000 / D2 SRAM 0x30000000│
+ 0x4000_0000 ├──────────────────────────────────────────────┤
+             │ 外设区: 全部外设寄存器 (GPIO/UART/SPI/CAN...)   │
+             │   F4 备份 SRAM 0x40024000 (VBAT 供电, 4K)      │
+ 0x6000_0000 ├──────────────────────────────────────────────┤
+             │ 外部存储区: FSMC/FMC 外扩; H7 QSPI 内存映射      │
+ 0xE000_0000 ├──────────────────────────────────────────────┤
+             │ 系统区: NVIC / SCB / SysTick / 调试组件         │
+ 0xFFFF_FFFF └──────────────────────────────────────────────┘
+</code></pre>
+<p>三个直接可用的推论：<strong>其一</strong>，解引用空指针在 PC 上必崩，在 MCU 上读到的是 0x00000000 处的 Flash 别名（向量表前几项）——读不报错、写才 HardFault，所以「空指针读没崩」不等于没踩空；<strong>其二</strong>，给野指针赋值时，落在 0x40000000 段就是改外设寄存器，落在 SRAM 段就是改别人的变量，两种都是「写坏了不知道谁」的典型来源；<strong>其三</strong>，函数指针指向非代码区，取指失败触发 HardFault（INVSTATE，10.1 节）。</p>
+<h3 id="92-段与启动流程变量是怎么被放进内存的">9.2 段与启动流程：变量是怎么被放进内存的</h3>
+<p>编译器把代码和数据按<strong>段（Section）</strong>组织，链接器把各段装进地址空间。七个标准段的内容与去向：</p>
+<table>
+<thead>
+<tr>
+<th>段</th>
+<th>内容</th>
+<th>最终位置</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>.isr_vector</code></td>
+<td>中断向量表（复位入口 + 各中断函数地址）</td>
+<td>Flash 最开头</td>
+</tr>
+<tr>
+<td><code>.text</code></td>
+<td>函数代码</td>
+<td>Flash</td>
+</tr>
+<tr>
+<td><code>.rodata</code></td>
+<td><code>const</code> 常量、字符串字面量</td>
+<td>Flash</td>
+</tr>
+<tr>
+<td><code>.data</code></td>
+<td><strong>有初值</strong>的全局/静态变量（<code>int x = 5;</code>）</td>
+<td>运行时在 RAM；初值存 Flash，启动时拷过去</td>
+</tr>
+<tr>
+<td><code>.bss</code></td>
+<td><strong>无初值/零初值</strong>的全局/静态变量（<code>int y;</code>）</td>
+<td>RAM，启动时清零（不占 Flash）</td>
+</tr>
+<tr>
+<td><code>.heap</code></td>
+<td><code>malloc</code> 的堆</td>
+<td>RAM（启动文件里定大小）</td>
+</tr>
+<tr>
+<td><code>.stack</code></td>
+<td>调用栈</td>
+<td>RAM 顶端，向下生长</td>
+</tr>
+</tbody>
+</table>
+<p>「启动时拷 .data、清 .bss」正是复位后 main 之前发生的事，读懂它就懂了「为什么全局变量不用初始化也有确定的值」：</p>
+<pre><code class="language-c">/* startup_stm32f407xx.s 的等价伪代码 */
+uint32_t *src = &amp;_sidata;                    /* .data 的 Flash 初值存放起点 */
+uint32_t *dst = &amp;_sdata;                     /* .data 在 RAM 的起点(0x20000000) */
+while (dst &lt; &amp;_edata)  *dst++ = *src++;      /* ① 把有初值变量的初值从 Flash 拷进 RAM */
+for (dst = &amp;_sbss; dst &lt; &amp;_ebss; dst++) *dst = 0;   /* ② .bss 整段清零 */
+main();
+</code></pre>
+<h3 id="93-stm32-内存地图-f407-与-h743">9.3 STM32 内存地图：F407 与 H743</h3>
+<p>同是「1MB 级 RAM」的芯片，区域划分完全不同，<strong>每个区域「谁能访问、多快、放什么」</strong>才是选区依据（此表与 8.2 节 DMA 可达性矩阵配合使用）：</p>
+<table>
+<thead>
+<tr>
+<th colspan="5">STM32F407VGT6（1 MB Flash + 192 KB RAM）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>区域</td>
+<td>地址</td>
+<td>容量</td>
+<td>谁能访问</td>
+<td>定位与用途</td>
+</tr>
+<tr>
+<td>主 SRAM</td>
+<td>0x20000000</td>
+<td>128 K</td>
+<td>CPU + DMA + 全部总线主设备</td>
+<td><strong>默认的家</strong>：全局变量、栈、堆、全部 DMA 缓冲</td>
+</tr>
+<tr>
+<td>CCM（内核耦合 RAM）</td>
+<td>0x10000000</td>
+<td>64 K</td>
+<td><strong>仅 CPU</strong>（D-Bus 专线）</td>
+<td>DMA 不可达、不能执行代码；放 CPU 密集数据：控制律状态、滤波缓冲、printf 临时区。快且无总线争抢</td>
+</tr>
+<tr>
+<td>备份 SRAM</td>
+<td>0x40024000</td>
+<td>4 K</td>
+<td>CPU（VBAT 纽扣电池供电）</td>
+<td>主电源断电后内容保持：标定参数、故障黑匣子</td>
+</tr>
+<tr>
+<td>主 Flash</td>
+<td>0x08000000</td>
+<td>1 M</td>
+<td>CPU 取指 + 只读</td>
+<td>代码 + 常量；擦写有寿命（1.2 节），掉电保持</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th colspan="5">STM32H743（2 MB Flash + 约 1 MB RAM，多域架构）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>区域</td>
+<td>地址</td>
+<td>容量</td>
+<td>谁能访问</td>
+<td>定位与用途</td>
+</tr>
+<tr>
+<td>ITCM</td>
+<td>0x00000000</td>
+<td>64 K</td>
+<td>仅 CPU 取指</td>
+<td>关键函数/ISR 就地全速执行，零等待零争抢</td>
+</tr>
+<tr>
+<td>DTCM</td>
+<td>0x20000000</td>
+<td>128 K</td>
+<td>CPU + MDMA（D2 的 DMA1/2 <strong>不可达</strong>）</td>
+<td>数据全速区（480 MHz 零等待），实时控制数据首选；不经过缓存，无一致性问题</td>
+</tr>
+<tr>
+<td>AXI SRAM（D1）</td>
+<td>0x24000000</td>
+<td>512 K</td>
+<td>全部主设备（经 Cache）</td>
+<td>默认大数组去所；带 D-Cache，DMA 缓冲要处理一致性（8.5 节）</td>
+</tr>
+<tr>
+<td>D2 SRAM1/2/3</td>
+<td>0x30000000</td>
+<td>128+128+32 K</td>
+<td>D2 域主设备（DMA1/2、以太网、USB HS）</td>
+<td><strong>外设 DMA 缓冲主战场</strong>（8.2 节矩阵中全绿）</td>
+</tr>
+<tr>
+<td>D3 SRAM4</td>
+<td>0x38000000</td>
+<td>64 K</td>
+<td>D3 域（DMA3/4、MDMA）</td>
+<td>常被整块配成非缓存区专职放 DMA 缓冲（8.5 节解法二）</td>
+</tr>
+<tr>
+<td>备份 SRAM</td>
+<td>0x38800000</td>
+<td>4 K</td>
+<td>VBAT</td>
+<td>同 F4</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>F4 与 H7 最容易踩的同名不同义陷阱：<strong>0x20000000 这个地址在 F407 是「DMA 友好的主 SRAM」，在 H743 是「DMA1/2 到不了的 DTCM」</strong>。沿用 F4 习惯在 H7 上定义 DMA 缓冲（不显式指定区域），缓冲落在 DTCM，DMA 静默失败——这是 F4 迁 H7 的第一大事故来源。</p>
+</blockquote>
+<h3 id="94-把变量与函数放到指定区域">9.4 把变量与函数放到指定区域</h3>
+<p>「放到指定区域」由两步合作完成：<strong>编译期用 <code>__attribute__((section("名字")))</code> 给变量/函数打段标签，链接期在链接脚本里给这个段指定落地地址</strong>。以「把高频访问的滤波状态放进 F407 的 CCM」为例：</p>
+<pre><code class="language-c">/* ① C 侧: 打段标签 */
+#define IN_CCMRAM __attribute__((section(".ccmram")))
+
+IN_CCMRAM static float lpf_state[256];          /* 这个数组将被放进 CCM */
+</code></pre>
+<pre><code>/* ② 链接脚本侧: STM32F407VGTx_FLASH.ld 增加内存区与段 (GCC/CubeIDE) */
+MEMORY
+{
+  FLASH  (rx)  : ORIGIN = 0x08000000, LENGTH = 1024K
+  RAM    (xrw) : ORIGIN = 0x20000000, LENGTH = 128K
+  CCMRAM (xrw) : ORIGIN = 0x10000000, LENGTH = 64K     /* ← 新增内存区 */
+}
+
+/* 在 .bss 段之后追加: 收集所有 .ccmram 标签的对象 */
+  .ccmram (NOLOAD) :
+  {
+    . = ALIGN(4);
+    *(.ccmram)
+    *(.ccmram*)
+    . = ALIGN(4);
+  } &gt;CCMRAM
+</code></pre>
+<p>Keil（MDK）不用链接脚本，等价物是<strong>分散加载文件（Scatter File）</strong>：</p>
+<pre><code>; Keil scatter 文件: 新增一个执行域
+LR_IROM1 0x08000000 0x00100000  {
+  ER_IROM1 0x08000000 0x00100000  {
+    *.o (RESET, +First)
+    *(InRoot$$Sections)
+    .ANY (+RO)
+  }
+  RW_IRAM1 0x20000000 0x00020000  { .ANY (+RW +ZI) }
+  RW_CCMRAM 0x10000000 0x00010000  { *(.ccmram) }   ; ← 新增执行域
+}
+</code></pre>
+<p>三个常用的「定点投放」配方：</p>
+<pre><code class="language-c">/* 配方1: H7 把高频中断处理函数放 ITCM 全速执行
+   (GCC 需配合链接脚本 .itcmram 段 AT&gt;FLASH, 并在启动时从 Flash 拷入;
+    Keil 的 scatter-load 自动完成拷贝) */
+#define IN_ITCM __attribute__((section(".itcmram")))
+IN_ITCM void imu_step_1khz(void) { /* 姿态环热点代码 */ }
+
+/* 配方2: H7 把 DMA 缓冲定向到非缓存区/可达区 (8.2/8.5 节的落地手段) */
+#define IN_DMA_BUF __attribute__((section(".dma_buffer"), aligned(32)))
+IN_DMA_BUF static uint8_t can_rx_dma[256];
+/* 链接脚本: .dma_buffer (NOLOAD) : { *(.dma_buffer) } &gt;RAM_D2  (基地址 0x30000000) */
+
+/* 配方3: 参数放备份 SRAM, 断电保持 (注意 NOLOAD 防启动清零!) */
+#define IN_BKPSRAM __attribute__((section(".bkpsram")))
+IN_BKPSRAM static struct {
+    uint32_t magic;            /* 魔数 0xCAFEF00D: 首次上电识别"这是有效数据" */
+    float    gyro_bias[3];    /* 陀螺零偏标定值 */
+    uint32_t reboot_count;
+} g_params;
+/* 链接脚本: BKP (xrw) : ORIGIN = 0x40024000, LENGTH = 4K
+              .bkpsram (NOLOAD) : { *(.bkpsram) } &gt;BKP          */
+
+void bkpsram_init(void)
+{
+    __HAL_RCC_PWR_CLK_ENABLE();
+    HAL_PWR_EnableBkUpAccess();                       /* 解锁备份域写权限 */
+    __HAL_RCC_BKPSRAM_CLK_ENABLE();
+    PWR-&gt;CSR |= PWR_CSR_BRE;                          /* 开备份域稳压器 */
+    while (!(PWR-&gt;CSR &amp; PWR_CSR_BRR)) { }             /* 等就绪 */
+
+    if (g_params.magic != 0xCAFEF00D) {              /* 首次上电/电池耗尽 */
+        memset(&amp;g_params, 0, sizeof g_params);
+        g_params.magic = 0xCAFEF00D;
+    }
+}
+</code></pre>
+<p>把东西放对地方之后，<strong>验证手段是看 map 文件</strong>（链接器输出的分配清单）：搜索变量名即可看到它最终落在哪个地址，对照 9.3 节地图核对区域是否正确。map 文件还能看到每个 .o 文件贡献了多少 Flash/RAM——内存超限时的「减脂体检表」。</p>
+<h3 id="95-栈与堆">9.5 栈与堆</h3>
+<h4>栈：大小靠测，不靠猜</h4>
+<p>栈存放局部变量、函数参数与中断现场，<strong>从 RAM 顶端向下生长</strong>；CubeMX 生成的启动文件默认给 1 KB（<code>_Min_Stack_Size</code>，Keil 版是 <code>Stack_Size EQU 0x400</code>）——对带 printf 和多层调用的真实程序明显不够。栈溢出的后果是「安静地踩坏紧挨着栈底的数据」：变量莫名被改、HardFault 地址随机。与其猜，不如<strong>测量</strong>：</p>
+<pre><code class="language-c">/* 栈水位线法: 上电把整个栈填特征值, 运行后扫描从未被覆盖的部分 */
+extern uint32_t _estack;      /* 栈顶(RAM 高地址端), 链接脚本提供 */
+extern uint32_t _sstack;      /* 栈底(低地址端) */
+#define STACK_CANARY 0xA5A5A5A5U
+
+void stack_watermark_init(void)
+{
+    for (uint32_t *p = &amp;_sstack; p &lt; &amp;_estack; p++) *p = STACK_CANARY;
+}
+
+uint32_t stack_used_peak(void)   /* 返回历史峰值用量(字节) */
+{
+    uint32_t *p = &amp;_sstack;                       /* 栈向下生长: 未用区域靠近栈底 */
+    while (p &lt; &amp;_estack &amp;&amp; *p == STACK_CANARY) p++;
+    return (uint32_t)((&amp;_estack - p) * 4);
+}
+/* 用法: 跑遍全部功能路径(含最深中断嵌套)后读数, 配置 = 峰值 × 1.5 起步 */
+</code></pre>
+<p>上 RTOS 后每个任务有独立栈，用系统自带 API 查：<code>uxTaskGetStackHighWaterMark(NULL)</code> 返回剩余最小值（FreeRTOS）。两个配套纪律：<strong>递归与大型局部数组（<code>char buf[1024]</code> 写在函数里）是栈杀手</strong>，大缓冲一律上移为全局/静态或池分配；中断嵌套共享主栈（MSP），最坏嵌套深度要在水位测试中覆盖到。</p>
+<h4>堆：newlib 的 malloc 是怎么工作的</h4>
+<p>GCC 工具链的 <code>malloc</code> 由 newlib 库实现，它自己不认识内存布局，每次分配都通过 <code>_sbrk()</code>（system break，系统断点）这个「钩子」向系统要内存。<strong>MCU 上没有操作系统，这个钩子要自己实现</strong>（CubeIDE 已生成简版）：</p>
+<pre><code class="language-c">/* newlib 的 malloc → _sbrk: 堆从 .bss 结束处向上长, 顶部留给栈 */
+extern uint8_t _end;                 /* 链接脚本符号: .bss 结束 = 堆起点 */
+extern uint8_t _estack;              /* 栈顶 */
+static uint8_t *heap_ptr = &amp;_end;
+
+void *_sbrk(ptrdiff_t incr)
+{
+    uint8_t *prev = heap_ptr;
+    if (heap_ptr + incr &gt; (uint8_t *)&amp;_estack - 512)   /* 预留512字节保命栈 */
+        return (void *)-1;                              /* 返回-1 = ENOMEM */
+    heap_ptr += incr;
+    return prev;
+}
+</code></pre>
+<p>注意堆大小不是固定预留的——它是「.bss 结束处到栈之间的全部空余」，<code>Heap_Size</code> 只影响某些工具链的静态预留。malloc 的真问题不在大小，在下面这一节。</p>
+<h3 id="96-内存碎片-为什么嵌入式慎用-malloc">9.6 内存碎片：为什么嵌入式慎用 malloc</h3>
+<p>malloc/free 是「任意大小、任意时机」的通用分配器，代价是<strong>空闲内存会被切成不连续的碎片</strong>：</p>
+<pre><code> 运行 3 天后的堆 (理想 vs 现实):
+ 期望: |███ 24K 空闲 ███|           现实: |A|1K空|B|2K空|C|1K空|D|...|1K空|
+                                    总空闲 24K, 但最大连续块只有 2K
+                                    → 此时申请一个 8K 缓冲: 失败!
+ 碎片三要素: ①分配时机随机  ②大小混杂  ③生命周期交错 (短命块插在长命块之间)
+ 同时满足时, 碎片随运行时间单调恶化 — 表现为"跑几天就崩, 重启就好"
+</code></pre>
+<p>嵌入式系统往往 7×24 运行且无交互手段，碎片是「慢性病」：测试几天测不出来，交付后按月发作。治理策略按彻底程度排序：</p>
+<table>
+<thead>
+<tr>
+<th>策略</th>
+<th>做法</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>① 全静态</td>
+<td>所有内存在编译期确定：全局数组 + <code>_Static_assert</code> 核算尺寸</td>
+<td>逻辑固定的控制类固件（大多数场景的最优解）</td>
+</tr>
+<tr>
+<td>② 一次性分配</td>
+<td>初始化阶段把整个运行期的内存全部分好，运行期只引用不申请</td>
+<td>对象集合固定（N 路传感器、M 个缓冲）</td>
+</tr>
+<tr>
+<td>③ 固定块内存池</td>
+<td>池内所有块同尺寸，O(1) 分配释放，<strong>结构上不可能产生碎片</strong></td>
+<td>运行期确需动态申请的场景（报文对象、消息队列节点）</td>
+</tr>
+<tr>
+<td>④ 分级池</td>
+<td>按大小档位（如 16/64/256/1024 B）各建一个固定池，申请时按档分配</td>
+<td>对象大小跨度大但档位可枚举</td>
+</tr>
+<tr>
+<td>⑤ TLSF 等通用分配器</td>
+<td>O(1) 的实时分配算法，碎片可控但不为零</td>
+<td>确需任意大小动态分配的复杂中间件场景（FreeRTOS 的 heap_4 属于此类——首次适配 + 合并，实现见 9.7 节走读）</td>
+</tr>
+</tbody>
+</table>
+<p>固定块内存池的原理极简单且优雅：<strong>把内存划成等大的块，空闲块的头部空间被复用来串成单向链表——分配就是摘链头，释放就是头插回去</strong>，两次操作都是 O(1) 且无查找、无合并，天然零碎片。完整实现（约 50 行，可直接入库）：</p>
+<pre><code class="language-c">/* mempool.c —— 固定块内存池: O(1) 分配/释放, 结构性零碎片 */
+typedef struct {
+    uint32_t block_size;      /* 每块字节数(已对齐) */
+    uint32_t free_count;      /* 剩余块数 */
+    uint32_t total_count;     /* 总块数 */
+    void     *free_head;      /* 空闲链表头 */
+} mem_pool_t;
+
+void pool_init(mem_pool_t *p, void *mem, uint32_t mem_size, uint32_t block_size)
+{
+    if (block_size &lt; sizeof(void *)) block_size = sizeof(void *);
+    block_size = (block_size + 3u) &amp; ~3u;          /* 4 字节对齐 */
+
+    p-&gt;block_size  = block_size;
+    p-&gt;total_count = mem_size / block_size;
+    p-&gt;free_count  = p-&gt;total_count;
+    p-&gt;free_head   = mem;
+
+    /* 把空闲块串成链: 第 i 块开头写入第 i+1 块地址 (mem 建议放 .bss, 天然清零) */
+    uint8_t *cur = (uint8_t *)mem;
+    for (uint32_t i = 0; i + 1 &lt; p-&gt;total_count; i++) {
+        void *next = cur + block_size;
+        memcpy(cur, &amp;next, sizeof(next));
+        cur += block_size;
+    }
+}
+
+void *pool_alloc(mem_pool_t *p)
+{
+    if (p-&gt;free_count == 0) return NULL;            /* 池满: 显式失败, 调用方必须处理 */
+    void *blk = p-&gt;free_head;
+    memcpy(&amp;p-&gt;free_head, blk, sizeof(void *));     /* 摘链头 */
+    p-&gt;free_count--;
+    return blk;
+}
+
+void pool_free(mem_pool_t *p, void *blk)
+{
+    if (blk == NULL) return;
+    memcpy(blk, &amp;p-&gt;free_head, sizeof(void *));     /* 头插回空闲链 */
+    p-&gt;free_head = blk;
+    p-&gt;free_count++;
+}
+</code></pre>
+<p>使用示例与工程纪律：</p>
+<pre><code class="language-c">/* 例: CAN 报文对象池 —— 中断收包 → 队列 → 任务消费 的标准配套 */
+static mem_pool_t g_msg_pool;
+static uint8_t    g_msg_mem[64 * sizeof(msg_t)];   /* 64 块, 放 DMA 可达区 */
+
+void app_init(void) { pool_init(&amp;g_msg_pool, g_msg_mem, sizeof g_msg_mem, sizeof(msg_t)); }
+
+/* 中断里分配(生产者): */
+msg_t *m = pool_alloc(&amp;g_msg_pool);
+if (m) { m-&gt;id = rx.StdId; queue_push(&amp;q, m); }
+/* 池满返回 NULL: 必须显式丢弃并计数, 绝不阻塞中断 */
+
+/* 任务里释放(消费者): */
+pool_free(&amp;g_msg_pool, m);
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>纪律</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>中断中分配/释放需短暂关中断或用 RTOS 临界区包裹</td>
+<td>链表头指针被主循环与中断同时修改会损坏链；固定块操作只需几条指令，关中断代价可忽略</td>
+</tr>
+<tr>
+<td>池大小按「峰值同时在用对象数」× 1.5 配置</td>
+<td>池满是明确故障（计数器可见），比碎片崩溃可诊断得多</td>
+</tr>
+<tr>
+<td>块内对象必须先清零再使用（或约定池初始化清零）</td>
+<td>复用块带着上一任对象的数据，是信息泄漏与逻辑串台的经典来源</td>
+</tr>
+<tr>
+<td>杜绝「同一内存既进池又 free」</td>
+<td>双重释放把同一块插两次链，链上出现自环，后续分配拿到重叠内存</td>
+</tr>
+</tbody>
+</table>
+<h3 id="97-进阶freertos-heap4-源码走读">9.7 进阶：FreeRTOS heap_4 源码走读</h3>
+<p>9.6 节的固定池解决了「等大对象」的分配，但确实需要「任意大小」的运行期分配时，工程界的标准答案是 FreeRTOS 的堆实现。FreeRTOS 内核（<code>FreeRTOS-Kernel/portable/MemMang/</code>）提供五种可选堆，<strong>新工程默认选 heap_4，全部约 300 行</strong>——规模恰好适合逐行读懂，也是理解一切通用分配器（dlmalloc、TLSF）设计取舍的最小标本。本节基于部署最广的 v10.4.x 源码走读（新版本有细节重构，以随工程分发的内核源码为准，核心算法不变）。</p>
+<h4>9.7.1 五种堆实现一览：heap_4 为什么是默认</h4>
+<table>
+<thead>
+<tr>
+<th>实现</th>
+<th>能 free 吗</th>
+<th>空闲块合并</th>
+<th>算法</th>
+<th>适用与短板</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>heap_1</td>
+<td>不能</td>
+<td>—</td>
+<td>只分配：指针推进即分配</td>
+<td>对象集合固定的简单系统；完全确定、零开销，但内存一次性消耗</td>
+</tr>
+<tr>
+<td>heap_2</td>
+<td>能</td>
+<td>无</td>
+<td>空闲链按<strong>大小</strong>排序，最佳适配</td>
+<td>历史版本；反复分配/不同大小场景碎片单调恶化，已被 heap_4 取代</td>
+</tr>
+<tr>
+<td>heap_3</td>
+<td>能</td>
+<td>无</td>
+<td>给 stdlib 的 malloc/free 套调度锁</td>
+<td>必须用 C 库生态时；大小受制于链接器堆，编译期不可预算</td>
+</tr>
+<tr>
+<td><strong>heap_4</strong></td>
+<td>能</td>
+<td><strong>双向合并</strong></td>
+<td>空闲链按<strong>地址</strong>排序，首次适配 + 切割 + 相邻合并</td>
+<td><strong>默认推荐</strong>：合并机制把相邻碎片拼回去，碎片可控；查找最坏 O(n)</td>
+</tr>
+<tr>
+<td>heap_5</td>
+<td>能</td>
+<td>双向合并</td>
+<td>heap_4 + 多段不连续内存</td>
+<td>H7 多 RAM 域 / 外挂 SRAM 场景（9.7.8 节）</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>heap_2 与 heap_4 的一字之差正是整个设计的题眼：<strong>空闲链按「大小」排序就无法廉价地做相邻合并（邻居在地址上不相邻），按「地址」排序则合并只需一次地址加法比对</strong>——heap_4 用「首次适配」换来了「O(1) 合并判定」，这是通用分配器里最常见的权衡之一。</p>
+</blockquote>
+<h4>9.7.2 数据结构：块头 BlockLink_t 与三件静态家当</h4>
+<p>heap_4 的全部状态只有三件家当：堆地皮 <code>ucHeap</code>、空闲链表头 <code>xStart</code>、尾哨兵 <code>pxEnd</code>。每个块（无论空闲还是已分配）前面贴一个 8 字节块头：</p>
+<pre><code class="language-c">typedef struct A_BLOCK_LINK {
+    struct A_BLOCK_LINK *pxNextFreeBlock;  /* 链表下一个节点(仅空闲块有效) */
+    size_t xBlockSize;                     /* 本块总大小(含这 8 字节头); bit31 = 已分配旗标 */
+} BlockLink_t;                             /* 32 位机 sizeof = 8 字节, 按 8 对齐 */
+
+static uint8_t ucHeap[ configTOTAL_HEAP_SIZE ];   /* 堆地皮: .bss 里的一块静态数组 */
+static BlockLink_t xStart;                        /* 空闲链表头(数组外, 不占堆) */
+static BlockLink_t *pxEnd = NULL;                 /* 尾哨兵; NULL 同时充当"未初始化"标志 */
+
+static size_t xFreeBytesRemaining;                /* 当前剩余字节 */
+static size_t xMinimumEverFreeBytesRemaining;     /* 历史最低水位 → 配置堆大小的依据 */
+static size_t xNumberOfSuccessfulAllocations;     /* 统计: 成功分配次数 */
+static size_t xNumberOfSuccessfulFrees;           /* 统计: 成功释放次数 */
+
+#define heapMINIMUM_BLOCK_SIZE  ( xHeapStructSize &lt;&lt; 1 )  /* 16B = 2×头: 能独立存在的最小块 */
+/* xBlockAllocatedBit = 1 &lt;&lt; 31: xBlockSize 最高位当"已分配"旗标, 不计入大小 */
+</code></pre>
+<p>四个关键约定，后面每个函数都在用它们：<strong>其一</strong>，块头内联在块前面——由返回给用户的指针回退 8 字节即得块头（vPortFree 的入口动作）；<strong>其二</strong>，<code>xBlockSize</code> 永远是 8 的倍数，最高位（bit31）挪用作「已分配」旗标，空闲块此位为 0；<strong>其三</strong>，<strong>只有空闲块会挂在链上且 next 有效，已分配块的 next 恒为 NULL</strong>——这是双重释放检测的依据；<strong>其四</strong>，<code>heapMINIMUM_BLOCK_SIZE = 16</code>：任何块最小 16 字节（头 8 + 至少 8 的载荷），分配 1 字节实际也吃掉 16 字节。</p>
+<h4>9.7.3 prvHeapInit：堆的初始布局</h4>
+<p>初始化只做一件事：把整个堆摆成「一块大空闲块 + 尾哨兵」。注意 <code>xStart</code> 和 <code>pxEnd</code> 的块头都<strong>不在</strong> <code>ucHeap</code> 之外白占地方——<code>xStart</code> 是外部静态变量，<code>pxEnd</code> 的 8 字节头放在堆的最末尾（这正是初始可用空间是 <code>configTOTAL_HEAP_SIZE − 8</code> 的原因）：</p>
+<pre><code> 以 configTOTAL_HEAP_SIZE = 1024 为例 (8 字节对齐, 头 8 字节):
+
+ 字节:  0         8                                    1016    1024
+       ┌─────────┬────────────────────────────────────────┬────────┐
+       │ 头: 1016 │           空闲载荷区 1008 B             │ 头: 0  │
+       │ 空闲块   │                                        │ pxEnd  │
+       └─────────┴────────────────────────────────────────┴────────┘
+            ▲                                                ▲
+   xStart.pxNextFreeBlock ────► 这块 1016B ────► pxEnd.pxNextFreeBlock = NULL
+
+ 初始: xFreeBytesRemaining = 1016 (= 1024 − pxEnd 的 8 字节)
+</code></pre>
+<p>初始化在第一次调用 <code>pvPortMalloc</code> 时惰性触发（<code>pxEnd == NULL</code> 即未初始化），<code>prvHeapInit</code> 本身只是三步：对齐地皮起点 → 摆 <code>pxEnd</code> → 把起点到 <code>pxEnd</code> 之间声明成一整块空闲块挂上链。</p>
+<h4>9.7.4 pvPortMalloc：首次适配 + 块切割</h4>
+<p>分配的主干是「沿链找第一个够大的块，切下需要的部分，剩余留回链上」。逐段读（节选有删改，保留全部主干逻辑）：</p>
+<pre><code class="language-c">void *pvPortMalloc( size_t xWantedSize )
+{
+    BlockLink_t *pxBlock, *pxPreviousBlock, *pxNewBlockLink;
+    void *pvReturn = NULL;
+
+    vTaskSuspendAll();                     /* ① 调度锁(挂起任务切换)而非关中断, 见 9.7.8 */
+    {
+        if( pxEnd == NULL )
+            prvHeapInit();                 /* ② 惰性初始化 */
+
+        if( ( xWantedSize &amp; xBlockAllocatedBit ) == 0 )   /* ③ 请求大到碰 bit31 → 直接失败 */
+        {
+            xWantedSize += xHeapStructSize;               /* ④ 头部计入: 真实需求 = 想要的 + 8 */
+            if( ( xWantedSize &amp; portBYTE_ALIGNMENT_MASK ) != 0 )   /* ⑤ 向 8 对齐 */
+                xWantedSize += portBYTE_ALIGNMENT -
+                               ( xWantedSize &amp; portBYTE_ALIGNMENT_MASK );
+
+            /* ⑥ 首次适配: 沿地址序链表找第一个 xBlockSize ≥ 请求 的空闲块。
+                  注意退出条件: pxEnd 的 pxNextFreeBlock == NULL 兼作链尾判据 */
+            pxPreviousBlock = &amp;xStart;
+            pxBlock = xStart.pxNextFreeBlock;
+            while( ( pxBlock-&gt;pxNextFreeBlock != NULL ) &amp;&amp;
+                   ( pxBlock-&gt;xBlockSize &lt; xWantedSize ) )
+            {
+                pxPreviousBlock = pxBlock;
+                pxBlock = pxBlock-&gt;pxNextFreeBlock;
+            }
+
+            if( pxBlock != pxEnd )         /* ⑦ 撞到哨兵 = 全堆找不到能装下的块 */
+            {
+                pvReturn = ( void * )( ( uint8_t * )pxPreviousBlock-&gt;pxNextFreeBlock
+                                       + xHeapStructSize );   /* 载荷 = 块地址 + 8 */
+
+                /* ⑧ 切割: 仅当剩余 > 16B(最小合法块)才切; 否则整块给出,
+                     多出的部分留在已分配块里(内部碎片, 但链上不会出现非法小块) */
+                if( ( pxBlock-&gt;xBlockSize - xWantedSize ) &gt; heapMINIMUM_BLOCK_SIZE )
+                {
+                    pxNewBlockLink = ( void * )( ( uint8_t * )pxBlock + xWantedSize );
+                    pxNewBlockLink-&gt;xBlockSize = pxBlock-&gt;xBlockSize - xWantedSize;
+                    pxBlock-&gt;xBlockSize = xWantedSize;
+
+                    /* 新空闲块插入链上(复用 vPortFree 的插入+合并函数) */
+                    prvInsertBlockIntoFreeList( pxNewBlockLink );
+                }
+
+                xFreeBytesRemaining -= pxBlock-&gt;xBlockSize;
+                xNumberOfSuccessfulAllocations++;
+                if( xFreeBytesRemaining &lt; xMinimumEverFreeBytesRemaining )
+                    xMinimumEverFreeBytesRemaining = xFreeBytesRemaining;   /* 记水位 */
+
+                pxBlock-&gt;xBlockSize |= xBlockAllocatedBit;   /* ⑨ 置已分配旗标 */
+                pxBlock-&gt;pxNextFreeBlock = NULL;             /*    已分配块 next 恒 NULL */
+            }
+        }
+    }
+    ( void )xTaskResumeAll();
+
+    #if( configUSE_MALLOC_FAILED_HOOK == 1 )
+    if( pvReturn == NULL )
+        vApplicationMallocFailedHook();     /* ⑩ 失败钩子: 记录/降级, 由工程实现 */
+    #endif
+
+    return pvReturn;                        /* 失败时调用方拿到 NULL, 必须检查 */
+}
+</code></pre>
+<p>这段代码的性价比账目值得算一遍，理解「每一笔分配的真实成本」：</p>
+<table>
+<thead>
+<tr>
+<th>调用</th>
+<th>请求</th>
+<th>+8 头</th>
+<th>8 对齐后</th>
+<th>实际吃掉</th>
+<th>载荷利用率</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>分配 1 字节</td>
+<td>1</td>
+<td>9</td>
+<td>16</td>
+<td>16 B（最小块）</td>
+<td>6%</td>
+</tr>
+<tr>
+<td>分配 200 字节</td>
+<td>200</td>
+<td>208</td>
+<td>208</td>
+<td>208 B</td>
+<td>96%</td>
+</tr>
+<tr>
+<td>分配 100 字节</td>
+<td>100</td>
+<td>108</td>
+<td>112</td>
+<td>112 B</td>
+<td>89%</td>
+</tr>
+</tbody>
+</table>
+<p>结论直接可用：<strong>小块分配的固定成本是 8–16 字节</strong>——这也是 9.6 节固定池在每个块里白送 4 字节链表指针的对照面：池把管理开销摊到整池，heap_4 把开销摊到每块。频繁分配小对象时，池的内存效率显著更高。</p>
+<h4>9.7.5 vPortFree：完整性校验 + 双向合并</h4>
+<p>释放分两层：外层 <code>vPortFree</code> 做完整性与并发控制，内层 <code>prvInsertBlockIntoFreeList</code> 做插入与合并——后者是 heap_4 区别于 heap_2 的全部价值所在。</p>
+<pre><code class="language-c">void vPortFree( void *pv )
+{
+    uint8_t *puc = ( uint8_t * )pv;
+    BlockLink_t *pxLink;
+
+    if( pv != NULL )                        /* free(NULL) 合法且为空操作 */
+    {
+        puc -= xHeapStructSize;             /* 回退 8 字节: 由载荷指针找回块头 */
+        pxLink = ( void * )puc;
+
+        /* 两道完整性校验, 拦截两类经典错误:
+           ① 已分配位必须为 1  → 拦"重复释放"(第一次 free 已清位, 再 free 必触发断言)
+           ② next 必须为 NULL  → 拦"释放从未分配过/越界写坏的地址"(只有空闲块才有 next)
+           (依赖 configASSERT 生效; 断言没定义则两道防线都不存在!) */
+        configASSERT( ( pxLink-&gt;xBlockSize &amp; xBlockAllocatedBit ) != 0 );
+        configASSERT( pxLink-&gt;pxNextFreeBlock == NULL );
+
+        if( ( pxLink-&gt;xBlockSize &amp; xBlockAllocatedBit ) != 0 )
+        {
+            if( pxLink-&gt;pxNextFreeBlock == NULL )
+            {
+                pxLink-&gt;xBlockSize &amp;= ~xBlockAllocatedBit;   /* 摘旗: 变回空闲块 */
+
+                vTaskSuspendAll();
+                {
+                    prvInsertBlockIntoFreeList( pxLink );    /* 核心: 插入+合并, 见下 */
+                    xFreeBytesRemaining += pxLink-&gt;xBlockSize;
+                    xNumberOfSuccessfulFrees++;
+                }
+                ( void )xTaskResumeAll();
+            }
+        }
+    }
+}
+
+static void prvInsertBlockIntoFreeList( BlockLink_t *pxBlockToInsert )
+{
+    BlockLink_t *pxIterator;
+    uint8_t *puc;
+
+    /* ① 按地址升序找插入点: 挂在"最后一个地址低于目标块"的节点后面。
+          纯遍历, 链越长越慢 —— free 的最坏 O(n) 就在这层循环 */
+    for( pxIterator = &amp;xStart;
+         pxIterator-&gt;pxNextFreeBlock &lt; pxBlockToInsert;
+         pxIterator = pxIterator-&gt;pxNextFreeBlock )
+    {
+        /* 循环体为空: 只为推进指针 (哨兵 pxEnd 地址必高于一切块, 循环必然终止) */
+    }
+
+    /* ② 后邻合并: 目标块尾部恰好贴着下一个空闲块的头 → 吞并它 (两块并一块) */
+    puc = ( uint8_t * )pxBlockToInsert;
+    if( puc + pxBlockToInsert-&gt;xBlockSize ==
+        ( uint8_t * )pxIterator-&gt;pxNextFreeBlock )
+    {
+        pxBlockToInsert-&gt;xBlockSize += pxIterator-&gt;pxNextFreeBlock-&gt;xBlockSize;
+        pxBlockToInsert-&gt;pxNextFreeBlock =
+            pxIterator-&gt;pxNextFreeBlock-&gt;pxNextFreeBlock;
+    }
+    else
+    {
+        pxBlockToInsert-&gt;pxNextFreeBlock = pxIterator-&gt;pxNextFreeBlock;
+    }
+
+    /* ③ 前邻合并: 前一个空闲块的尾部恰好贴着目标块的头 → 让它吞并目标块
+          (此时目标块头整个消失, 被前邻的块尾覆盖) */
+    puc = ( uint8_t * )pxIterator;
+    if( puc + pxIterator-&gt;xBlockSize == ( uint8_t * )pxBlockToInsert )
+    {
+        pxIterator-&gt;xBlockSize += pxBlockToInsert-&gt;xBlockSize;
+        pxIterator-&gt;pxNextFreeBlock = pxBlockToInsert-&gt;pxNextFreeBlock;
+    }
+    else
+    {
+        pxIterator-&gt;pxNextFreeBlock = pxBlockToInsert;
+    }
+}
+</code></pre>
+<p>「地址相邻」的判定就一行加法：<strong>前块地址 + 前块大小 == 后块地址</strong>——这正是 9.7.1 节说「按地址排序才有廉价合并」的兑现处。两个方向的合并组合出四种释放情形：只挂链（前后都不相邻）、只吞后邻、只被前邻吞、三块并一块（前邻吞并目标 + 目标已吞后邻）。</p>
+<h4>9.7.6 完整演算：1 KB 堆上的一轮分配与释放</h4>
+<p>把上面的逻辑在纸上跑一遍，是确认读懂了的唯一标准。初始布局见 9.7.3（总 1016 可用），序列如下：</p>
+<pre><code> 初始:
+ xStart ──► [ 空 1016 |@0] ──► pxEnd                            剩余 1016
+
+ ① pvPortMalloc(200):  200+8=208, 首块即满足, 切割 →
+ xStart ──► [A 用 208|@0] ──► [ 空 808|@208] ──► pxEnd          剩余 808
+
+ ② pvPortMalloc(100):  100+8=108→对齐112, 首块(808)满足, 切割 →
+ xStart ──► [A 用 208] ──► [B 用 112|@208] ──► [ 空 696|@320] ──► pxEnd
+                                                                剩余 696
+
+ ③ vPortFree(A): A@0 插入。后邻: 0+208=208 ≠ 320, 不相邻;
+                前邻: 前一个是 xStart(在堆外), 不相邻 → 仅挂链
+ xStart ──► [A 空 208] ──► [B 用 112] ──► [ 空 696|@320] ──► pxEnd
+                                                                剩余 904
+
+ ④ vPortFree(B): B@208 插入, 双向合并 →
+    后邻: 208+112 = 320 == 空696 的头 ✓ → 吞并 → B 变成 808
+    前邻: 0+208 = 208 == B 的头 ✓ → A 吞并 B  → A 变成 1016
+ xStart ──► [ 空 1016|@0] ──► pxEnd                            剩余 1016 ✓ 完全复原
+</code></pre>
+<p>第 ④ 步就是 heap_4 的灵魂时刻：<strong>两个 208 和 112 的碎片经一次 free 拼回整块 1016</strong>——同样的序列在 heap_2（无合并）下会留下永远取不回的空洞。这也是「生命周期交错的对象用 heap_4 基本安全，用 heap_2 会慢性失血」的机制解释。</p>
+<h4>9.7.7 设计权衡总结</h4>
+<table>
+<thead>
+<tr>
+<th>设计点</th>
+<th>heap_4 的选择</th>
+<th>收益 / 代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>空闲链排序键</td>
+<td>按块地址升序（非大小）</td>
+<td>合并只需一次地址加法比对 / 分配查找无法按大小剪枝，最坏 O(n)</td>
+</tr>
+<tr>
+<td>适配策略</td>
+<td>首次适配（第一个够大的块）</td>
+<td>实现最简、链前端小块可复用 / 低地址端易沉淀小碎片（靠合并补救）</td>
+</tr>
+<tr>
+<td>管理头</td>
+<td>内联在每块前面（8 B）</td>
+<td>载荷→块头 O(1) / 每块固定开销；<strong>越界写坏邻居的头 = 下一次 free 时崩溃</strong>（本案发现场离案发地 8 字节）</td>
+</tr>
+<tr>
+<td>并发控制</td>
+<td>挂起调度器（非关中断）</td>
+<td>临界区内中断照常响应，中断延迟不受影响 / <strong>ISR 内禁止调用</strong>（9.7.8）</td>
+</tr>
+<tr>
+<td>损坏与误用检测</td>
+<td>bit31 旗标 + next==NULL 双校验（configASSERT）</td>
+<td>双重释放/野 free 可当场抓 / 断言未定义时防线消失；无越界写检测</td>
+</tr>
+<tr>
+<td>碎片治理</td>
+<td>只合并、不搬移</td>
+<td>合并零成本 / 无法把不相邻的空闲块拼成大块（搬移需句柄间接层，MCU 上少用）</td>
+</tr>
+</tbody>
+</table>
+<h4>9.7.8 使用纪律与配套设施</h4>
+<ol>
+<li><strong>中断服务函数里禁用 pvPortMalloc/vPortFree</strong>：临界区是「挂起调度器」——它防任务并发，不管中断并发；ISR 中调用会绕过锁破坏空闲链。中断收包要内存，用 9.6 节固定池（或者预分配）。</li>
+<li><strong>全工程只认一个分配器</strong>：<code>ucHeap</code> 是自包含的静态数组，不走 9.5 节的 <code>_sbrk</code>/链接器堆；newlib 的 <code>malloc</code>（printf 内部可能用到）与 heap_4 是<strong>两个互不知情的池</strong>，内存预算必须分开算、混用必然超卖。应用代码统一 <code>pvPortMalloc/vPortFree</code>。</li>
+<li><strong>用水位定大小，用遥测看碎片</strong>：</li>
+</ol>
+<pre><code class="language-c">/* 配置依据: 跑遍全部业务后读历史最低水位 */
+configTOTAL_HEAP_SIZE = xPortGetMinimumEverFreeHeapSize() 峰值 × 1.5;
+
+/* 周期遥测: 除总量外, "最大空闲块"是碎片程度的直接指标
+   (剩余 20KB 但最大块仅 2KB = 碎片已重, 大块申请将失败) */
+HeapStats_t s;
+vPortGetHeapStats( &amp;s );
+/* s.xAvailableHeapSpaceInBytes            当前剩余 */
+/* s.xSizeOfLargestFreeBlockInBytes        最大空闲块 ← 碎片指标 */
+/* s.xNumberOfFreeBlocks                   空闲块个数 ← 越多越碎 */
+/* s.xMinimumEverFreeBytesRemaining        历史最低水位 */
+/* s.xNumberOfSuccessfulAllocations/Frees  分配/释放次数 */
+</code></pre>
+<ol start="4">
+<li><strong>失败路径必须落地</strong>：<code>configASSERT</code> 与 <code>vApplicationMallocFailedHook()</code> 都要真实实现（记录 + 降级 + 复位），断言缺失时双重释放检测形同虚设。</li>
+<li><strong>热点路径不 malloc</strong>：分配/释放最坏 O(n) 且全程持调度锁——1 kHz 控制环内调用，抖动不可控。初始化期一次性分配或用池，运行期只引用。</li>
+<li><strong>想把堆搬到指定区域</strong>（如 H7 上放到 DMA 可达的 D2 SRAM）：启用 <code>configAPPLICATION_ALLOCATED_HEAP=1</code>，自己声明数组并打 section 标签，方法与 9.4 节完全相同：</li>
+</ol>
+<pre><code class="language-c">#define configAPPLICATION_ALLOCATED_HEAP 1        /* FreeRTOSConfig.h */
+
+/* 用户文件里自行定义地皮, 用 9.4 节的 section 手段定向: */
+uint8_t ucHeap[ configTOTAL_HEAP_SIZE ] __attribute__((section(".dma_safe_ram")));
+</code></pre>
+<ol start="7">
+<li><strong>多段不连续内存用 heap_5</strong>：H7 想把「AXI SRAM + D2 SRAM」编成一个堆（9.3 节地图的现实应用），换 heap_5 并在调度器启动前声明区域表：</li>
+</ol>
+<pre><code class="language-c">#include "FreeRTOS.h"
+#include "task.h"
+
+const HeapRegion_t xHeapRegions[] = {
+    { ( uint8_t * ) 0x24000000UL, 512 * 1024 },   /* D1 域 AXI SRAM */
+    { ( uint8_t * ) 0x30000000UL, 128 * 1024 },   /* D2 域 SRAM1 */
+    { NULL, 0 }                                    /* 区域表必须以空项结尾 */
+};
+/* 调度器启动前调用, 之后 pvPortMalloc 语义与 heap_4 完全一致:
+   从前往后用满一段才用下一段(分配就近), 合并只在段内进行 */
+vPortDefineHeapRegions( xHeapRegions );
+</code></pre>
+<h3 id="98-内存实践清单">9.8 内存实践清单</h3>
+<ol>
+<li><strong>DMA 缓冲三查</strong>：地址在 DMA 可达区（8.2 矩阵）→ 首地址 <code>aligned(32)</code> → 长度 32 取整（M7）。</li>
+<li><strong>全局数组用 <code>_Static_assert</code> 做编译期核算</strong>：<code>_Static_assert(sizeof(g_msg_mem) &gt;= 64*sizeof(msg_t), "pool too small");</code> 把「运行期才发现池太小」提前到编译失败。</li>
+<li><strong>栈配置 = 实测峰值 × 1.5</strong>（9.5 节水位法），并在遥测里暴露「栈峰值」与「堆/池余量」两个运行时指标。</li>
+<li><strong>分配器选型口诀</strong>：能静态则静态 → 对象集合固定用一次性分配 → 运行期动态用固定池 → 万不得已才 malloc，且只在初始化期用。</li>
+<li><strong>上 FreeRTOS 后的三条铁律</strong>：动态申请统一 <code>pvPortMalloc/vPortFree</code>（9.7 节）；<code>configTOTAL_HEAP_SIZE</code> = <code>xPortGetMinimumEverFreeHeapSize()</code> 实测水位 × 1.5；中断内禁用任何堆操作，收包用池。</li>
+<li><strong>每次内存相关改动后看一眼 map 文件</strong>：新增最大对象是谁、各段涨了多少、有没有变量意外落进错误区域。</li>
+</ol>
+<hr />
+<h2 id="10-调试与实战-从-hardfault-到稳定交付">10. 调试与实战：从 HardFault 到稳定交付</h2>
+<p>嵌入式调试的难点在于<strong>现象与根因在时间与空间上都是错位的</strong>：今天写坏的指针，明天早上三点的死机才暴露。本章给出四类武器：HardFault 的现场取证方法（10.1）与三个完整案例（10.2，把「随机死机」变成「指名道姓」）、全局症状速查表（10.3，从现象反查章节）、调试工具选型与文档地图（10.4 / 10.5）。</p>
+<h3 id="101-hardfault-取证三步法">10.1 HardFault 取证三步法</h3>
+<p>HardFault 是 Cortex-M 内核检测到非法操作后的强制跳转，<strong>默认的弱定义处理函数是个死循环</strong>——所以「程序莫名卡死」有一大半其实是进了 HardFault。取证三步：第一步<strong>区分是不是 HardFault</strong>（在处理函数里放一个明显的断点或 LED 翻转）；第二步<strong>提取现场</strong>（出错时的 PC 指针与错误状态寄存器）；第三步<strong>解码归因</strong>（查下表）。</p>
+<pre><code class="language-c">/* fault.c —— HardFault 现场提取 (裸机通用) */
+
+/* naked: 不生成函数序言, 保证能拿到"刚发生异常"时的原始栈指针 */
+#if defined(__GNUC__)
+__attribute__((naked)) void HardFault_Handler(void)
+{
+    __asm volatile(
+        " tst lr, #4     \n"   /* EXC_RETURN 位2: 出异常前用的是主栈还是任务栈 */
+        " ite eq         \n"
+        " mrseq r0, msp  \n"   /* 主栈 MSP */
+        " mrsne r0, psp  \n"   /* 任务栈 PSP (RTOS 场景) */
+        " b HardFault_HandlerC "
+    );
+}
+#endif
+
+void HardFault_HandlerC(uint32_t *sp)
+{
+    /* 异常自动入栈的 8 个字: R0 R1 R2 R3 R12 LR PC xPSR */
+    uint32_t pc   = sp[6];          /* 出错时正要执行的指令地址 ← 头号线索 */
+    uint32_t lr   = sp[5];          /* 出错函数被谁调用 */
+    uint32_t cfsr = SCB-&gt;CFSR;      /* 错误状态寄存器(组合): 告诉你"怎么错的" */
+    uint32_t bfar = SCB-&gt;BFAR;      /* 总线出错的目标地址(当 BFARVALID 有效时) */
+
+    /* 把四个值存进黑匣子(备份SRAM)或从 SWO 吐出, 然后: 复位或挂住待调试器 */
+    fault_log_save(pc, lr, cfsr, bfar);
+    while (1) { }
+}
+/* 拿到 PC 后: 在 map 文件里查"哪个函数包含这个地址", 即锁定案发函数 */
+</code></pre>
+<p>第三步解码 CFSR。它是三段组合（内存管理 + 总线 + 用法错误），最常用的位域与归因：</p>
+<table>
+<thead>
+<tr>
+<th>CFSR 位域</th>
+<th>名称</th>
+<th>含义</th>
+<th>最常见根因</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>UFSR.16</td>
+<td>UNDEFINSTR</td>
+<td>取到无法识别的指令</td>
+<td>数据被当代码执行（野函数指针、数组越界覆写代码区旁变量）</td>
+</tr>
+<tr>
+<td>UFSR.17</td>
+<td>INVSTATE</td>
+<td>无效状态（跳转目标 Thumb 位不对）</td>
+<td>函数指针赋值把整数当地址、中断向量表被改坏</td>
+</tr>
+<tr>
+<td>UFSR.19</td>
+<td>NOCP</td>
+<td>执行浮点指令但 FPU 未使能</td>
+<td>手写工程忘了 <code>SCB-&gt;CPACR</code> 使能 FPU（CubeMX 工程已自动处理）</td>
+</tr>
+<tr>
+<td>UFSR.24</td>
+<td>UNALIGNED</td>
+<td>非对齐访问（且使能了非对齐陷阱）</td>
+<td>把报文字节缓冲强转成 <code>uint32_t *</code> 直接解引用——先 <code>memcpy</code> 到对齐变量</td>
+</tr>
+<tr>
+<td>BFSR.7</td>
+<td>BFARVALID</td>
+<td>BFAR 里的地址有效</td>
+<td>配合 <code>SCB-&gt;BFAR</code> 直接得到「访问了哪个非法地址」</td>
+</tr>
+<tr>
+<td>BFSR.1/2</td>
+<td>PRECISERR / IMPRECISERR</td>
+<td>数据总线错误（精确/非精确）</td>
+<td>访问未实现的地址空洞；非精确错误发生在写缓冲，地址不可查，更靠 PC 上下文推断</td>
+</tr>
+<tr>
+<td>BFSR.3/4</td>
+<td>UNSTKERR / STKERR</td>
+<td>异常入栈/出栈失败</td>
+<td><strong>栈指针已坏 = 栈溢出的教科书症状</strong>，回 9.5 节做水位测量</td>
+</tr>
+</tbody>
+</table>
+<p>配套一个微秒级计时工具（取证与性能测量两用）——DWT 周期计数器，随内核时钟逐周期计数：</p>
+<pre><code class="language-c">/* DWT 周期计数器: 168MHz 下分辨率约 6ns, 32 位约 25.6 秒回绕 */
+void dwt_init(void)
+{
+    CoreDebug-&gt;DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;   /* 打开调试跟踪 */
+    DWT-&gt;CYCCNT = 0;
+    DWT-&gt;CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+}
+
+/* 用法: 测一段代码的真实耗时 */
+uint32_t t0 = DWT-&gt;CYCCNT;
+imu_step_1khz();
+uint32_t cost_us = (DWT-&gt;CYCCNT - t0) / 168;   /* 周期→微秒(除以MHz数) */
+</code></pre>
+<h3 id="102-hardfault-完整案例三则">10.2 HardFault 完整案例三则</h3>
+<p>取证方法只有配上真实现场才算掌握。本节给三个由浅入深的完整案例：<strong>案例 A</strong> 是旗舰案例，走完「寄存器 → CFSR 解码 → map 文件 → ASCII 侦探 → 反汇编 → 源码」的完整取证链；案例 B 演示 BFAR（总线错误地址寄存器）直指案发地址的「两分钟破案」；案例 C 演示栈溢出的特殊现场。三则故障模式均取自真实工程，可直接当作排练剧本——建议先遮住答案自己推一遍。</p>
+<h4>10.2.1 案例 A：报文长度字段未校验，栈被写穿</h4>
+<p><strong>案情</strong>：无人机数传链路固件。台架单测一切正常，联飞约 10 分钟随机死机，复现概率约三成；死机时机与数传流量强相关——报文活跃时易炸。固件已内置 10.1 节的取证处理函数，死机后调试器 attach 读现场。</p>
+<p><strong>第一步：现场四件套</strong>。HardFault_HandlerC 存下的关键值，以及逐个解读：</p>
+<pre><code> HardFault_HandlerC 捕获的现场:
+ PC   = 0x41544144      ← 出错时正要执行的地址: 一个完全陌生的值
+ LR   = 0x08004F5D      ← 合法的 Flash 地址 (0x08000000 段)
+ CFSR = 0x00020000      ← 错误状态寄存器
+ HFSR = 0x40000000      ← HardFault 状态寄存器
+ BFAR = 0xE000ED38      ← 残留值, 不可信 (原因见下表)
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>寄存器</th>
+<th>值</th>
+<th>解读</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CFSR</td>
+<td>0x00020000</td>
+<td>只有 UFSR.17（INVSTATE）置位 → 跳转目标的 Thumb 位为 0 →「跳转/返回到了非法地址」，<strong>不是访存出错</strong></td>
+</tr>
+<tr>
+<td>HFSR</td>
+<td>0x40000000</td>
+<td>FORCED 位：本质是 UsageFault，但工程没单独使能 UsageFault 向量，升级为 HardFault 进了取证函数（默认工程皆是如此）</td>
+</tr>
+<tr>
+<td>BFAR</td>
+<td>0xE000ED38</td>
+<td>BFARVALID 未置位 → 此值是寄存器残留（恰好是 BFAR 寄存器自身的地址），无效。<strong>教训：BFARVALID=0 时 BFAR 一律不采信</strong></td>
+</tr>
+<tr>
+<td>PC</td>
+<td>0x41544144</td>
+<td>见第三步：它根本不是代码地址</td>
+</tr>
+<tr>
+<td>LR</td>
+<td>0x08004F5D</td>
+<td>合法返回地址 → 调用链还活着，这是顺藤摸瓜的线索（第四步）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>第二步：定性</strong>。INVSTATE + PC 是垃圾值 → 故障发生在「函数返回」这个动作上，不是函数体内执行出错。补充一个细节：0x41544144 的 bit0 = 0，<code>POP {pc}</code> 装载后把 T 位（Thumb 状态位）清零，取指前的状态检查直接失败 → INVSTATE；<strong>若垃圾值的 bit0 = 1，则会继续在非法地址取指，报成 IBUSERR（CFSR=0x00000100）</strong>。同一个 bug，死法随报文数据内容漂移——这就是「随机死机」面孔的来源之一。</p>
+<p><strong>第三步：PC 查 map 失败 → ASCII 侦探</strong>。</p>
+<pre><code> 在 map 文件里搜 0x41544144: 不属于任何函数/变量区间
+   → 它不是代码地址, 是数据。
+
+ 四字节转 ASCII (小端): 0x44='D' 0x41='A' 0x54='T' 0x41='A' → "DATA"
+   → 栈上的返回地址被报文内容覆盖了!
+
+ 结论: 某处发生栈缓冲越界写, 写穿了保存的返回地址。
+</code></pre>
+<p><strong>第四步：LR 顺藤摸瓜</strong>。map 文件查 0x08004F5C（LR 去 Thumb 位），并反汇编该地址附近：</p>
+<pre><code> map 文件节选:
+   tele_parse_frame                      0x08004c80   0x80   tele_rx.o
+   gps_rx_task                           0x08004e00   0x1a0  tele_rx.o
+                                                    ↑ 0x08004f5c 落在 gps_rx_task 体内
+
+ 反汇编 0x08004f5c 附近:
+ 08004f58:  bl   0x08004c80  &lt;tele_parse_frame&gt;
+ 08004f5c:  mov  r1, r6              ← LR(0x08004f5d 去 Thumb 位)指回调用点下一条
+                                        → 出错(返回时炸掉)的函数 = tele_parse_frame
+</code></pre>
+<p><strong>第五步：回到源码</strong>。打开 <code>tele_parse_frame</code>，根因一行可见：</p>
+<pre><code class="language-c">/* tele_rx.c —— 修复前: 长度字段来自报文本身, 未校验 */
+void tele_parse_frame(const uint8_t *frame, uint16_t len)
+{
+    uint8_t payload[64];                     /* 栈上缓冲 */
+    uint16_t payload_len = frame[1];         /* 长度字段是报文说的! */
+
+    memcpy(payload, frame + 2, payload_len); /* 报文说 234, 就越界写 234 字节 */
+    handle_payload(payload, payload_len);
+}
+</code></pre>
+<pre><code> tele_parse_frame 的栈帧 (向下生长, 越界写从低地址往高地址涂):
+   sp ──► ┌───────────────┐
+          │ payload[64]   │ ← 合法写入区
+          ├───────────────┤   本帧 payload_len = 0xEA(234) →
+          │ 保存的 r4-r6  │ ← 越过 64 字节后开始遭殃
+          │ 返回地址       │ ← 第 76~79 字节: 被 ASCII "DATA" 覆盖!
+          ├───────────────┤
+          │ 调用者栈帧…    │ ← 后续 150+ 字节继续涂, 更多变量被殃及
+          └───────────────┘
+</code></pre>
+<p><strong>第六步：修复</strong>。直接修复只加两行判断——但要把「长度字段不可信」立成规矩：</p>
+<pre><code class="language-c">/* 修复: 一切来自报文的长度/索引字段都是不可信输入, 先验后用 */
+void tele_parse_frame(const uint8_t *frame, uint16_t len)
+{
+    uint8_t payload[64];
+    uint16_t payload_len;
+
+    if (len &lt; 2)
+        return;                                   /* 帧头都不完整 */
+    payload_len = frame[1];
+    if (payload_len &gt; sizeof(payload) || payload_len &gt; (uint16_t)(len - 2))
+        return;                                   /* 非法帧: 计数丢弃, 绝不 memcpy */
+
+    memcpy(payload, frame + 2, payload_len);
+    handle_payload(payload, payload_len);
+}
+</code></pre>
+<p>系统性防御四条：</p>
+<ol>
+<li><strong>协议层</strong>：长度、索引、计数等来自线路的字段一律视为不可信输入——与测试台架同一个思路：把边界值（0 / 1 / 64 / 65 / 255）写进自动化回归，报文模糊测试常态化。</li>
+<li><strong>编译层</strong>：<code>-fstack-protector-strong</code>（栈保护金丝雀）或 MPU 栈区 guard，把「写穿后延迟爆炸」变成「当场报错」。</li>
+<li><strong>运行层</strong>：栈水位遥测（9.5 节）+ HardFault 黑匣子（CFSR/PC/LR 存进备份 SRAM，复位后上报）——下一次半分钟出结论。</li>
+<li><strong>流程层</strong>：本案修复后补一条「长帧」用例进回归集，防止下一个解析函数重蹈覆辙。</li>
+</ol>
+<blockquote>
+<p><strong>复盘：三成复现率怎么解释</strong>。越界写的 170 字节里，只有恰好压在返回地址上的那 4 字节决定死法（INVSTATE / IBUSERR / 还是根本不死机）；多数帧死得更安静——调用者的局部变量被涂改，表现为 GPS 数据莫名错乱而非死机。<strong>「现象与根因错位」不只是时间错位，还有形态错位</strong>：同一个 bug，今天死机、明天数据异常。</p>
+</blockquote>
+<h4>10.2.2 案例 B：BFAR 直指案发地址——两分钟破案</h4>
+<p><strong>案情</strong>：数传固件偶发死机。现场：</p>
+<pre><code> CFSR = 0x00008200   ← BFSR.PRECISERR(bit9) + BFARVALID(bit15)
+ HFSR = 0x40000000
+ BFAR = 0x20020000   ← 有效! 精确总线错误的案发地址
+ PC   = 0x08005210   (合法 Flash 地址)
+ LR   = 0x08004E36   (合法 Flash 地址)
+</code></pre>
+<p>解读只有两步。其一，PRECISERR + BFARVALID = 「数据访问出错，且出错地址已被捕获」→ <strong>BFAR 就是正在读写的那一个地址</strong>，不需要推理。其二，对照内存地图（9.1/9.3 节）：F407 的 SRAM 区是 0x20000000 起 128K，末字节 0x2001FFFF——<strong>0x20020000 恰好是 SRAM 结束之后的第一个不存在地址</strong>。结论：某个指针/下标一路扫过了整块 SRAM 的顶端。</p>
+<pre><code class="language-c">/* 环形缓冲里找帧尾 0x0D —— 修复前 */
+int find_frame_end(const uint8_t *buf)
+{
+    int i = 0;
+    while (buf[i] != 0x0D)      /* 无边界: 缓冲里没有 0x0D 就一路扫出内存 */
+        i++;
+    return i;
+}
+
+/* 修复: 扫描循环必须带边界, 边界是协议给的(帧长), 不是数据给的(终止符) */
+int find_frame_end(const uint8_t *buf, int max_len)
+{
+    int i = 0;
+    while (i &lt; max_len &amp;&amp; buf[i] != 0x0D)
+        i++;
+    return (i &lt; max_len) ? i : -1;   /* 没找到: 显式返回, 不假装成功 */
+}
+</code></pre>
+<blockquote>
+<p>本案的「幸运」在于越界扫过了 SRAM 顶（必然撞上不存在的地址，当场炸）；若它在 SRAM 中段游荡，只会安静地读到别人的变量——BFAR 只在撞墙时才给真相，<strong>不能因为没有 fault 就认定没有越界</strong>。</p>
+</blockquote>
+<h4>10.2.3 案例 C：STKERR——栈溢出的教科书现场</h4>
+<p><strong>案情</strong>：中断密集时段（数百 Hz 遥测 + 1 kHz 控制环）死机。现场：</p>
+<pre><code> CFSR = 0x00001000   ← BFSR.STKERR(bit12): 异常"入栈"失败
+ HFSR = 0x40000000
+ MSP  = 0x0FFFFF60   ← 读当前栈指针
+ 链接符号: 本工程栈放 CCM, _estack = 0x10002000(栈顶), _sstack = 0x10000000(栈底, CCM 起点同址)
+</code></pre>
+<p>先分清栈溢出的两种形态。<strong>形态 (a)：溢出还落在 RAM 内</strong>——不炸，安静踩坏紧挨栈底的 .bss/.data（症状：变量莫名被改），这是 9.5 节水位法存在的意义；<strong>形态 (b)：溢出跨过内存区底</strong>——本例栈放在 CCM（0x10000000 起），SP 一旦冲出 CCM 下边界就是不存在的地址，处理器想为进异常压栈时撞墙 → STKERR 当场炸。本例 MSP = 0x0FFFFF60 已低于 CCM 底 0x10000000，铁证。</p>
+<pre><code class="language-c">/* 根因: ISR 内大局部数组 + 中断嵌套, 两层叠加冲穿 CCM */
+void telemetry_isr(void)              /* 遥测中断, 200 Hz */
+{
+    uint8_t log_buf[512];             /* ← 512 字节直接压在栈上 */
+    uint8_t hex_dump[1024];           /* ← 又 1024 字节 */
+
+    build_log(log_buf, hex_dump);     /* 内部还有一层调用, 再压一层帧 */
+    ...
+}
+
+/* 修复: 大缓冲移出栈(静态/池, 9.6 节); 栈大小 = 水位实测 × 1.5;
+   进一步: 在栈底放一个 MPU no-access 小区做 guard, 把形态(a)的
+   "安静踩踏"升级成形态(b)的"当场报错" */
+</code></pre>
+<h4>10.2.4 快速通道：一眼判的小现场</h4>
+<p>还有些现场不需要完整取证链，CFSR 特征位直接给出答案：</p>
+<table>
+<thead>
+<tr>
+<th>CFSR 特征（值）</th>
+<th>一句话结论</th>
+<th>首查</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>UFSR.19 NOCP（0x00080000）</td>
+<td>执行浮点指令但 FPU 未使能</td>
+<td>手写工程漏了 <code>SCB-&gt;CPACR</code> 使能 FPU；CubeMX 工程已在 SystemInit 自动处理（1.1 节）</td>
+</tr>
+<tr>
+<td>UFSR.16 UNDEFINSTR（0x00010000）</td>
+<td>取到无法识别的指令 = 数据被执行</td>
+<td>野函数指针；代码区旁的变量被越界写污染</td>
+</tr>
+<tr>
+<td>UFSR.24 UNALIGNED（0x01000000）</td>
+<td>非对齐访问触发了陷阱</td>
+<td>报文字节缓冲强转 <code>uint32_t *</code>——改用 <code>memcpy</code> 到对齐变量中转</td>
+</tr>
+<tr>
+<td>UFSR.25 DIVBYZERO（0x02000000）</td>
+<td>除零且使能了除零陷阱</td>
+<td>分母的来源；注意 DIV_0_TRP 未置位时除零静默返回 0，更阴险</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="103-症状-排查速查表">10.3 症状 → 排查速查表</h3>
+<table>
+<thead>
+<tr>
+<th>现场症状</th>
+<th>首查项（按命中率排序）</th>
+<th>章节</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>串口输出乱码</td>
+<td>时钟树配置（HSE 值/PLL）→ 波特率双方是否一致 → 时钟源是 HSI 还是晶振</td>
+<td>3.2、4.2</td>
+</tr>
+<tr>
+<td>串口收几个字节后不再收</td>
+<td>ORE 溢出标志未清除</td>
+<td>4.6</td>
+</tr>
+<tr>
+<td>DMA 配置无误但缓冲区永远空</td>
+<td>缓冲区地址落在 DMA 不可达区（CCM/DTCM/SRAM4）</td>
+<td>8.2</td>
+</tr>
+<tr>
+<td>M7 上 DMA 数据时对时错</td>
+<td>D-Cache 一致性（Clean/Invalidate 或非缓存区）</td>
+<td>8.5</td>
+</tr>
+<tr>
+<td>SPI 读值错位半个字节</td>
+<td>CPOL/CPHA 模式与器件不符</td>
+<td>5.5</td>
+</tr>
+<tr>
+<td>I2C 器件读回全失败（NACK）</td>
+<td>地址未左移 → 上拉电阻 → 总线卡死（九时钟恢复）</td>
+<td>6.3、6.5</td>
+</tr>
+<tr>
+<td>CAN 一个节点发不出、错误计数狂涨</td>
+<td>总线上没有第二个节点回 ACK（自测用回环模式）</td>
+<td>7.8</td>
+</tr>
+<tr>
+<td>CAN 收不到任何报文</td>
+<td>过滤器未配置（bxCAN 默认全拒）→ 位时序与全网不一致</td>
+<td>7.5、7.4</td>
+</tr>
+<tr>
+<td>随机 HardFault，地址不固定</td>
+<td>栈溢出（STKERR）→ 野指针写 → 中断里调用非重入函数；按 10.2 节三案例的取证链走一遍</td>
+<td>10.1、10.2、9.5</td>
+</tr>
+<tr>
+<td>运行数天后卡死，重启即好</td>
+<td>内存碎片/池耗尽/计数器溢出——查池余量遥测曲线</td>
+<td>9.6</td>
+</tr>
+<tr>
+<td>变量莫名被改</td>
+<td>栈溢出踩到邻居 → 数组越界 → DMA 写错地址（查 DMA 目标地址）</td>
+<td>9.5、8.2</td>
+</tr>
+<tr>
+<td>读某外设寄存器恒为 0</td>
+<td>该外设时钟未使能（RCC）——STM32 上不开时钟的寄存器读 0 写无效，不报错</td>
+<td>3.6</td>
+</tr>
+<tr>
+<td>中断一次都不进</td>
+<td>NVIC 未使能 → 中断服务函数名拼错（链接到弱定义默认死循环）→ 优先级被 RTOS 管辖</td>
+<td>3.6</td>
+</tr>
+<tr>
+<td>调试器连不上（烧过一次后）</td>
+<td>SWD 引脚被复用为 GPIO——connect under reset 抢救，工程里恢复 SYS Serial Wire</td>
+<td>3.2</td>
+</tr>
+<tr>
+<td>浮点运算慢得离谱</td>
+<td>FPU 未使能 / 用了 double 字面量 / soft-float 编译选项</td>
+<td>1.1</td>
+</tr>
+</tbody>
+</table>
+<h3 id="104-调试工具选型">10.4 调试工具选型</h3>
+<table>
+<thead>
+<tr>
+<th>工具</th>
+<th>解决什么</th>
+<th>使用要点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>IDE 断点 / 单步 / Watch</td>
+<td>逻辑错误定位首选</td>
+<td>断点会暂停整个 CPU，<strong>实时性问题在断点下不复现</strong>——时序 bug 要靠遥测与逻辑分析仪</td>
+</tr>
+<tr>
+<td>Live Watch / SEGGER RTT</td>
+<td>不停机观察变量</td>
+<td>RTOS 场景看任务状态机转换；RTT 走调试口高速输出日志，不占串口</td>
+</tr>
+<tr>
+<td>SWO / ITM</td>
+<td>单引脚 printf 式输出</td>
+<td>比串口快、可输出时间戳事件流；需要 SWD 的 SWO 引脚</td>
+</tr>
+<tr>
+<td>逻辑分析仪</td>
+<td>SPI/I2C/UART 波形级真相</td>
+<td>自带协议解码：一眼看出 CPOL/CPHA 错误、I2C NACK 在哪一字节——「软件怎么配都不对」时看波形定案</td>
+</tr>
+<tr>
+<td>示波器</td>
+<td>模拟层问题</td>
+<td>电源纹波、上拉 RC 时间常数、信号完整性</td>
+</tr>
+<tr>
+<td>CAN 分析仪（TSMaster / CANoe 等）</td>
+<td>总线层：位时序、负载率、错误帧统计</td>
+<td>调试 CAN 固件的标准配套：先看分析仪里报文与错误帧，再怀疑代码</td>
+</tr>
+<tr>
+<td>固件自遥测</td>
+<td>无人值守期的自我暴露</td>
+<td>栈水位、池余量、错误计数、最重任务耗时（DWT）——「跑几天才崩」类问题唯一的现场证据来源</td>
+</tr>
+</tbody>
+</table>
+<h3 id="105-文档地图与延伸阅读">10.5 文档地图与延伸阅读</h3>
+<p>ST 的文档是金字塔结构，<strong>查问题先定位层，再进对应文档</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>文档</th>
+<th>内容</th>
+<th>什么时候查</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Datasheet（数据手册）</td>
+<td>引脚定义、电气参数、封装</td>
+<td>硬件设计与选型阶段</td>
+</tr>
+<tr>
+<td>Reference Manual（参考手册）<br />F407 = RM0090，H743 = RM0433</td>
+<td>每个外设的寄存器级完整描述</td>
+<td><strong>最常翻的一本</strong>：外设行为任何疑问的最终裁决；DMA 请求映射表也在这里</td>
+</tr>
+<tr>
+<td>Programming Manual（编程手册）<br />Cortex-M4 = PM0214</td>
+<td>内核：指令集、NVIC、异常模型、Fault</td>
+<td>HardFault 取证、中断时序、汇编级问题</td>
+</tr>
+<tr>
+<td>Application Note（AN 笔记）</td>
+<td>专题应用方法</td>
+<td>深挖某专题（如低功耗、定时器）时</td>
+</tr>
+</tbody>
+</table>
+<p>书目推荐两本常读常新的：《The Definitive Guide to ARM Cortex-M3 and Cortex-M4 Processors》（Joseph Yiu，内核机制权威，有中文版《Cortex-M3/M4 权威指南》），以及 ST 官方 HAL 例程（仓库 STM32CubeF4，每个外设每个模式都有最小例程，读例程是最快的进阶路径）。再往后，按方向分流：实时控制 → RTOS（FreeRTOS）与控制理论；联网 → LwIP 与协议栈；大系统 → Linux SoC 协同（异构分工）。</p>
+<hr />
+<h2 id="附录术语速查表">附录：术语速查表</h2>
+<table>
+<thead>
+<tr>
+<th>术语</th>
+<th>全称 / 含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AHB / APB</td>
+<td>片内高速 / 低速外设总线；APB 由 AHB 分频派生，外设速率上限由所在总线决定</td>
+</tr>
+<tr>
+<td>AXI</td>
+<td>高性能总线协议，H7 等 M7 芯片的 D1 域主干</td>
+</tr>
+<tr>
+<td>TCM（ITCM / DTCM）</td>
+<td>紧耦合内存：CPU 专线直连、零等待；I 放代码、D 放数据；多数 DMA 不可达</td>
+</tr>
+<tr>
+<td>CCM</td>
+<td>F4 的 CPU 专用 64K RAM，DMA 不可达、不可执行代码</td>
+</tr>
+<tr>
+<td>NVIC</td>
+<td>Cortex-M 内嵌向量中断控制器；抢占优先级 + 子优先级</td>
+</tr>
+<tr>
+<td>ISR</td>
+<td>中断服务函数（Interrupt Service Routine）</td>
+</tr>
+<tr>
+<td>MSP / PSP</td>
+<td>主栈指针（内核与中断用）/ 任务栈指针（RTOS 各任务用）</td>
+</tr>
+<tr>
+<td>HAL / LL</td>
+<td>ST 的硬件抽象库 / 轻量库（寄存器内联封装）</td>
+</tr>
+<tr>
+<td>DWT</td>
+<td>内核调试组件，其中 CYCCNT 周期计数器用于精确计时</td>
+</tr>
+<tr>
+<td>CFSR / BFAR</td>
+<td>错误状态寄存器 / 总线错误地址寄存器，HardFault 取证核心</td>
+</tr>
+<tr>
+<td>BRR</td>
+<td>USART 波特率寄存器（12.4 位整数+小数分频）</td>
+</tr>
+<tr>
+<td>TIMINGR</td>
+<td>新版 I2C 外设的一体化时序寄存器</td>
+</tr>
+<tr>
+<td>CPOL / CPHA</td>
+<td>SPI 时钟空闲电平 / 采样边沿，组合出四种模式</td>
+</tr>
+<tr>
+<td>BRS</td>
+<td>CAN FD 的「变速」位：仲裁段慢速、数据段高速</td>
+</tr>
+<tr>
+<td>Tq</td>
+<td>时间量子：CAN 位时间的最小单位，波特率与采样点由 Tq 分配决定</td>
+</tr>
+<tr>
+<td>bxCAN / FDCAN</td>
+<td>STM32 两代 CAN 外设：经典 CAN / 经典+CAN FD</td>
+</tr>
+<tr>
+<td>ORE / RXNE / TC / TXE</td>
+<td>USART 标志：溢出 / 收到数据 / 发送完全完成 / 发送寄存器空</td>
+</tr>
+<tr>
+<td>IDLE</td>
+<td>串口空闲检测标志：总线静默 1 字节时间置位，不定长接收的关键</td>
+</tr>
+<tr>
+<td>ENOB</td>
+<td>ADC 有效位数：考虑噪声后的真实分辨率，低于标称位数</td>
+</tr>
+<tr>
+<td>XIP</td>
+<td>外部 QSPI Flash 内存映射就地执行代码</td>
+</tr>
+</tbody>
+</table>
+</body>
+</html>

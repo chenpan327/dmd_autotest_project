@@ -1,0 +1,4029 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>控制理论核心基础 —— 嵌入式工程师的数学工具箱</title>
+<script>
+MathJax = { tex: { inlineMath: [['$', '$']] } };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+<style>
+body { max-width: 60em; margin: 2em auto; padding: 0 1.2em;
+       font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+       line-height: 1.75; color: #24292f; }
+h1, h2 { border-bottom: 1px solid #d8dee4; padding-bottom: .3em; margin-top: 1.8em; }
+h3, h4 { margin-top: 1.4em; }
+code { background: #f6f8fa; border-radius: 4px; padding: .15em .35em;
+        font-family: Consolas, "Courier New", monospace; font-size: .92em; }
+pre { background: #f6f8fa; border-radius: 6px; padding: .9em; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+table { border-collapse: collapse; margin: 1em 0; display: block;
+         overflow-x: auto; max-width: 100%; }
+th, td { border: 1px solid #d0d7de; padding: .38em .7em; text-align: left; }
+th { background: #f0f2f4; }
+tr:nth-child(even) td { background: #fafbfc; }
+blockquote { border-left: 4px solid #a5b1bd; margin: 1em 0; padding: .2em 1em;
+              color: #57606a; background: #f6f8fa; }
+mjx-container { overflow-x: auto; overflow-y: hidden; max-width: 100%; }
+</style>
+</head>
+<body>
+<h1 id="控制理论核心基础-嵌入式工程师的数学工具箱">控制理论核心基础 —— 嵌入式工程师的数学工具箱</h1>
+<blockquote>
+<p><strong>定位</strong>：面向嵌入式/控制方向工程师的理论手册，第 2–8 章为基础理论（傅里叶变换、拉普拉斯变换、采样定理、Z 变换、PID、状态空间与 LQR、卡尔曼滤波），第 9–15 章为现代扩展（辨识、观测器、MPC、SLAM、机器人学、规划、强化学习），第 16 章为 MCU 固件落地的工程实现方法（数值表示、实时结构、参数管理、故障防护、调试对拍）。</p>
+<p><strong>统一骨架</strong>：每章按「背景 → 数学定义（公式 + 逐变量解释）→ 工程应用（无人机飞控 / BMS / 自动驾驶 / 机器人）→ 代码实现 → 实践要点」展开。所有公式中的变量在第一次出现时均给出含义与单位；每章附一个可运行的最小代码实例——固件算法用 C，离线设计与仿真用 Python（numpy）。</p>
+<p><strong>阅读方式</strong>：章节按依赖关系排序（第 2→8 章是基础主线，第 9→15 章为进阶扩展，第 16 章为落地篇），建议顺序通读；只查某个主题可先看第 17 章速查表。数学基础只需微积分与线性代数（矩阵乘法、特征值概念）。</p>
+</blockquote>
+<hr />
+<h2 id="目录">目录</h2>
+<ul>
+<li><a href="#0-全景图这些工具分别解决什么问题">0. 全景图：这些工具分别解决什么问题</a></li>
+<li><a href="#1-预备知识信号与系统的共同语言">1. 预备知识：信号与系统的共同语言</a></li>
+<li><a href="#2-傅里叶变换从时域到频域">2. 傅里叶变换：从时域到频域</a></li>
+<li><a href="#3-拉普拉斯变换连续系统的代数化">3. 拉普拉斯变换：连续系统的代数化</a></li>
+<li><a href="#4-采样定理一切数字控制的前提">4. 采样定理：一切数字控制的前提</a></li>
+<li><a href="#5-z-变换把设计搬进固件">5. Z 变换：把设计搬进固件</a></li>
+<li><a href="#6-pid-控制工程中九成的闭环">6. PID 控制：工程中九成的闭环</a></li>
+<li><a href="#7-状态空间与-lqr多变量系统的语言">7. 状态空间与 LQR：多变量系统的语言</a></li>
+<li><a href="#8-卡尔曼滤波最优状态估计">8. 卡尔曼滤波：最优状态估计</a></li>
+</ul>
+<p><strong>进阶篇（第 9–15 章：现代算法与机器人 / 自动驾驶扩展）</strong></p>
+<ul>
+<li><a href="#9-系统辨识从数据到模型">9. 系统辨识：从数据到模型</a></li>
+<li><a href="#10-观测器与无传感器估计">10. 观测器与无传感器估计</a></li>
+<li><a href="#11-模型预测控制与现代控制谱系">11. 模型预测控制与现代控制谱系</a></li>
+<li><a href="#12-概率定位与-slam粒子滤波与因子图">12. 概率定位与 SLAM：粒子滤波与因子图</a></li>
+<li><a href="#13-机器人运动学与动力学控制">13. 机器人运动学与动力学控制</a></li>
+<li><a href="#14-路径规划与轨迹生成">14. 路径规划与轨迹生成</a></li>
+<li><a href="#15-前沿学习型控制与强化学习">15. 前沿：学习型控制与强化学习</a></li>
+</ul>
+<p><strong>落地篇（第 16 章：把算法装进 MCU）</strong></p>
+<ul>
+<li><a href="#16-mcu-实现工程学从算法到固件">16. MCU 实现工程学：从算法到固件</a></li>
+<li><a href="#17-工程选型速查与延伸阅读">17. 工程选型速查与延伸阅读</a></li>
+</ul>
+<hr />
+<h2 id="0-全景图这些工具分别解决什么问题">0. 全景图：这些工具分别解决什么问题</h2>
+<p>控制理论的全部数学工具服务于两个问题：<strong>系统会怎样运动（建模与分析）</strong>，以及<strong>如何让它按我们的意图运动（控制与估计）</strong>。嵌入式工程师面对的现实是：被控对象（电机、电池、车辆）是连续的物理系统，而控制器是按固定节拍离散执行的程序，因此整个知识体系天然分成「连续世界 → 离散世界 → 闭环实现」三层。</p>
+
+<pre><code> 连续物理世界（电机 / 电池 / 车辆）
+ ─────────────────────────────────────────────────────
+   傅里叶变换      把信号拆成频率成分，看&quot;里面有什么&quot;
+   拉普拉斯变换    把微分方程变成代数式，看&quot;稳不稳、快不快&quot;
+                │
+                │ 采样定理（连续 → 离散的桥，一切数字化的前提）
+                ▼
+ 离散数字世界（MCU 按采样周期 Ts 逐拍执行）
+ ─────────────────────────────────────────────────────
+   Z 变换         差分方程与数字滤波器，固件里每行滤波代码的理论出处
+                │
+                ▼
+ 闭环控制 / 状态估计 / 规划决策
+ ─────────────────────────────────────────────────────
+   PID            用误差直接生成控制量，工程中 90% 的闭环
+   状态空间 / LQR  多变量系统的建模与最优控制
+   卡尔曼滤波      融合模型与多传感器，估计测不到的状态
+   观测器/SMO/PLL  状态重构与无传感器估计（第 10 章）
+   MPC/ADRC/SMC   约束最优与鲁棒控制（第 11 章）
+   粒子滤波/SLAM   非高斯定位与同步建图（第 12 章）
+   A*/RRT/MPC     路径规划与轨迹优化（第 13、14 章）
+   强化学习        模型难建场景的数据驱动控制（第 15 章）
+   MCU 落地工程学  数值表示/实时调度/参数与故障的工程化（第 16 章）
+</code></pre>
+
+<h3 id="01-历史时间线">0.1 历史时间线</h3>
+<table>
+<thead>
+<tr>
+<th>年代</th>
+<th>人物 / 事件</th>
+<th>对嵌入式工程的意义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1780s</td>
+<td>拉普拉斯（Laplace）</td>
+<td>微分方程求解的代数化方法</td>
+</tr>
+<tr>
+<td>1807 / 1822</td>
+<td>傅里叶（Fourier）热传导理论</td>
+<td>任意信号 = 正弦波的叠加</td>
+</tr>
+<tr>
+<td>1922</td>
+<td>Minorsky 船舶自动舵</td>
+<td>PID 三项结构正式化</td>
+</tr>
+<tr>
+<td>1928 / 1949</td>
+<td>Nyquist / Shannon</td>
+<td>采样定理，数字化的理论边界</td>
+</tr>
+<tr>
+<td>1942</td>
+<td>Ziegler–Nichols</td>
+<td>PID 参数整定的工程化</td>
+</tr>
+<tr>
+<td>1960</td>
+<td>Kalman 递归滤波论文</td>
+<td>最优估计理论，随 Apollo 计划落地</td>
+</tr>
+<tr>
+<td>1960s</td>
+<td>Bellman 动态规划、Riccati 方程</td>
+<td>LQR 与现代控制的基础</td>
+</tr>
+<tr>
+<td>1978 / 1980</td>
+<td>Richalet（IDCOM）、Cutler（DMC）</td>
+<td>模型预测控制（MPC）诞生于流程工业</td>
+</tr>
+<tr>
+<td>1980s 至今</td>
+<td>DSP 与 MCU 普及</td>
+<td>上述理论全部落地为固件代码</td>
+</tr>
+<tr>
+<td>1986</td>
+<td>Smith–Cheesman、Chatila</td>
+<td>SLAM（同步定位与建图）概念确立</td>
+</tr>
+<tr>
+<td>2018–2023</td>
+<td>深度强化学习运动控制落地（ANYmal、Swift）</td>
+<td>数据驱动控制进入机器人量产</td>
+</tr>
+</tbody>
+</table>
+<h3 id="02-三个工程域各自的典型问题">0.2 三个工程域各自的典型问题</h3>
+<table>
+<thead>
+<tr>
+<th>工程域</th>
+<th>典型问题</th>
+<th>本文对应章节</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>无人机飞控</td>
+<td>机架振动污染陀螺数据；姿态环稳定；IMU+GPS 融合定位</td>
+<td>第 2、4、6、8 章</td>
+</tr>
+<tr>
+<td>BMS（电池管理系统）</td>
+<td>SOC（荷电状态）估计漂移；电流采样与滤波；热管理温控</td>
+<td>第 2、4、5、8 章</td>
+</tr>
+<tr>
+<td>自动驾驶</td>
+<td>目标跟踪与多传感器融合；车辆横向动力学建模；ACC/转向控制</td>
+<td>第 3、6、7、8 章</td>
+</tr>
+<tr>
+<td>机器人（机械臂/四足/AMR）</td>
+<td>关节运动学与力控；自主定位与导航；路径规划与避障</td>
+<td>第 10、12、13、14 章</td>
+</tr>
+<tr>
+<td>MCU 固件实现</td>
+<td>定点/浮点选型；实时调度与抖动控制；参数掉电保存；调试对拍</td>
+<td>第 16 章</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="1-预备知识信号与系统的共同语言">1. 预备知识：信号与系统的共同语言</h2>
+<h3 id="11-背景与基本概念">1.1 背景与基本概念</h3>
+<p>后续所有章节共用同一套概念体系，先统一定义以避免歧义。<strong>信号</strong>是携带信息的物理量随时间的变化，连续时间信号记作 $x(t)$（单位由物理量决定），离散时间信号（序列）记作 $x[k]$，其中 $k$ 为整数拍序号。<strong>系统</strong>是把输入映射为输出的物理过程或算法，连续系统记作 $y(t) = \mathcal{T}\{x(t)\}$，离散系统记作 $y[k] = \mathcal{T}\{x[k]\}$。</p>
+<p><strong>LTI 系统</strong>（Linear Time-Invariant，线性时不变系统）是整个控制理论的核心假设，同时满足两条性质：</p>
+<ul>
+<li><strong>线性</strong>：$\mathcal{T}\{a x_1 + b x_2\} = a\,\mathcal{T}\{x_1\} + b\,\mathcal{T}\{x_2\}$（齐次性 + 可加性）；</li>
+<li><strong>时不变</strong>：输入延迟 $t_0$，输出同样延迟 $t_0$，系统本身的性质不随时间变化。</li>
+</ul>
+<p>LTI 假设重要的原因是：只有对 LTI 系统，冲激响应、传递函数、频率响应、Z 传递函数这一整套工具才成立。工程中大多数系统在工作点附近小信号近似下是 LTI 的（例如电机在恒定负载附近、电池在固定温度附近），这正是"工作点线性化"思想的来源。</p>
+<h3 id="12-冲激响应与卷积">1.2 冲激响应与卷积</h3>
+<p>LTI 系统被它的<strong>冲激响应</strong>完全刻画：连续系统记 $h(t)$（输入为单位冲激 $\delta(t)$ 时的输出），离散系统记 $h[k]$。任意输入下的输出等于输入与冲激响应的<strong>卷积</strong>：</p>
+<p>$$y(t) = (x * h)(t) = \int_{-\infty}^{\infty} x(\tau)\, h(t - \tau)\, d\tau$$</p>
+<p>$$y[k] = (x * h)[k] = \sum_{m=-\infty}^{\infty} x[m]\, h[k - m]$$</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+<th>单位</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$x$</td>
+<td>输入信号</td>
+<td>—</td>
+</tr>
+<tr>
+<td>$y$</td>
+<td>输出信号</td>
+<td>—</td>
+</tr>
+<tr>
+<td>$h$</td>
+<td>冲激响应，系统在输入为"一瞬间打入一单位量"时的反应</td>
+<td>—</td>
+</tr>
+<tr>
+<td>$\tau, m$</td>
+<td>卷积求和/积分的哑变量（扫描历史时刻）</td>
+<td>s / 拍</td>
+</tr>
+<tr>
+<td>$*$</td>
+<td>卷积运算符</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p>卷积的物理直觉：当前输出是"过去每个时刻的输入 × 该输入经过 h 衰减后的残留"的累加。理解了这一点，后面"滤波器的记忆长度""卡尔曼滤波的递归性"都会自然很多。</p>
+<h3 id="13-单位嵌入式-bug-的头号来源">1.3 单位：嵌入式 bug 的头号来源</h3>
+<p>控制公式本身不难，但工程实现中单位换算错误占比极高，先立下约定并全文遵守：</p>
+<table>
+<thead>
+<tr>
+<th>量</th>
+<th>本文约定</th>
+<th>常见陷阱</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>角频率 $\omega$</td>
+<td>弧度/秒（rad/s）</td>
+<td>与频率 $f$ 混用；两者关系 $\omega = 2\pi f$</td>
+</tr>
+<tr>
+<td>采样周期 $T_s$</td>
+<td>秒（s）</td>
+<td>与采样率 $f_s$ 混用；$T_s = 1/f_s$</td>
+</tr>
+<tr>
+<td>姿态角</td>
+<td>弧度（rad），公式中；度（°），调试打印中</td>
+<td>库函数与日志口径不一致</td>
+</tr>
+<tr>
+<td>截止频率 $f_c$</td>
+<td>Hz；对应角频率 $\omega_c = 2\pi f_c$</td>
+<td>一阶低通公式里把 Hz 当 rad/s 代入</td>
+</tr>
+<tr>
+<td>ADC 原始值</td>
+<td>LSB（最小分辨单位）</td>
+<td>忘记乘基准电压/满量程换算成物理量</td>
+</tr>
+</tbody>
+</table>
+<h2 id="2-傅里叶变换从时域到频域">2. 傅里叶变换：从时域到频域</h2>
+<h3 id="21-背景">2.1 背景</h3>
+<p>时域观察回答"信号在某个时刻多大"，但无法回答"这个抖动是什么引起的"。傅里叶变换的核心论点是：<strong>任何满足适当条件的信号都可以分解为一系列不同频率的正弦波的叠加</strong>，分解结果（每个频率成分的幅度与相位）称为频谱。频域视角把"杂乱的波形"变成"清晰的频率清单"，这是它对工程的最大价值——找到振动源、噪声源、干扰源。</p>
+<p>傅里叶本人 1807 年提出该思想时用于求解热传导方程；今天它出现在嵌入式开发的每个角落：示波器的 FFT 功能、IMU 振动谱分析、雷达测距测速、电机谐波分析，本质都是同一套数学。</p>
+<p><strong>欧拉公式</strong>是整个频域分析的钥匙，复指数 $e^{j\omega t}$ 是一个以角速度 $\omega$ 在复平面上旋转的单位向量：</p>
+<p>$$e^{j\omega t} = \cos(\omega t) + j\sin(\omega t)$$</p>
+<p>正弦信号在数学上不便于积分运算，复指数却满足 $\frac{d}{dt}e^{j\omega t} = j\omega\, e^{j\omega t}$（求导只变成乘法），这是"变换能简化运算"的根本原因。</p>
+<h3 id="22-数学定义">2.2 数学定义</h3>
+<h4 id="221-连续傅里叶变换cft">2.2.1 连续傅里叶变换（CFT）</h4>
+<p>$$X(j\omega) = \int_{-\infty}^{\infty} x(t)\, e^{-j\omega t}\, dt$$</p>
+<p>$$x(t) = \frac{1}{2\pi} \int_{-\infty}^{\infty} X(j\omega)\, e^{j\omega t}\, d\omega$$</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+<th>单位</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$x(t)$</td>
+<td>时域连续信号</td>
+<td>物理量</td>
+</tr>
+<tr>
+<td>$X(j\omega)$</td>
+<td>频谱，复数：模 $\lvert X \rvert$ 是该频率成分的幅度，辐角是该频率成分的相位</td>
+<td>与 $x$ × s / rad</td>
+</tr>
+<tr>
+<td>$\omega$</td>
+<td>角频率，$\omega = 2\pi f$</td>
+<td>rad/s</td>
+</tr>
+<tr>
+<td>$j$</td>
+<td>虚数单位，$j^2 = -1$</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h4 id="222-离散化路径dtft-dft">2.2.2 离散化路径：DTFT → DFT</h4>
+<p>计算机无法处理无限长连续信号，工程上实际使用的是 <strong>DFT</strong>（离散傅里叶变换）。从 CFT 到 DFT 的推导链条：</p>
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th>信号</th>
+<th>频谱</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CFT</td>
+<td>连续、非周期</td>
+<td>连续、非周期</td>
+<td>理论定义</td>
+</tr>
+<tr>
+<td>DFS</td>
+<td>连续、周期</td>
+<td>离散、非周期</td>
+<td>傅里叶级数</td>
+</tr>
+<tr>
+<td>DTFT</td>
+<td>离散、非周期</td>
+<td>连续、周期</td>
+<td>引入采样后</td>
+</tr>
+<tr>
+<td><strong>DFT</strong></td>
+<td><strong>离散、有限长 N 点</strong></td>
+<td><strong>离散、有限长 N 点</strong></td>
+<td><strong>计算机可算，工程标准</strong></td>
+</tr>
+</tbody>
+</table>
+<p>$$X[k] = \sum_{n=0}^{N-1} x[n]\, e^{-j \frac{2\pi}{N} k n}, \qquad k = 0, 1, \dots, N-1$$</p>
+<p>$$x[n] = \frac{1}{N} \sum_{k=0}^{N-1} X[k]\, e^{j \frac{2\pi}{N} k n}$$</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+<th>单位</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$x[n]$</td>
+<td>第 $n$ 个采样点</td>
+<td>物理量</td>
+</tr>
+<tr>
+<td>$N$</td>
+<td>参与变换的采样点总数（窗长）</td>
+<td>点</td>
+</tr>
+<tr>
+<td>$k$</td>
+<td>频率序号（bin 序号），第 $k$ 个 bin 对应频率 $k \cdot f_s / N$</td>
+<td>—</td>
+</tr>
+<tr>
+<td>$f_s$</td>
+<td>采样频率</td>
+<td>Hz</td>
+</tr>
+<tr>
+<td>$\Delta f = f_s / N$</td>
+<td><strong>频率分辨率</strong>：能分辨的两个频率成分的最小间隔</td>
+<td>Hz</td>
+</tr>
+</tbody>
+</table>
+<p><strong>关键工程结论</strong>：频率分辨率由<strong>采样时长</strong>决定，$T_{窗} = N / f_s = 1 / \Delta f$。想分辨 1 Hz 的两个振源，无论采样率多高，至少要采 1 秒。提高 $f_s$ 只能扩大可观测频率范围（第 4 章），不能提高分辨率。</p>
+<h4 id="223-fft-是算法不是新变换">2.2.3 FFT 是算法不是新变换</h4>
+<p>FFT（快速傅里叶变换）是 DFT 的快速算法（Cooley–Tukey，1965），利用旋转因子的对称性与周期性把运算量从 $O(N^2)$ 降到 $O(N \log N)$，1024 点约提速 100 倍。工程语境下说"做 FFT"就是"算 DFT"。MCU 上直接可用 CMSIS-DSP 的 <code>arm_rfft_fast_f32</code>（ST 官方 DSP 库的实数 FFT 函数）。</p>
+<h3 id="23-常用性质速览">2.3 常用性质速览</h3>
+<table>
+<thead>
+<tr>
+<th>性质</th>
+<th>公式</th>
+<th>工程含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>线性</td>
+<td>$a x + b y \leftrightarrow aX + bY$</td>
+<td>多个振源叠加，频谱就是各自频谱相加</td>
+</tr>
+<tr>
+<td>时移</td>
+<td>$x(t - t_0) \leftrightarrow X(j\omega)\, e^{-j\omega t_0}$</td>
+<td>延迟不改变幅度谱，只改变相位谱</td>
+</tr>
+<tr>
+<td>卷积定理</td>
+<td>$x * h \leftrightarrow X \cdot H$</td>
+<td><strong>时域卷积 = 频域乘法</strong>，滤波的本质</td>
+</tr>
+<tr>
+<td>Parseval 定理</td>
+<td>$\int \lvert x \rvert^2 dt = \frac{1}{2\pi} \int \lvert X \rvert^2 d\omega$</td>
+<td>时域能量 = 频域能量，各频率成分分账</td>
+</tr>
+</tbody>
+</table>
+<p>卷积定理是滤波器的理论核心：设计滤波器 = 在频域指定 $H(j\omega)$（让想要的频段通过、不想要的衰减），时域上等价于拿 $h$ 对信号卷积。</p>
+<h3 id="24-工程应用">2.4 工程应用</h3>
+<h4 id="241-无人机机架振动分析与陷波器设计">2.4.1 无人机：机架振动分析与陷波器设计</h4>
+<p>多旋翼的机架是弹性体，电机转速激起的振动会直接污染陀螺仪数据。处理流程是频域闭环：<strong>FFT 找到振动峰 → 设计陷波器（notch，只挖掉某个窄频段的滤波器）→ 验证频谱干净</strong>。</p>
+<ul>
+<li>电机振动频率有明确公式：$f_{振} = \dfrac{RPM}{60} \times N_p$，其中 $RPM$ 为电机转速（转/分），$N_p$ 为磁极对数。例如 6 极对电机在 5000 RPM 时基频 500 Hz，还有 2 次、3 次谐波。</li>
+<li>Betaflight 的<strong>动态陷波</strong>在飞行中实时对陀螺数据做 FFT，找到峰值的中心频率，把陷波器自动对准——这是傅里叶变换直接写进实时控制回路的典型例子。</li>
+<li>Betaflight 的 <strong>RPM 陷波</strong>更直接：通过双向 DShot 协议读回电机电转速（eRPM），直接算出每个电机的振动频率，再对基频和 2、3 次谐波各放一个陷波器，不再依赖 FFT。</li>
+<li>频谱分析也用于机架设计阶段：整机上台架，油门扫掠，从陀螺频谱上能看到机架共振点，指导减震球选型与臂厚加强。</li>
+</ul>
+<h4 id="242-自动驾驶fmcw-毫米波雷达">2.4.2 自动驾驶：FMCW 毫米波雷达</h4>
+<p>车载毫米波雷达（77 GHz）是傅里叶变换最"硬核"的应用：发射频率随时间线性上升的啁啾（chirp）信号，回波与发射信号混频得到差拍信号，<strong>差拍频率正比于目标距离</strong>；对静止目标还有多普勒频移，<strong>正比于相对速度</strong>：</p>
+<p>$$f_b = \frac{2 R S}{c}, \qquad f_d = \frac{2 v}{\lambda}$$</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+<th>单位</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$f_b$</td>
+<td>差拍频率（beat frequency）</td>
+<td>Hz</td>
+</tr>
+<tr>
+<td>$R$</td>
+<td>目标距离</td>
+<td>m</td>
+</tr>
+<tr>
+<td>$S$</td>
+<td>啁啾斜率（频率随时间的上升速率）</td>
+<td>Hz/s</td>
+</tr>
+<tr>
+<td>$c$</td>
+<td>光速，$3 \times 10^8$</td>
+<td>m/s</td>
+</tr>
+<tr>
+<td>$f_d$</td>
+<td>多普勒频移</td>
+<td>Hz</td>
+</tr>
+<tr>
+<td>$v$</td>
+<td>相对径向速度</td>
+<td>m/s</td>
+</tr>
+<tr>
+<td>$\lambda$</td>
+<td>波长，77 GHz 对应约 3.9 mm</td>
+<td>m</td>
+</tr>
+</tbody>
+</table>
+<p>雷达芯片内部做<strong>二维 FFT</strong>：快时间维 FFT 出距离谱，慢时间维（一帧内多个啁啾之间）FFT 出速度谱，得到距离-多普勒图，再做多目标检测。也就是说，ADAS 前向雷达输出的每一个目标点，源头都是两次傅里叶变换。</p>
+<h4 id="243-bms电流纹波与阻抗谱">2.4.3 BMS：电流纹波与阻抗谱</h4>
+<p>两个用途：其一，大电流快充工况下对电流采样做 FFT，可以确认进入电池的开关纹波（来自 DC-DC 与电驱逆变器的 kHz 级成分）幅值是否超标，长期纹波加热会加速老化；其二，<strong>电化学阻抗谱</strong>（EIS）对电池注入扫频小信号并测响应，直接在频域提取内阻随频率的曲线，是 SOH（健康状态）与产线分档的重要手段——本质就是对电池这个系统做扫频傅里叶分析。</p>
+<h3 id="25-代码实现dft-主频提取c">2.5 代码实现：DFT 主频提取（C）</h3>
+<p>原理演示版 DFT——找出采样序列中能量最大的频率成分并换算为物理频率。工程实时实现请替换为 CMSIS-DSP 的 <code>arm_rfft_fast_f32</code>（快两个数量级），标定与取峰逻辑不变：</p>
+
+<pre><code class="language-c">/* dft_peak_freq: 返回 x[] 中幅度最大的频率成分（Hz），mag[] 输出各 bin 幅度
+ * N 建议取 2 的整数次幂; 幅度标定按 2.2.2 节: 单频正弦幅度 A 还原为 A */
+#include &lt;math.h&gt;
+
+float dft_peak_freq(const float *x, int N, float fs, float *mag)
+{
+    int k_best = 1;
+    float a_best = 0.0f;
+    for (int k = 1; k &lt;= N / 2; k++) {          /* 实信号频谱对称，只算前半 */
+        float re = 0.0f, im = 0.0f;
+        for (int n = 0; n &lt; N; n++) {
+            float ang = -2.0f * 3.14159265f * (float)k * (float)n / (float)N;
+            re += x[n] * cosf(ang);             /* X[k] = Σ x[n]·e^{-j2πkn/N} */
+            im += x[n] * sinf(ang);
+        }
+        mag[k] = 2.0f * sqrtf(re * re + im * im) / (float)N;
+        if (mag[k] &gt; a_best) { a_best = mag[k]; k_best = k; }
+    }
+    return (float)k_best * fs / (float)N;       /* bin 序号 → 物理频率 */
+}
+</code></pre>
+
+<h3 id="26-实践要点">2.6 实践要点</h3>
+<ul>
+<li><strong>频谱泄漏与窗函数</strong>：DFT 隐含假设信号在窗内是周期的，截断会制造虚假频率成分。对周期性强的信号（振动）加窗处理：</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>窗函数</th>
+<th>旁瓣水平（约）</th>
+<th>适用场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>矩形窗（不加窗）</td>
+<td>−13 dB</td>
+<td>冲击瞬态、信号恰好整周期</td>
+</tr>
+<tr>
+<td>Hann 窗</td>
+<td>−31 dB</td>
+<td>通用默认，振动分析首选</td>
+</tr>
+<tr>
+<td>Hamming 窗</td>
+<td>−41 dB</td>
+<td>频率成分相近需要区分</td>
+</tr>
+<tr>
+<td>Blackman 窗</td>
+<td>−58 dB</td>
+<td>大动态范围（强峰旁边找弱峰）</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>实数信号用实数 FFT</strong>：<code>arm_rfft_fast</code> 比复数 FFT 省一半算力；结果关于 $N/2$ 对称，只看前一半。</li>
+<li><strong>幅度标定</strong>：单频正弦幅度 $A$ 的信号，FFT 后除以 $N/2$（直流和 Nyquist 点除以 $N$）才还原物理幅度。</li>
+<li><strong>平均降方差</strong>：噪声谱估计对多帧功率谱做平均（Welch 方法），MCU 上几行代码，谱线立刻干净很多。</li>
+<li><strong>换算陷阱</strong>：频率轴先标 $k \cdot f_s / N$ 再分析，避免把 bin 序号当频率。</li>
+</ul>
+<hr />
+<h2 id="3-拉普拉斯变换连续系统的代数化">3. 拉普拉斯变换：连续系统的代数化</h2>
+<h3 id="31-背景">3.1 背景</h3>
+<p>连续物理系统的数学模型是<strong>微分方程</strong>（电压与电流的关系、力与加速度的关系都含导数），直接求解微分方程既繁琐又难以看出规律。拉普拉斯变换把时域的微分方程变成 $s$ 域的<strong>代数方程</strong>：求导变成乘 $s$，积分变成除以 $s$，解代数方程后再反变换回时域即可。它的另一层价值更大：<strong>传递函数</strong>让我们不求解方程就能判断系统稳定性、快慢与振荡倾向，是所有控制器频域设计的基础。</p>
+<p>与傅里叶变换对比理解：傅里叶变换把信号分解到纯虚轴 $j\omega$ 上（只关心"怎么振荡"），拉普拉斯变换把分解范围扩展到整个复平面 $s = \sigma + j\omega$（还关心"怎么衰减"），$\sigma$ 这一维正是稳定性的数学载体。</p>
+<h3 id="32-数学定义">3.2 数学定义</h3>
+<h4 id="321-定义与收敛域">3.2.1 定义与收敛域</h4>
+<p>$$F(s) = \mathcal{L}\{f(t)\} = \int_{0^-}^{\infty} f(t)\, e^{-st}\, dt, \qquad s = \sigma + j\omega$$</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+<th>单位</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$f(t)$</td>
+<td>时域信号（单边变换，从 $t = 0^-$ 开始）</td>
+<td>物理量</td>
+</tr>
+<tr>
+<td>$F(s)$</td>
+<td>$s$ 域像函数</td>
+<td>物理量 × s</td>
+</tr>
+<tr>
+<td>$s$</td>
+<td>复频率变量：实部 $\sigma$ 对应指数衰减/增长速率，虚部 $\omega$ 对应振荡频率</td>
+<td>1/s</td>
+</tr>
+<tr>
+<td>$\sigma$</td>
+<td>$s$ 的实部，$\sigma < 0$ 表示衰减</td>
+<td>1/s</td>
+</tr>
+<tr>
+<td>收敛域（ROC）</td>
+<td>使积分收敛的 $s$ 取值范围</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p>微分性质是简化运算的核心：$\mathcal{L}\{f'(t)\} = sF(s) - f(0^-)$，零初始条件下"求导 = 乘 s"。</p>
+<p>常用变换对（背下来可心算大半建模问题）：</p>
+<table>
+<thead>
+<tr>
+<th>时域 $f(t)$</th>
+<th>$s$ 域 $F(s)$</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>单位阶跃 $u(t)$</td>
+<td>$\dfrac{1}{s}$</td>
+<td>恒定输入</td>
+</tr>
+<tr>
+<td>斜坡 $t$</td>
+<td>$\dfrac{1}{s^2}$</td>
+<td>匀速输入</td>
+</tr>
+<tr>
+<td>$e^{-at}$</td>
+<td>$\dfrac{1}{s + a}$</td>
+<td>一阶衰减，$a > 0$ 时稳定</td>
+</tr>
+<tr>
+<td>$\sin(\omega t)$</td>
+<td>$\dfrac{\omega}{s^2 + \omega^2}$</td>
+<td>无阻尼振荡</td>
+</tr>
+<tr>
+<td>$t\, e^{-at}$</td>
+<td>$\dfrac{1}{(s+a)^2}$</td>
+<td>临界阻尼形态</td>
+</tr>
+</tbody>
+</table>
+<h4 id="322-传递函数与极零点">3.2.2 传递函数与极零点</h4>
+<p>对 LTI 系统，输出与输入的拉氏变换之比定义为<strong>传递函数</strong>：</p>
+<p>$$G(s) = \frac{Y(s)}{U(s)} = \frac{b_m s^m + \dots + b_1 s + b_0}{a_n s^n + \dots + a_1 s + a_0}$$</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$U(s)$</td>
+<td>输入 $u(t)$ 的拉氏变换</td>
+</tr>
+<tr>
+<td>$Y(s)$</td>
+<td>输出 $y(t)$ 的拉氏变换</td>
+</tr>
+<tr>
+<td>分子零点</td>
+<td>使 $G(s) = 0$ 的 $s$ 值，影响响应形状</td>
+</tr>
+<tr>
+<td><strong>分母极点</strong></td>
+<td>使 $G(s) \to \infty$ 的 $s$ 值，<strong>完全决定稳定性</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>稳定性判据（连续系统）</strong>：所有极点位于 $s$ 左半平面（$\mathrm{Re}(s) < 0$）则系统稳定；任一极点在右半平面则不稳定；虚轴上的极点临界稳定（持续等幅振荡）。直觉：极点 $p$ 对应时域成分 $e^{pt}$，$p = \sigma + j\omega$ 中 $\sigma > 0$ 意味着指数发散。</p>
+<p><strong>终值定理</strong>：若 $sF(s)$ 的极点全在左半平面，则</p>
+<p>$$\lim_{t \to \infty} f(t) = \lim_{s \to 0} sF(s)$$</p>
+<p>用途：不解时域响应，一步算出稳态值（例如稳态误差分析）。</p>
+<h4 id="323-两个标准模型一阶与二阶">3.2.3 两个标准模型：一阶与二阶</h4>
+<p><strong>一阶惯性环节</strong> $\dfrac{K}{\tau s + 1}$：阶跃响应单调爬升，无超调。</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+<th>单位</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$K$</td>
+<td>稳态增益：输入恒定时输出/输入的极限</td>
+<td>输出/输入</td>
+</tr>
+<tr>
+<td>$\tau$</td>
+<td><strong>时间常数</strong>：阶跃响应到达终值 63.2% 所需时间；工程上 $3\tau$ 到 95%、$4\tau$ 到 98%</td>
+<td>s</td>
+</tr>
+</tbody>
+</table>
+<p><strong>二阶振荡环节</strong> $\dfrac{\omega_n^2}{s^2 + 2\zeta\omega_n s + \omega_n^2}$：弹簧-质量-阻尼、RLC 电路、俯仰姿态动态的统一模型。</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+<th>单位</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$\omega_n$</td>
+<td>自然频率（无阻尼振荡频率）</td>
+<td>rad/s</td>
+</tr>
+<tr>
+<td>$\zeta$</td>
+<td>阻尼比（无量纲）：$\zeta = 0$ 等幅振荡；$0 < \zeta < 1$ 欠阻尼有超调；$\zeta = 1$ 临界阻尼；$\zeta > 1$ 过阻尼无振荡</td>
+<td>—</td>
+</tr>
+<tr>
+<td>$\omega_d = \omega_n\sqrt{1 - \zeta^2}$</td>
+<td>阻尼振荡频率</td>
+<td>rad/s</td>
+</tr>
+</tbody>
+</table>
+<p>阶跃响应关键指标（欠阻尼）：</p>
+<p>$$M_p = e^{-\frac{\pi \zeta}{\sqrt{1 - \zeta^2}}} \times 100\% \quad (\text{超调量}), \qquad t_s \approx \frac{4}{\zeta \omega_n} \quad (\text{2\% 调节时间})$$</p>
+<p><strong>频域分析与稳定裕度</strong>：令 $s = j\omega$ 得频率响应 $G(j\omega)$，画 Bode 图（幅度与相位随频率的曲线）。闭环前先看<strong>环路增益</strong> $L(s) = C(s)G(s)$（控制器 × 被控对象）：</p>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>定义</th>
+<th>工程经验值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>增益裕度 GM</td>
+<td>相位 = −180° 频率处的 $\lvert L \rvert$ 倒数</td>
+<td>&gt; 6 dB</td>
+</tr>
+<tr>
+<td>相位裕度 PM</td>
+<td>$\lvert L \rvert = 1$ 频率（穿越频率）处的相位 + 180°</td>
+<td>30°–60°</td>
+</tr>
+<tr>
+<td>穿越频率 $\omega_c$</td>
+<td>$\lvert L(j\omega_c) \rvert = 1$</td>
+<td>约等于闭环带宽，决定响应快慢</td>
+</tr>
+</tbody>
+</table>
+<p>经验公式：PM(度) ≈ 100 $\zeta$（$\zeta \le 0.7$ 时），频域指标与时域指标由此挂钩。<strong>纯延时 $\tau_d$ 不改变幅度谱，却贡献 $-\omega \tau_d$ 的相位</strong>，是吃掉相位裕度的头号隐形杀手：穿越频率 100 Hz 的回路只要有 1 ms 延时（采样半拍 + 滤波）就损失 36° 相位裕度。</p>
+<h3 id="33-工程应用">3.3 工程应用</h3>
+<h4 id="331-无人机电机与姿态动力学建模">3.3.1 无人机：电机与姿态动力学建模</h4>
+<p>直流电机（无刷电机经 FOC 等效后同理）的模型是"电气一阶 + 机械一阶"：</p>
+<p>$$L\frac{di}{dt} + R i = V - K_e \omega, \qquad J\frac{d\omega}{dt} + B\omega = K_t i$$</p>
+<p>$$\frac{\omega(s)}{V(s)} = \frac{K_t}{(Ls + R)(Js + B) + K_t K_e}$$</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+<th>单位</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$L, R$</td>
+<td>绕组电感、电阻</td>
+<td>H, Ω</td>
+</tr>
+<tr>
+<td>$i$</td>
+<td>相电流</td>
+<td>A</td>
+</tr>
+<tr>
+<td>$V$</td>
+<td>端电压</td>
+<td>V</td>
+</tr>
+<tr>
+<td>$\omega$</td>
+<td>机械角速度</td>
+<td>rad/s</td>
+</tr>
+<tr>
+<td>$K_e$</td>
+<td>反电动势系数</td>
+<td>V·s/rad</td>
+</tr>
+<tr>
+<td>$K_t$</td>
+<td>转矩系数</td>
+<td>N·m/A</td>
+</tr>
+<tr>
+<td>$J$</td>
+<td>折算到轴上的转动惯量</td>
+<td>kg·m²</td>
+</tr>
+<tr>
+<td>$B$</td>
+<td>粘滞摩擦系数</td>
+<td>N·m·s/rad</td>
+</tr>
+</tbody>
+</table>
+<p>电流环的被控对象近似 $\dfrac{1/R}{\tau_e s + 1}$（$\tau_e = L/R$，通常亚毫秒级），速度环在此基础上再叠一个机械惯性积分环节。第 6 章 FOC 的 PI 参数整定公式直接由此导出。姿态动力学同理：多旋翼角速率对电机推力差的响应可以近似为二阶环节，姿态环/角速率环的 PID 设计目标就是把这套二阶动态的穿越频率与阻尼整定到位。</p>
+<h4 id="332-bms电池热模型">3.3.2 BMS：电池热模型</h4>
+<p>电池发热与环境散热的平衡是一阶热网络（电阻-电容类比热阻-热容）：</p>
+<p>$$C_{th} \frac{dT}{dt} = P_{loss} - \frac{T - T_{amb}}{R_{th}} \;\;\Rightarrow\;\; \frac{\Delta T(s)}{P_{loss}(s)} = \frac{R_{th}}{R_{th} C_{th} s + 1}$$</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+<th>单位</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$T$</td>
+<td>电芯温度</td>
+<td>°C</td>
+</tr>
+<tr>
+<td>$T_{amb}$</td>
+<td>环境温度</td>
+<td>°C</td>
+</tr>
+<tr>
+<td>$P_{loss}$</td>
+<td>内阻发热功率，$I^2 R_{int}$</td>
+<td>W</td>
+</tr>
+<tr>
+<td>$R_{th}$</td>
+<td>热阻（对环境）</td>
+<td>°C/W</td>
+</tr>
+<tr>
+<td>$C_{th}$</td>
+<td>热容</td>
+<td>J/°C</td>
+</tr>
+</tbody>
+</table>
+<p>时间常数 $\tau = R_{th} C_{th}$ 决定了"持续大电流放电多少秒后温度到达危险区"，是过流保护降额策略、快充功率曲线设计的直接输入。BMS 的温度告警如果按稳态 $I^2 R_{int} R_{th}$ 计算，会忽略电池"还没热起来"的过程；按一阶热模型做<strong>动态降额</strong>，可以在保证安全的前提下榨出更多快充能力。</p>
+<h4 id="333-自动驾驶车辆二自由度自行车模型">3.3.3 自动驾驶：车辆二自由度自行车模型</h4>
+<p>横向控制的经典模型把左右轮合并成"自行车"，只保留侧偏与横摆两个自由度（线性化于恒定车速 $v_x$）：</p>
+<p>$$\frac{d}{dt} \begin{bmatrix} \beta \\ r \end{bmatrix} = \begin{bmatrix} \dfrac{-(C_f + C_r)}{m v_x} & \dfrac{-a C_f + b C_r}{m v_x^2} - 1 \\[2mm] \dfrac{-a C_f + b C_r}{I_z} & \dfrac{-(a^2 C_f + b^2 C_r)}{I_z v_x} \end{bmatrix} \begin{bmatrix} \beta \\ r \end{bmatrix} + \begin{bmatrix} \dfrac{C_f}{m v_x} \\[2mm] \dfrac{a C_f}{I_z} \end{bmatrix} \delta$$</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+<th>单位</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$\beta$</td>
+<td>质心侧偏角</td>
+<td>rad</td>
+</tr>
+<tr>
+<td>$r$</td>
+<td>横摆角速度</td>
+<td>rad/s</td>
+</tr>
+<tr>
+<td>$\delta$</td>
+<td>前轮转角（控制输入）</td>
+<td>rad</td>
+</tr>
+<tr>
+<td>$m$</td>
+<td>整车质量</td>
+<td>kg</td>
+</tr>
+<tr>
+<td>$I_z$</td>
+<td>绕竖直轴的转动惯量</td>
+<td>kg·m²</td>
+</tr>
+<tr>
+<td>$a, b$</td>
+<td>质心到前轴/后轴距离</td>
+<td>m</td>
+</tr>
+<tr>
+<td>$C_f, C_r$</td>
+<td>前/后轴侧偏刚度（轮胎产生侧向力的能力）</td>
+<td>N/rad</td>
+</tr>
+<tr>
+<td>$v_x$</td>
+<td>纵向车速</td>
+<td>m/s</td>
+</tr>
+</tbody>
+</table>
+<p>这正是第 7 章状态空间形式 $\dot{x} = Ax + B\delta$ 的实例。自动驾驶的 LQR/MPC 横向控制器、ESC 的横摆参考模型都建立在该模型上；即使最终用 PID，这套模型也是仿真验证与参数初值的来源。</p>
+<h3 id="34-代码实现二阶系统阶跃响应与指标python">3.4 代码实现：二阶系统阶跃响应与指标（Python）</h3>
+<p>3.2.3 节公式的直接兑现——给定 $\omega_n$ 与 $\zeta$，一步算出超调量与调节时间，并生成阶跃响应曲线用于与实测对拍：</p>
+
+<pre><code class="language-python">&quot;&quot;&quot;二阶欠阻尼系统: G(s) = wn^2 / (s^2 + 2·ζ·wn·s + wn^2) 的阶跃响应与指标&quot;&quot;&quot;
+import numpy as np
+
+def step_metrics(wn, zeta):
+    &quot;&quot;&quot;wn: 自然频率 rad/s; zeta: 阻尼比 -&gt; (超调量 %, 2%调节时间 s)&quot;&quot;&quot;
+    Mp = np.exp(-np.pi * zeta / np.sqrt(1 - zeta**2)) * 100   # 超调量
+    ts = 4.0 / (zeta * wn)                                    # 2% 调节时间
+    return Mp, ts
+
+def step_response(wn, zeta, t):
+    &quot;&quot;&quot;欠阻尼闭式解: y(t) = 1 - e^(-ζ·wn·t)/sqrt(1-ζ²) · sin(wd·t + β)&quot;&quot;&quot;
+    wd = wn * np.sqrt(1 - zeta**2)                    # 阻尼振荡频率
+    beta = np.arctan2(np.sqrt(1 - zeta**2), zeta)
+    return 1 - np.exp(-zeta * wn * t) / np.sqrt(1 - zeta**2) * np.sin(wd * t + beta)
+
+wn = 2 * np.pi * 10                                  # 例: 自然频率 10 Hz
+t = np.arange(0, 0.3, 0.0005)
+y = step_response(wn, 0.4, t)                        # ζ = 0.4
+print(step_metrics(wn, 0.4))                         # (~25.4%, ~0.159 s) — 与公式对照
+</code></pre>
+
+<h3 id="35-实践要点">3.5 实践要点</h3>
+<ul>
+<li><strong>建模不必精确，够用即可</strong>：控制设计只需要模型在穿越频率附近大致准确（±3 dB 内），高频段让 Bode 图自然滚降。花一天辨识时间常数，比花一周死磕参数化模型划算。</li>
+<li><strong>辨识时间常数的土办法</strong>：给系统一个阶跃（突加油门），用数据找到输出到 63.2% 的时间，一阶模型就有了；对二阶系统找超调量反推 $\zeta$。</li>
+<li><strong>延时必须显式建模</strong>：传感器滤波、总线传输、执行器响应都折算成等效延时，在设计穿越频率处算相位损失，而不是等系统振荡了再降增益。</li>
+<li><strong>工作点意识</strong>：电池内阻随温度/SOC 变化，车辆侧偏刚度随载荷变化，$\tau$ 与增益都是漂移的——这是后面自适应控制与增益调度的动机。</li>
+</ul>
+<h2 id="4-采样定理一切数字控制的前提">4. 采样定理：一切数字控制的前提</h2>
+<h3 id="41-背景">4.1 背景</h3>
+<p>连续物理量进入 MCU 的唯一途径是<strong>采样</strong>：每隔 $T_s$ 秒读一次数，得到序列 $x[k] = x(k T_s)$。采样定理回答的问题是：<strong>采样要多快，采样值才能不丢失原信号的信息</strong>。它给出的是硬性下界而非"建议值"：违反定理的信号，其高频成分会伪装成低频成分混进来（<strong>混叠，aliasing</strong>），且事后无法与真实低频区分、无法用任何数字滤波器滤除——因为信息在采样的瞬间已经丢失。</p>
+<h3 id="42-数学表述">4.2 数学表述</h3>
+<p><strong>Nyquist–Shannon 采样定理</strong>：设连续信号的最高频率成分为 $f_{max}$，则当且仅当</p>
+<p>$$f_s > 2 f_{max}$$</p>
+<p>时，采样序列 $\{x(kT_s)\}$ 可以完全恢复原信号。等价的逆否命题才是工程常态：<strong>超过 $f_s/2$ 的频率成分必然混叠到 $\lvert 0 \sim f_s/2 \rvert$ 之间</strong>。</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+<th>单位</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$f_s$</td>
+<td>采样频率，$f_s = 1/T_s$</td>
+<td>Hz</td>
+</tr>
+<tr>
+<td>$f_{max}$</td>
+<td>信号中存在的最高频率成分</td>
+<td>Hz</td>
+</tr>
+<tr>
+<td>$f_N = f_s/2$</td>
+<td>奈奎斯特频率：采样后可观测频率范围的上界</td>
+<td>Hz</td>
+</tr>
+</tbody>
+</table>
+<p><strong>混叠频率公式</strong>：真实频率 $f$ 的成分采样后出现在</p>
+<p>$$f_{alias} = \lvert f - \mathrm{round}(f / f_s) \cdot f_s \rvert$$</p>
+<p>例如 $f_s = 500$ Hz 时，300 Hz 的振动会出现在 $\lvert 300 - 500 \rvert = 200$ Hz 处——伪装成正常工作频段内的信号。经典演示：风扇/螺旋桨加速时看起来"倒转"，就是视觉采样（帧率）对旋转频率的混叠。</p>
+<p><strong>反混叠完整链路</strong>：理论上恢复信号需要用 sinc 插值；工程上ADC 前加模拟抗混叠低通滤波器（截止频率略低于 $f_N$）→ 采样 → 后续一切数字处理。</p>
+<h3 id="43-工程应用">4.3 工程应用</h3>
+<h4 id="431-无人机imu-采样率与幽灵振动">4.3.1 无人机：IMU 采样率与"幽灵振动"</h4>
+<p>数字控制回路本身的采样定理约束：<strong>控制环采样率应取闭环带宽的 10–30 倍</strong>（不能只满足 2 倍——2 倍只保证"信息不丢"，不保证离散控制器相位裕度可接受，采样半拍延时 + 保持器延时会显著吃相位）。</p>
+<p>混叠对飞控是致命的，典型案例：机架存在 300 Hz 机械振动，陀螺采样率 500 Hz，则振动混叠到 200 Hz；若姿态环带宽恰好几十到一百多 Hz，PID 会把这个"幽灵"当成真实姿态误差去抑制——<strong>控制器在追赶一个不存在的物理量</strong>，表现为莫名其妙的抖动，且频谱仪在 300 Hz 处反而看不到能量。</p>
+<p>业界做法（三道防线）：</p>
+<ol>
+<li><strong>机械隔离</strong>：减震垫/阻尼球把高频振动在进入传感器之前衰减；</li>
+<li><strong>片内抗混叠</strong>：现代 IMU（如 ICM-42688-P）内部先过抗混叠低通再抽取输出，SPI 配置里选择滤波器带宽时必须保证"内部采样率 → 输出数据率"的抽取过程不混叠；</li>
+<li><strong>提高采样率</strong>：飞控角速率环跑 1–8 kHz（Betaflight 默认 4–8 kHz），让 Nyquist 频率远高于主要振动频段，残余振动交给数字陷波器（第 5 章）处理。</li>
+</ol>
+<h4 id="432-电机驱动foc电流采样与-pwm-的同步">4.3.2 电机驱动（FOC）：电流采样与 PWM 的同步</h4>
+<p>FOC 需要每个 PWM 周期精确采样相电流。做法：<strong>中心对齐 PWM</strong>，在计数器下溢（或溢出）瞬间触发 ADC，此时恰好是低边导通期的中点，瞬时电流等于该周期平均电流——单点采样无混叠地拿到了平均值。约束条件：</p>
+<ul>
+<li>采样窗口必须落在 PWM 最小脉宽之内（占空比极端时单电阻采样失效，需移相或双电阻）；</li>
+<li>分压/放大电路在 ADC 前有 RC 抗混叠滤波（截止频率通常数百 kHz，远高于 PWM 频率 10–40 kHz 的谐波却压住开关噪声尖峰）。</li>
+</ul>
+<h4 id="433-bms电流采样率决定电量精度">4.3.3 BMS：电流采样率决定电量精度</h4>
+<p>安时积分（第 8 章展开）的精度直接受电流采样方式影响。典型错误设计：用 10 Hz 定时轮询采集一个含 20 kHz 开关纹波的电流——纹波完全混叠成虚假的"随机噪声"，若做平均会系统性低估 RMS 电流，SOC 与温升估计双双偏差。正确做法：ADC 连续高速采样（或与功率级同步触发）+ 数字平均，硬件上前置 RC 抗混叠。</p>
+<p>另一个工程技巧是<strong>过采样提精度</strong>：每 4 倍过采样 + 平均，在噪声为白噪声的前提下可多换 1 位有效精度（ENOB），16 倍 + 2 位。许多 MCU 的 ADC 硬件过采样单元就是干这个的。</p>
+<h4 id="434-自动驾驶传感器帧率与总线周期">4.3.4 自动驾驶：传感器帧率与总线周期</h4>
+<p>感知侧：相机 30 Hz、毫米波雷达一帧 15–20 Hz、激光雷达 10 Hz——对 120 km/h 目标（33 m/s），雷达两帧之间目标已经移动约 2 m，这就是目标跟踪必须"预测 + 更新"（第 8 章）而不是简单读取的直接原因。控制侧：CAN 总线 10 ms 周期的指令在回路中表现为纯延时，按第 3 章方法计入相位裕度预算。</p>
+<h3 id="44-代码实现混叠现象演示python">4.4 代码实现：混叠现象演示（Python）</h3>
+<p>十行代码亲眼看见混叠：对 300 Hz 正弦按 500 Hz 采样（违反 $f_s > 2f_{max}$），频谱分析后能量出现在 200 Hz——采样定理的违反无法靠事后滤波弥补：</p>
+
+<pre><code class="language-python">&quot;&quot;&quot;混叠演示: fs=500 Hz 采样 f=300 Hz 正弦 → 观测到 200 Hz
+   混叠公式 (4.2 节): f_alias = |f - round(f/fs)·fs|&quot;&quot;&quot;
+import numpy as np
+
+fs, f_true = 500.0, 300.0                    # f_true &gt; fs/2 = 250 Hz, 必然混叠
+t = np.arange(0, 1, 1 / fs)
+x = np.sin(2 * np.pi * f_true * t)           # &quot;ADC 采到的&quot;序列
+
+X = np.abs(np.fft.rfft(x)) / (len(x) / 2)    # 幅度谱 (标定见 2.5 节)
+k = np.argmax(X[1:]) + 1                     # 跳过直流 bin, 找能量峰
+print(f&quot;真实 {f_true:.0f} Hz → 采样后观测到 {k * fs / len(x):.0f} Hz&quot;)
+print(f&quot;公式验证: |300 - round(300/500)·500| = {abs(f_true - round(f_true/fs)*fs):.0f} Hz&quot;)
+# 两行打印均为 200 Hz —— 300 Hz 的振动在数据里&quot;伪装&quot;成了 200 Hz
+</code></pre>
+
+<h3 id="45-实践要点">4.5 实践要点</h3>
+<ul>
+<li><strong>抗混叠必须是模拟的</strong>：数字滤波器无法滤除已混叠的成分；抗混叠滤波器必须位于采样器（ADC）之前。</li>
+<li><strong>"高采样 + 简单 RC" 是嵌入式性价比之王</strong>：MCU 提高采样率远比提高模拟滤波器阶数便宜。</li>
+<li><strong>先看传感器内部采样链</strong>：datasheet 里的 ODR（输出数据率）与内部滤波器带宽要配套读；只看 ODR 不看滤波配置是 IMU 配置的经典错误。</li>
+<li><strong>对周期性负载（PWM、开关电源）优先同步采样</strong>，而不是提高随机采样率硬抗。</li>
+</ul>
+<hr />
+<h2 id="5-z-变换把设计搬进固件">5. Z 变换：把设计搬进固件</h2>
+<h3 id="51-背景">5.1 背景</h3>
+<p>第 3 章的传递函数活在连续时间，而固件是差分方程：$y[k]$ 由 $x[k]$、$x[k-1]$、$y[k-1]$ 算出。<strong>Z 变换之于差分方程，正如拉普拉斯变换之于微分方程</strong>——把逐拍递推变成代数运算，使连续域的设计（滤波器、控制器）可以系统性地离散化，并且能在 $z$ 平面上直接检验稳定性。第 4 章回答"采多快"，本章回答"采下来的序列怎么处理"。</p>
+<h3 id="52-数学定义">5.2 数学定义</h3>
+<h4 id="521-定义与-s-z-映射">5.2.1 定义与 s → z 映射</h4>
+<p>$$X(z) = \sum_{k=0}^{\infty} x[k]\, z^{-k}$$</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$x[k]$</td>
+<td>离散序列（第 $k$ 拍）</td>
+</tr>
+<tr>
+<td>$z^{-1}$</td>
+<td><strong>单位延迟算子</strong>：$z^{-1} x[k]$ 表示"上一拍的 $x$"，这是 Z 变换最重要的直觉</td>
+</tr>
+</tbody>
+</table>
+<p>采样与拉氏域的桥梁：$z = e^{sT_s}$。两个平面的稳定区域因此对应：</p>
+<table>
+<thead>
+<tr>
+<th>$s$ 平面（连续）</th>
+<th>$z$ 平面（离散）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>左半平面（稳定）</td>
+<td>单位圆内部 $\lvert z \rvert < 1$</td>
+</tr>
+<tr>
+<td>虚轴（临界）</td>
+<td>单位圆 $\lvert z \rvert = 1$</td>
+</tr>
+<tr>
+<td>右半平面（不稳定）</td>
+<td>单位圆外部</td>
+</tr>
+<tr>
+<td>$j\omega$ 轴</td>
+<td>单位圆，$\omega T_s$ 为圆上角度</td>
+</tr>
+</tbody>
+</table>
+<p><strong>离散稳定性判据</strong>：离散传递函数所有极点的模小于 1。</p>
+<p>常用变换对：</p>
+<table>
+<thead>
+<tr>
+<th>时域 $x[k]$</th>
+<th>$z$ 域 $X(z)$</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>单位冲激 $\delta[k]$</td>
+<td>$1$</td>
+</tr>
+<tr>
+<td>单位阶跃 $u[k]$</td>
+<td>$\dfrac{z}{z - 1}$</td>
+</tr>
+<tr>
+<td>延迟一拍</td>
+<td>$z^{-1} X(z)$（零初始条件）</td>
+</tr>
+<tr>
+<td>$a^k$</td>
+<td>$\dfrac{z}{z - a}$</td>
+</tr>
+</tbody>
+</table>
+<h4 id="522-离散化方法从-gs-到-gz">5.2.2 离散化方法：从 G(s) 到 G(z)</h4>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>替换规则</th>
+<th>特点与用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>后向欧拉</td>
+<td>$s \leftarrow \dfrac{1 - z^{-1}}{T_s}$</td>
+<td>实现最简单，频率轴被压缩，稳定域变大（连续稳定的离散后必稳定）</td>
+</tr>
+<tr>
+<td>前向欧拉</td>
+<td>$s \leftarrow \dfrac{z - 1}{T_s}$</td>
+<td>最差，可能把稳定系统离散化成不稳定，避免单独使用</td>
+</tr>
+<tr>
+<td><strong>Tustin（双线性变换）</strong></td>
+<td>$s \leftarrow \dfrac{2}{T_s} \cdot \dfrac{1 - z^{-1}}{1 + z^{-1}}$</td>
+<td>稳定性一一对应，频率轴扭曲（需预畸变），滤波器离散化的默认选择</td>
+</tr>
+<tr>
+<td>脉冲响应不变</td>
+<td>$h[k] = h(k T_s)$ 直接采样</td>
+<td>保时域形状，但抗混叠没有保证，少用</td>
+</tr>
+</tbody>
+</table>
+<p>频率扭曲的修正（预畸变）：若要保证频率 $\omega_0$ 处响应精确，设计前用 $\omega_0' = \dfrac{2}{T_s}\tan\!\left(\dfrac{\omega_0 T_s}{2}\right)$ 替代 $\omega_0$。</p>
+<h4 id="523-数字滤波器iir-与-fir">5.2.3 数字滤波器：IIR 与 FIR</h4>
+<ul>
+<li><strong>IIR</strong>（无限冲激响应）：有输出反馈到输入（含 $y[k-1]$ 项），阶数低、算力省、相位非线性；典型为一阶低通与二阶节（biquad）级联。极点在单位圆内才有界稳定。</li>
+<li><strong>FIR</strong>（有限冲激响应）：纯加权求和（只有 $x[k-i]$ 项），<strong>永远稳定</strong>、可做严格线性相位，但达到同等滤波效果阶数高、有延迟 $N/2$ 拍。控制回路内多用 IIR（算力与延迟敏感），信号分析/测量通道可用 FIR。</li>
+</ul>
+<p><strong>一阶低通滤波器</strong>（嵌入式出现频率最高的十行代码之一）：连续原型 $\dfrac{1}{\tau s + 1}$，后向欧拉离散化得</p>
+<p>$$y[k] = (1 - \alpha)\, y[k-1] + \alpha\, x[k], \qquad \alpha = \frac{T_s}{\tau + T_s} = \frac{\omega_c T_s}{1 + \omega_c T_s} \;(\text{近似式 } \alpha \approx \omega_c T_s)$$</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+<th>单位</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$\tau$</td>
+<td>连续域时间常数，$\tau = 1 / \omega_c = 1/(2\pi f_c)$</td>
+<td>s</td>
+</tr>
+<tr>
+<td>$\alpha$</td>
+<td>无量纲滤波系数：越大越跟得紧，越小越平滑</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+
+<pre><code class="language-c">/* 一阶低通：y[k] = (1-α)·y[k-1] + α·x[k]
+ * fc: 期望截止频率 Hz; fs: 实际调用频率 Hz */
+static float lpf_y = 0.0f;
+
+float lpf_step(float x, float fc, float fs)
+{
+    float alpha = (1.0f / (2.0f * 3.14159265f * fc))
+                / (1.0f / (2.0f * 3.14159265f * fc) + 1.0f / fs);
+    lpf_y += alpha * (x - lpf_y);
+    return lpf_y;
+}
+</code></pre>
+
+<p><strong>二阶陷波器（biquad）</strong>：连续原型</p>
+<p>$$H(s) = \frac{s^2 + \omega_0^2}{s^2 + \dfrac{\omega_0}{Q} s + \omega_0^2}$$</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$\omega_0$</td>
+<td>陷波中心频率（rad/s）</td>
+</tr>
+<tr>
+<td>$Q$</td>
+<td>品质因数：$Q$ 越大陷波越窄越尖</td>
+</tr>
+</tbody>
+</table>
+<p>经 Tustin 变换 + 预畸变后得到标准 biquad 差分方程（RBJ Audio EQ Cookbook 系数），飞行软件里对陀螺每个轴各放一组。系数计算一次离线完成，固件内只跑二阶差分方程，代价极低。</p>
+<h3 id="53-工程应用">5.3 工程应用</h3>
+<h4 id="531-无人机陀螺滤波链">5.3.1 无人机：陀螺滤波链</h4>
+<p>Betaflight/PX4 的陀螺数据通路是 Z 变换概念的活教材，信号依次经过：</p>
+<ol>
+<li>片内抗混叠 LPF（连续域设计 → 片内离散实现）；</li>
+<li>一阶/二阶 IIR 低通（PT1/PT2，参数叫 <code>gyro_lowpass_hz</code>，削高频噪声，保护 D 项）；</li>
+<li>动态/RPM 陷波器（biquad，对准电机振动峰）；</li>
+<li>进入 PID。</li>
+</ol>
+<p>工程核心矛盾是<strong>延迟与平滑的权衡</strong>：滤波越强相位延迟越大（二阶滤波器在通带内也贡献相位），直接吃角速率环相位裕度；滤波越弱 D 项放大噪声打电机。因此现代飞控把陷波做窄做准（只挖振动峰）而把低通做宽，把"必须的相位损失"最小化。所有滤波器都是差分方程，落码前都经过 $s \to z$ 离散化。</p>
+<h4 id="532-bms电流与温度通道滤波">5.3.2 BMS：电流与温度通道滤波</h4>
+<p>电流采样链：同步采样 + 滑动平均/一阶 IIR 去开关纹波 → 分两路：平滑值送安时积分（要稳），原始高速流送 RMS 与保护判据（要快）。温度通道热时间常数大（秒级），一阶低通截止频率取零点几 Hz 即可。滤波器参数都要写明对应的连续域截止频率，而不是裸的 α 值——否则换采样率后滤波行为静默改变（对应 config 单一真相源原则：一个物理量只在一处定义）。</p>
+<h4 id="533-自动驾驶α-β-滤波与跟踪预滤波">5.3.3 自动驾驶：α-β 滤波与跟踪预滤波</h4>
+<p>雷达目标跟踪的教科书起点是 α-β 滤波（两个状态：位置、速度）：</p>
+<p>$$\hat{p}_k = \hat{p}_{k-1} + \hat{v}_{k-1} T_s + \alpha\, (z_k - \hat{p}_{k-1}), \qquad \hat{v}_k = \hat{v}_{k-1} + \frac{\beta}{T_s}(z_k - \hat{p}_{k-1})$$</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$\hat{p}, \hat{v}$</td>
+<td>位置、速度估计值</td>
+</tr>
+<tr>
+<td>$z_k$</td>
+<td>本帧位置量测</td>
+</tr>
+<tr>
+<td>$\alpha \in (0,1)$</td>
+<td>位置修正权重</td>
+</tr>
+<tr>
+<td>$\beta$</td>
+<td>用位置残差修正速度的权重</td>
+</tr>
+</tbody>
+</table>
+<p>它是卡尔曼滤波的"定增益特例"（α、β 取稳态卡尔曼增益即等价），算力极小，在雷达跟踪前端、轮胎等效转速滤波等场景大量使用；需要时变噪声权重或多元状态时升级为完整 KF。</p>
+<h3 id="54-实践要点">5.4 实践要点</h3>
+<ul>
+<li><strong>积分器离散化选 Tustin</strong>：PID 积分项用前向欧拉在采样率低时会引入右半平面映射误差；Tustin 保稳定性，是低采样率系统的安全默认。</li>
+<li><strong>系数量化</strong>：8 位 MCU 定点实现时，α 很小意味着系数分辨不足，滤波特性会漂；f32 浮点 MCU 上此问题大幅缓解，但 IIR 高阶直接实现仍可能病态——<strong>高阶滤波器用二阶节级联，不要展开成高阶多项式</strong>。</li>
+<li><strong>滤波器必须有 Bypass 与复位路径</strong>：启动时给状态量（$y[k-1]$、$\hat{p}$ 等）赋初值，否则从 0 爬升的过程会被当成真实信号；参数切换时做状态迁移，避免输出跳变打进执行器。</li>
+<li><strong>验证方法</strong>：扫频输入实测幅频/相频曲线与设计比对，或者用阶跃响应核对时间常数——两招覆盖九成滤波器回归测试。</li>
+</ul>
+<h2 id="6-pid-控制工程中九成的闭环">6. PID 控制：工程中九成的闭环</h2>
+<h3 id="61-背景">6.1 背景</h3>
+<p>PID 不需要被控对象的数学模型，只依赖一个可测的<strong>误差</strong>（期望值减实际值）即可构造控制量：P 项按当前误差成比例出力（现在错了多少），I 项累计历史误差（错了多久），D 项按误差变化率出力（正在变好还是变坏）。1922 年 Minorsky 在船舶自动舵上定型，百年后仍是工程闭环的绝对主流——原因不在理论先进，而在<strong>结构对模型误差极其鲁棒、参数物理意义直观、现场可手工整定</strong>。所有工业控制器中超过九成是 PID 或其变体；即便现代飞控引入 LQR/MPC，最内层的角速率环依然是 PID。</p>
+<p>从第 3 章频域视角看 PID 的作用：P 提升穿越频率（响应快）但拉低相位裕度；I 消除稳态误差但在穿越频率附近贡献 −90° 相位（迟钝）；D 提供相位超前（阻尼）但放大高频噪声。PID 整定 = 在这三个矛盾中为具体对象找平衡点。</p>
+<h3 id="62-数学定义">6.2 数学定义</h3>
+<h4 id="621-连续形式">6.2.1 连续形式</h4>
+<p>$$u(t) = K_p \left[ e(t) + \frac{1}{T_i} \int_0^t e(\tau)\, d\tau + T_d \frac{de(t)}{dt} \right]$$</p>
+<p>等价的增益式写法 $u(t) = K_p e(t) + K_i \int_0^t e(\tau) d\tau + K_d \frac{de(t)}{dt}$，两种记法换算：$K_i = K_p / T_i$，$K_d = K_p T_d$。查整定表（Ziegler–Nichols 给 $T_i, T_d$）用时间常数式，看飞控参数（给 $K_i, K_d$）用增益式，注意别混。</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+<th>单位</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$r(t)$</td>
+<td>期望值（设定值，setpoint）</td>
+<td>物理量</td>
+</tr>
+<tr>
+<td>$y(t)$</td>
+<td>实际输出（测量值）</td>
+<td>物理量</td>
+</tr>
+<tr>
+<td>$e(t) = r(t) - y(t)$</td>
+<td>误差</td>
+<td>物理量</td>
+</tr>
+<tr>
+<td>$u(t)$</td>
+<td>控制量输出（PWM 占空比 / 转矩指令…）</td>
+<td>执行器单位</td>
+</tr>
+<tr>
+<td>$K_p$</td>
+<td>比例增益：误差 1 单位出多少力</td>
+<td>执行器/物理量</td>
+</tr>
+<tr>
+<td>$T_i$</td>
+<td>积分时间常数：越小积分越强</td>
+<td>s</td>
+</tr>
+<tr>
+<td>$K_i$</td>
+<td>积分增益</td>
+<td>执行器/(物理量·s)</td>
+</tr>
+<tr>
+<td>$T_d$</td>
+<td>微分时间常数：越大微分越强</td>
+<td>s</td>
+</tr>
+<tr>
+<td>$K_d$</td>
+<td>微分增益</td>
+<td>执行器·s/物理量</td>
+</tr>
+</tbody>
+</table>
+<p>传递函数形式（理想微分）：</p>
+<p>$$C(s) = K_p + \frac{K_i}{s} + K_d s$$</p>
+<p>三项的频域角色：$K_p$ 平移环路增益；$K_i/s$ 在低频抬增益（消除稳态误差，代价是相位滞后）；$K_d s$ 在高频抬增益（超前阻尼，代价是放大噪声——这就是 D 项必须配滤波的原因）。</p>
+<h4 id="622-离散形式固件实际执行的形式">6.2.2 离散形式（固件实际执行的形式）</h4>
+<p>周期 $T_s$ 采样，积分用累加、微分用差分近似，得<strong>位置式</strong>：</p>
+<p>$$u[k] = K_p e[k] + K_i T_s \sum_{i=0}^{k} e[i] + \frac{K_d}{T_s}\big(e[k] - e[k-1]\big)$$</p>
+<p>对位置式做差分得<strong>增量式</strong>（输出的是控制量的增量 $\Delta u$，适合步进电机、积分天然无饱和问题）：</p>
+<p>$$\Delta u[k] = K_p (e[k] - e[k-1]) + K_i T_s e[k] + \frac{K_d}{T_s}\big(e[k] - 2 e[k-1] + e[k-2]\big)$$</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+<th>单位</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$k$</td>
+<td>当前拍序号</td>
+<td>—</td>
+</tr>
+<tr>
+<td>$T_s$</td>
+<td>控制周期</td>
+<td>s</td>
+</tr>
+<tr>
+<td>其余同连续式</td>
+<td>—</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p>工程要点：积分项离散化推荐 Tustin（梯形积分 $\sum \frac{e[i] + e[i-1]}{2} T_s$）以保低采样率下的稳定性；微分项必须先做一阶低通（见 6.3.3）。</p>
+<h3 id="63-工程实现的四个必答题">6.3 工程实现的四个必答题</h3>
+<p>理论公式离可用代码之间隔着四个实际问题，每一个都对应一类现场故障。</p>
+<h4 id="631-积分抗饱和anti-windup">6.3.1 积分抗饱和（Anti-windup）</h4>
+<p>故障现象：执行器已饱和（PWM 顶格、阀门全开）期间误差仍在累积，积分器"充爆"；误差反向后需要先放掉超充的积分，输出才能回到线性区——表现为大超调和长时间振荡（温度控制里尤其典型）。两类主流对策：</p>
+<ul>
+<li><strong>钳位法（clamping）</strong>：输出饱和且误差与饱和同方向时，冻结积分累加；</li>
+<li><strong>反算法（back-calculation）</strong>：以 $\dfrac{u_{sat} - u}{T_{aw}}$（$T_{aw}$ 为退饱和时间常数）反馈给积分器，让它指数回落到线性区。</li>
+</ul>
+<h4 id="632-微分冲击derivative-kick">6.3.2 微分冲击（Derivative Kick）</h4>
+<p>故障现象：设定值阶跃瞬间 $e[k] - e[k-1]$ 巨大，D 项输出打满冲击执行器。对策：<strong>微分先行</strong>——对测量值 $y$ 而不是误差 $e$ 求微分（$r$ 通常不变而 $y$ 连续），$\frac{d}{dt}e = \frac{d}{dt}r - \frac{d}{dt}y$，当 $r$ 恒定时两者等价，但阶跃时不再冲击。</p>
+<h4 id="633-微分噪声">6.3.3 微分噪声</h4>
+<p>D 项是求导，高频增益无穷大，传感器白噪声经 D 项放大后直接驱动执行器。对策：微分项串联一阶低通（典型截止频率取环路带宽的 5–10 倍），或采用"不完全微分"。这也是为什么飞控 PID 里 D 项参数比 P 项更容易引起电机发热。</p>
+<h4 id="634-输出限幅与多模式">6.3.4 输出限幅与多模式</h4>
+<p>输出必须限幅到执行器物理范围；积分外限（integrator clamp）配合；正反作用（$e$ 定义方向）与手动/自动无扰切换（跟踪模式：手动时积分器同步跟随当前输出，切回自动不跳变）。</p>
+<h4 id="635-参考实现c含-631633-全部对策">6.3.5 参考实现（C，含 6.3.1–6.3.3 全部对策）</h4>
+
+<pre><code class="language-c">typedef struct {
+    float kp, ki, kd;      /* 三项增益（增益式记法） */
+    float ts;              /* 控制周期 s */
+    float integ;           /* 积分累积器 */
+    float d_filt;          /* 微分项滤波状态 */
+    float alpha_d;         /* 微分低通系数（5.2.3 一阶低通公式） */
+    float prev_meas;       /* 上一拍测量值（微分先行用） */
+    float out_min, out_max;/* 执行器物理限幅 */
+} pid_t;
+
+float pid_update(pid_t *p, float setpoint, float meas)
+{
+    float err = setpoint - meas;
+
+    /* 积分：候选值先行，饱和则冻结（钳位抗饱和） */
+    float integ_new = p-&gt;integ + p-&gt;ki * p-&gt;ts * err;
+
+    /* 微分先行：对测量值求负微分，设定值阶跃不打满 */
+    float d_meas = -(meas - p-&gt;prev_meas) / p-&gt;ts;
+    p-&gt;prev_meas = meas;
+    p-&gt;d_filt += p-&gt;alpha_d * (d_meas - p-&gt;d_filt);  /* 一阶低通 */
+
+    float out = p-&gt;kp * err + integ_new + p-&gt;kd * p-&gt;d_filt;
+
+    if (out &gt; p-&gt;out_max) {
+        out = p-&gt;out_max;
+        if (err &gt; 0.0f) integ_new = p-&gt;integ;   /* 顶格且误差仍推高：冻结积分 */
+    } else if (out &lt; p-&gt;out_min) {
+        out = p-&gt;out_min;
+        if (err &lt; 0.0f) integ_new = p-&gt;integ;
+    }
+    p-&gt;integ = integ_new;
+    return out;
+}
+</code></pre>
+
+<h3 id="64-参数整定">6.4 参数整定</h3>
+<h4 id="641-手工整定流程现场最实用">6.4.1 手工整定流程（现场最实用）</h4>
+<ol>
+<li>置 $K_i = K_d = 0$，逐步增大 $K_p$ 直到输出出现轻微持续振荡，回调至振荡消失的 50%–70%；</li>
+<li>加入 $K_d$ 抑制超调（从 0 小步加，出现噪声抖动或电机发烫即回退）；</li>
+<li>最后加 $K_i$ 消稳态误差，以"阶跃响应快且无长期漂移"为度，宁小勿大；</li>
+<li>验证：阶跃 + 扰动两种工况，看超调量（目标 &lt; 10%–20%）、调节时间、有无极限环振荡。</li>
+</ol>
+<h4 id="642-zieglernichols-临界比例法提供初值">6.4.2 Ziegler–Nichols 临界比例法（提供初值）</h4>
+<p>闭环纯 P，增大 $K_p$ 至等幅振荡，记录临界增益 $K_u$ 与振荡周期 $T_u$：</p>
+<table>
+<thead>
+<tr>
+<th>控制器</th>
+<th>$K_p$</th>
+<th>$T_i$</th>
+<th>$T_d$</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>P</td>
+<td>$0.5 K_u$</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>PI</td>
+<td>$0.45 K_u$</td>
+<td>$T_u / 1.2$</td>
+<td>—</td>
+</tr>
+<tr>
+<td>PID</td>
+<td>$0.6 K_u$</td>
+<td>$0.5 T_u$</td>
+<td>$0.125 T_u$</td>
+</tr>
+</tbody>
+</table>
+<p>ZN 结果偏激进（约 25% 超调设计），现场通常在其基础上把 $K_p$ 降 20%–40% 起步。</p>
+<h4 id="643-基于带宽的整定有模型时最快">6.4.3 基于带宽的整定（有模型时，最快）</h4>
+<p>一阶对象 $\dfrac{K}{\tau s + 1}$ 配 PI，期望带宽 $\omega_c$：令 PI 零点抵消对象极点，得 $K_p = \omega_c \tau K$（工程直觉：增益 × 时间常数 × 期望带宽），$K_i = K_p / \tau$。FOC 电流环的标准整定即出自此法（对象 $\dfrac{1/R}{\tau_e s + 1}$）：$K_p = L\, \omega_c$，$K_i = R\, \omega_c$，其中 $\omega_c$ 取 PWM 频率的十分之一量级。</p>
+<h3 id="65-工程应用">6.5 工程应用</h3>
+<h4 id="651-无人机串级-pid">6.5.1 无人机：串级 PID</h4>
+<p>多旋翼姿态控制的标准结构是<strong>串级（级联）PID</strong>：外环角度环（输出 = 期望角速率）套内环角速率环（输出 = 电机转矩指令），经混控器分配到各电机：</p>
+
+<pre><code>期望角度 r_θ ──→ [角度环 P/PID] ─→ 期望角速率 r_ω ──→ [角速率环 PID] ─→ 混控 ─→ 电机
+                      ↑                                      ↑
+                    角度（由姿态估计给出）                  陀螺仪角速率
+</code></pre>
+
+<ul>
+<li>内环跑得快（1–8 kHz，直接吃陀螺仪原始速率），负责"手感与阻尼"，参数最重要也最常调；</li>
+<li>外环跑得慢（数百 Hz 到 1 kHz），负责"到位"，输出限幅就是最大角速率（如 360°/s）；</li>
+<li>Betaflight 的 PID 参数表（P/I/D/FF）即角速率环三项 + 前馈；FF（前馈，正比于期望角速率变化率）承担 D 项的超前职能而少引噪声，是串级结构里"用前馈替代部分微分"的典型做法；</li>
+<li>串级的通用整定顺序：<strong>先内后外</strong>——内环带宽取外环的 3–5 倍以上，内环未整定好之前外环调参毫无意义。</li>
+</ul>
+<h4 id="652-bms热管理温控">6.5.2 BMS：热管理温控</h4>
+<p>低温加热（加热膜/PTC/液冷）常用 PID 维持电芯温差与目标温度曲线：测量为电芯温度（多点取代表性点），输出为加热功率占空比。该回路时间常数大（分钟级）、纯延时明显（热传播），积分抗饱和是必选项（加热起停频繁）；更讲究的做法按第 3 章热模型做前馈（预估 $I^2R$ 发热），PID 只修正残差。</p>
+<h4 id="653-自动驾驶acc-与低速转向">6.5.3 自动驾驶：ACC 与低速转向</h4>
+<p>ACC（自适应巡航）以期望时距/车距与实际车距构造误差，PID 输出加速度指令，下层再分配到油门/制动（制动通道有响应死区，需反向死区补偿）。低速泊车/代客泊车的横向控制也有大量 PID+前馈实现（前馈 = 曲率 × 轴距的阿克曼前馈）。高速横向控制因轮胎非线性与多变量耦合，更多转向 LQR/MPC（第 7 章）。</p>
+<h3 id="66-何时-pid-不够">6.6 何时 PID 不够</h3>
+<p>三类信号提示该换工具：① <strong>多输入多输出</strong>耦合强（如车辆转向与横摆、多电机吊挂），单回路 PID 各管各的会互相打架；② <strong>约束明显</strong>（执行器/状态物理约束必须显式进入求解，如 MPC）；③ <strong>状态不可全测</strong>（需要观测器/卡尔曼滤波先估计状态，控制建立在估计之上）。前者的语言是状态空间（第 7 章），后者正是卡尔曼滤波（第 8 章）的舞台。</p>
+<h2 id="7-状态空间与-lqr多变量系统的语言">7. 状态空间与 LQR：多变量系统的语言</h2>
+<h3 id="71-背景">7.1 背景</h3>
+<p>传递函数描述"一个输入对一个输出"，当系统有多个状态、多个输入互相耦合时（车辆的转向-横摆、无人机的姿态-位置、电池的 SOC-温度-内阻），单回路语言力不从心。<strong>状态空间法</strong>用一组一阶微分方程同时描述全部状态变量的演化，是现代控制理论的基础语言，也是第 8 章卡尔曼滤波的直接母体——卡尔曼滤波的方程全部建立在状态空间模型上。</p>
+<h3 id="72-数学定义">7.2 数学定义</h3>
+<h4 id="721-连续与离散状态空间">7.2.1 连续与离散状态空间</h4>
+<p>连续系统：</p>
+<p>$$\dot{x}(t) = A x(t) + B u(t), \qquad y(t) = C x(t) + D u(t)$$</p>
+<p>离散系统（周期 $T_s$，第 8 章卡尔曼滤波的标准形）：</p>
+<p>$$x[k+1] = F\, x[k] + G\, u[k], \qquad y[k] = H\, x[k] + D\, u[k]$$</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+<th>维度</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$x$</td>
+<td><strong>状态向量</strong>：刻画系统"内部记忆"的最小变量组（角度、角速度、SOC、电流…）</td>
+<td>$n \times 1$</td>
+</tr>
+<tr>
+<td>$u$</td>
+<td>输入（控制量）向量</td>
+<td>$m \times 1$</td>
+</tr>
+<tr>
+<td>$y$</td>
+<td>输出（测量）向量</td>
+<td>$p \times 1$</td>
+</tr>
+<tr>
+<td>$A$ / $F$</td>
+<td>状态转移矩阵：状态自身如何演化</td>
+<td>$n \times n$</td>
+</tr>
+<tr>
+<td>$B$ / $G$</td>
+<td>输入矩阵：输入如何驱动状态</td>
+<td>$n \times m$</td>
+</tr>
+<tr>
+<td>$C$ / $H$</td>
+<td>观测矩阵：状态如何映射到可测量</td>
+<td>$p \times n$</td>
+</tr>
+<tr>
+<td>$D$</td>
+<td>直通矩阵（多数物理系统为 0）</td>
+<td>$p \times m$</td>
+</tr>
+</tbody>
+</table>
+<p>关键关系：$A$ 的特征值 = 系统极点，第 3 章的稳定性判据原样迁移（特征值实部全负 ⇔ 稳定）。离散域判据：$F$ 的特征值模全部小于 1。</p>
+<p>连续到离散的标准离散化公式（卡尔曼滤波预测步会用到）：$F = e^{A T_s}$，$G = \left(\int_0^{T_s} e^{A \tau} d\tau\right) B$；$\tau_e \ll T_s$ 时工程近似 $F \approx I + A T_s$（欧拉离散）。</p>
+<p>两个结构性概念（点到为止）：<strong>能控性</strong>（输入能否在有限时间把任意初态驱赶到任意终态，$\mathrm{rank}[B\ AB\ \dots\ A^{n-1}B] = n$）与<strong>能观性</strong>（能否由输出序列唯一反推状态，对偶定义）。卡尔曼滤波能估计哪些状态，本质上由能观性决定——例如匀速转弯中陀螺零偏不可观，滤波器就标定不准它。</p>
+<h4 id="722-lqr状态反馈的最优增益">7.2.2 LQR：状态反馈的最优增益</h4>
+<p>状态反馈用 $u = -K x$ 把全部状态加权组合成控制量，增益 $K$ 由 LQR（线性二次型调节器）最优求解：最小化性能指标</p>
+<p>$$J = \int_0^{\infty} \left( x^T Q x + u^T R u \right) dt, \qquad Q = Q^T \ge 0,\; R = R^T > 0$$</p>
+<p>最优控制量与增益：</p>
+<p>$$u = -K x, \qquad K = R^{-1} B^T P, \quad P \text{ 为代数 Riccati 方程 } A^T P + P A - P B R^{-1} B^T P + Q = 0 \text{ 的解}$$</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$Q$</td>
+<td>状态权重：对角阵，元素越大表示"越不能容忍该状态的偏差"</td>
+</tr>
+<tr>
+<td>$R$</td>
+<td>控制权重：元素越大表示"越舍不得用力"（省执行器、省电）</td>
+</tr>
+<tr>
+<td>$J$</td>
+<td>"状态偏差 + 控制代价"的全时间加权积分，工程上是"性能 vs 消耗"的旋钮</td>
+</tr>
+</tbody>
+</table>
+<p>LQR 的工程优点：调参从"逐个整定 $K$ 的每个元素"变成"调 $Q/R$ 的相对比例"，且闭环增益裕度有理论下界保证（至少 6 dB / 60° 的经典结论）。代价：需要全部状态可测或可估（不可测的状态交给观测器/卡尔曼滤波，见第 8 章），且默认全状态反馈。</p>
+<h3 id="73-工程应用">7.3 工程应用</h3>
+<ul>
+<li><strong>无人机</strong>：位置控制（期望加速度 ← 位置/速度偏差的加权反馈，PX4 的位置控制器即 LQR 式多回路加权结构）；倾转/变体机等强耦合构型的姿态控制。飞控圈的现实分工：内环 PID（成熟、好现场整定），外环位置/轨迹用 LQR 或滑模。</li>
+<li><strong>自动驾驶</strong>：横向 LQR 转向控制是量产与开源方案（Autoware 等）的常见选择——以第 3 章自行车模型为 $A, B$，状态取 $[\text{横向偏差}, \text{航向偏差}, \text{偏差变化率}]$，$Q$ 压横向偏差、$R$ 限制方向盘转速，按车速调度增益（增益调度：不同 $v_x$ 各解一组 $K$，运行时插值）。</li>
+<li><strong>BMS</strong>：状态空间同样是电池模型的自然表达（第 8 章 SOC-EKF 的模型就是三状态空间系统），控制面则主要用于热管理多区耦合温控（液冷支路间耦合，状态空间 + LQR/LQG 结构）。</li>
+</ul>
+<h3 id="74-代码实现离散-lqr-求解与闭环仿真python">7.4 代码实现：离散 LQR 求解与闭环仿真（Python）</h3>
+<p>双积分器（位置 + 速度）是最接近"所有运动控制问题"的原型对象。离线解 Riccati 方程得增益 $K$，闭环保存到固件直接用 $u = -Kx$（真机上是几行乘加）：</p>
+
+<pre><code class="language-python">&quot;&quot;&quot;双积分器 LQR: 解离散 Riccati 方程求 K, 闭环仿真验证收敛 (7.2.2 节)&quot;&quot;&quot;
+import numpy as np
+from scipy.linalg import solve_discrete_are
+
+Ts = 0.01
+F = np.array([[1, Ts], [0, 1]])          # x = [位置 m, 速度 m/s]; 匀速外推
+G = np.array([[Ts**2/2], [Ts]])          # 加速度输入: 位移含 Ts²/2 项, 速度含 Ts 项
+
+Q = np.diag([10.0, 1.0])                 # 状态权重: 位置偏差比速度偏差贵 10 倍
+R = np.array([[1.0]])                    # 控制权重: 加速度的&quot;价格&quot;
+
+P = solve_discrete_are(F, G, Q, R)       # 代数 Riccati 方程
+K = np.linalg.solve(R + G.T @ P @ G, G.T @ P @ F)   # u = -K·x
+
+x = np.array([1.0, 0.0])                 # 初始: 偏离目标 1 m
+for _ in range(1000):                    # 闭环仿真 10 s
+    u = -(K @ x)[0]
+    x = F @ x + G[:, 0] * u
+print(f&quot;K = {K.round(3)}&quot;)               # 改 Q/R 重跑, 观察 K 与响应的对应关系
+print(f&quot;10 s 后状态 = {x.round(5)}&quot;)     # 位置、速度均收敛到 ~0
+</code></pre>
+
+<h3 id="75-实践要点">7.5 实践要点</h3>
+<ul>
+<li><strong>增益调度是应对非线性的第一手段</strong>：车辆模型随 $v_x$ 变化、电机参数随温度变化，均为"每工作点解一次 K、运行时插值"，比上非线性控制理论便宜得多。</li>
+<li><strong>LQR 的 $Q/R$ 也是要现场调的</strong>：初值按"物理量纲归一化"（每个状态除以其允许的最大偏差，每个输入除以其最大输出）后再微调，能少走弯路。</li>
+<li><strong>先估计后控制</strong>：全状态反馈的前提是状态可得；不可得的状态交给第 8 章。</li>
+</ul>
+<h2 id="8-卡尔曼滤波最优状态估计">8. 卡尔曼滤波：最优状态估计</h2>
+<h3 id="81-背景">8.1 背景</h3>
+<p>工程中的核心困难是：<strong>真正需要的状态往往测不到，能测到的量又都是脏的</strong>。姿态角没有传感器直接输出（加速度计/陀螺/磁力计各自只给间接线索）；电池 SOC 没有任何仪表可读（电流计有漂移、开路电压只在静置时准）；自动驾驶需要的目标速度，雷达给得出速度却定不准横向位置，相机反过来。此外测量有各自的频率与延迟（陀螺 1 kHz、GPS 10 Hz 且滞后几百毫秒）。</p>
+<p>卡尔曼滤波（R. E. Kalman, 1960）给出的答案是：<strong>用一个（状态空间的）动力学模型做预测，用带噪测量做修正，按两者的不确定度加权融合</strong>——它是在"模型驱动"与"数据驱动"之间的最优点权分配，且是高斯噪声假设下统计意义的最优（最小方差）。Apollo 登月舱的导航系统是它的第一个著名用户。</p>
+<p>三个前置直觉，帮助理解公式：</p>
+<ol>
+<li><strong>预测</strong>利用模型（把状态沿物理规律外推），<strong>更新</strong>利用测量（把外推拉回观测）；</li>
+<li>融合权重由不确定度决定：谁的不确定度小（协方差小），权重就大；</li>
+<li>滤波是<strong>递归</strong>的：每拍只依赖上一拍的结果与本拍测量，不需要存历史数据——这正是它能在 MCU 上跑的原因。</li>
+</ol>
+<h3 id="82-数学定义">8.2 数学定义</h3>
+<h4 id="821-随机状态空间模型">8.2.1 随机状态空间模型</h4>
+<p>离散线性系统，状态方程与观测方程各带一项高斯白噪声：</p>
+<p>$$x[k] = F\, x[k-1] + G\, u[k] + w[k], \qquad z[k] = H\, x[k] + v[k]$$</p>
+<p>$$w[k] \sim \mathcal{N}(0, Q), \qquad v[k] \sim \mathcal{N}(0, R)$$</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+<th>维度</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$x[k]$</td>
+<td>$k$ 拍的状态真值（待估计）</td>
+<td>$n \times 1$</td>
+</tr>
+<tr>
+<td>$z[k]$</td>
+<td>$k$ 拍的测量值</td>
+<td>$p \times 1$</td>
+</tr>
+<tr>
+<td>$F$</td>
+<td>状态转移矩阵（第 7 章离散化得到）</td>
+<td>$n \times n$</td>
+</tr>
+<tr>
+<td>$G$</td>
+<td>输入矩阵，$u[k]$ 为已知的控制/激励输入</td>
+<td>$n \times m$</td>
+</tr>
+<tr>
+<td>$H$</td>
+<td>观测矩阵：状态到测量的映射</td>
+<td>$p \times n$</td>
+</tr>
+<tr>
+<td>$w$</td>
+<td>过程噪声：模型没写进去的扰动与简化误差</td>
+<td>$n \times 1$</td>
+</tr>
+<tr>
+<td>$Q$</td>
+<td><strong>过程噪声协方差</strong>：对"模型有多不准"的自评</td>
+<td>$n \times n$</td>
+</tr>
+<tr>
+<td>$v$</td>
+<td>测量噪声：传感器噪声</td>
+<td>$p \times 1$</td>
+</tr>
+<tr>
+<td>$R$</td>
+<td><strong>测量噪声协方差</strong>：对"传感器有多脏"的自评</td>
+<td>$p \times p$</td>
+</tr>
+</tbody>
+</table>
+<p>估计器维护两个量：状态估计 $\hat{x}$ 与<strong>估计协方差 $P$</strong>（$n \times n$ 矩阵，对角元是各状态估计误差的方差——"我对自己的估计有多自信"）。</p>
+<h4 id="822-预测更新五公式核心">8.2.2 预测—更新五公式（核心）</h4>
+<p><strong>预测步</strong>（每个模型周期执行，没有新测量也执行）：</p>
+<p>$$\hat{x}_{k|k-1} = F\, \hat{x}_{k-1|k-1} + G\, u[k] \qquad \text{① 状态外推}$$</p>
+<p>$$P_{k|k-1} = F\, P_{k-1|k-1}\, F^T + Q \qquad \text{② 协方差外推（越预测越不确定）}$$</p>
+<p><strong>更新步</strong>（每个新测量到达时执行）：</p>
+<p>$$y_k = z[k] - H\, \hat{x}_{k|k-1} \qquad \text{③ 新息：测量与预测的差（surprise）}$$</p>
+<p>$$S_k = H\, P_{k|k-1}\, H^T + R \qquad \text{④ 新息协方差}$$</p>
+<p>$$K_k = P_{k|k-1}\, H^T\, S_k^{-1} \qquad \text{⑤ 卡尔曼增益}$$</p>
+<p>$$\hat{x}_{k|k} = \hat{x}_{k|k-1} + K_k\, y_k \qquad \text{⑥ 状态修正}$$</p>
+<p>$$P_{k|k} = (I - K_k H)\, P_{k|k-1} \qquad \text{⑦ 协方差收缩（测量让估计更自信）}$$</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$\hat{x}_{k\|k-1}$</td>
+<td>预测（先验）估计；$\hat{x}_{k\|k}$ 为更新（后验）估计</td>
+</tr>
+<tr>
+<td>$P_{k\|k-1}$ / $P_{k\|k}$</td>
+<td>先验/后验估计协方差</td>
+</tr>
+<tr>
+<td>$y_k$</td>
+<td>新息（innovation）：预测与测量的偏差，健康监测的直接素材</td>
+</tr>
+<tr>
+<td>$S_k$</td>
+<td>新息协方差：新息的预期大小，超出它太多说明测量异常（野值门限的依据）</td>
+</tr>
+<tr>
+<td>$K_k$</td>
+<td><strong>卡尔曼增益</strong>：修正的比例，自动权衡模型与测量</td>
+</tr>
+<tr>
+<td>$I$</td>
+<td>单位矩阵</td>
+</tr>
+</tbody>
+</table>
+<p><strong>卡尔曼增益的极限行为</strong>（调 $Q/R$ 的全部直觉来源）：</p>
+<ul>
+<li>$R \to 0$（传感器极准）：$K \to I$，完全相信测量，模型只是个初值；</li>
+<li>$Q \to 0$（模型极准）：$K \to 0$，完全相信模型，测量几乎不修正——<strong>滤波器"锁死"是 $Q$ 调太小的经典症状</strong>（GPS 拉不回航迹、SOC 不跟电压）；</li>
+<li>一般情形 $K \approx P H^T (HPH^T + R)^{-1}$：状态协方差 $P$ 越大越听测量的话。</li>
+</ul>
+<p>标量情形一眼看穿本质：$K = \dfrac{p}{p + r}$，就是一个"按方差比例分配信任"的加权平均系数。</p>
+<h4 id="823-非线性扩展ekfeskfukf">8.2.3 非线性扩展：EKF、ESKF、UKF</h4>
+<p>真实系统几乎都是非线性的（姿态由四元数描述、SOC-电压曲线弯曲、目标做转弯），标准 KF 不能直接用，三种主流改造：</p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>思路</th>
+<th>代价与特点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>EKF</strong>（扩展 KF）</td>
+<td>在当前估计点把非线性函数一阶泰勒展开（雅可比矩阵代替 $F, H$）</td>
+<td>最常用；偏差大或强非线性时可能发散</td>
+</tr>
+<tr>
+<td><strong>ESKF</strong>（误差状态 KF）</td>
+<td>名义状态用非线性模型积分，KF 只估计"小误差状态"（天然线性）</td>
+<td>姿态估计的事实标准（流形上线性化更正确），PX4 EKF2/ArduPilot EKF3 均为此类</td>
+</tr>
+<tr>
+<td><strong>UKF</strong>（无迹 KF）</td>
+<td>不求导，取 $2n+1$ 个 sigma 点穿过非线性函数统计均值协方差</td>
+<td>免雅可比，非线性强时更准；算力约 2–3 倍</td>
+</tr>
+</tbody>
+</table>
+<p>工程选型口诀：轻度非线性 EKF；姿态/旋转系统 ESKF；强非线性且算力富余 UKF。</p>
+<h3 id="83-最小飞控示例姿态角-陀螺零偏">8.3 最小飞控示例：姿态角 + 陀螺零偏</h3>
+<p>一个 2 状态 KF 说清"预测—更新"如何落地。状态 $x = [\theta,\; b]^T$（$\theta$：倾角，rad；$b$：陀螺零偏，rad/s——陀螺仪静止时不为零的漂移）：</p>
+<ul>
+<li>预测（陀螺是高频可靠的预测源）：$\theta^- = \theta + (\omega_{gyro} - b)\, T_s$，$b^- = b$，即 $F = \begin{bmatrix} 1 & -T_s \\ 0 & 1 \end{bmatrix}$；</li>
+<li>更新（加速度计测重力方向给倾角，高频噪声大）：$z = \theta_{acc}$，$H = [1 \;\; 0]$；</li>
+<li>$Q = \mathrm{diag}(q_\theta, q_b)$：$q_\theta$ 表示"角度模型多不准"（振动、机动加速度污染），$q_b$ 表示"零偏漂移多快"；$R$ = 加速度计角度测量的方差（剧烈机动时重力假设失效，工程上把 $R$ 做成机动检测的函数）。</li>
+</ul>
+<p>这个结构（<strong>陀螺预测 + 加速度计修正</strong>）就是所有多旋翼姿态估计的内核；互补滤波是它的定增益简化版。</p>
+<h3 id="84-互补滤波卡尔曼的穷人版">8.4 互补滤波：卡尔曼的穷人版</h3>
+<p>嵌入式便宜芯片时代的主流方案，两行代码融合陀螺（高频好、低频漂）与加速度计（低频准、高频噪）——<strong>高通给陀螺、低通给加速度计，两路互补相加</strong>：</p>
+<p>$$\hat{\theta}_k = \alpha \left( \hat{\theta}_{k-1} + \omega_{gyro} T_s \right) + (1 - \alpha)\, \theta_{acc}, \qquad \alpha = \frac{\tau}{\tau + T_s}$$</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$\tau$</td>
+<td>融合时间常数（陀螺漂移被加速度计"纠回来"的时间尺度），典型 0.5–2 s</td>
+</tr>
+<tr>
+<td>$\alpha$</td>
+<td>无量纲权重（接近 1 表示偏信陀螺）</td>
+</tr>
+</tbody>
+</table>
+<p>与 KF 的关系：把 8.3 的 KF 收敛到稳态、固定增益，得到的递推式与上式同型。工程定位：算力受限、模型简单（云台、玩具级飞控、自平衡车）用互补滤波（含其非线性升级版 Mahony/Madgwick 滤波——在旋转流形上做同样的"预测+PI 修正"，免维护协方差）；需要多传感器、时变噪声、带延迟补偿的场合上 ESKF。</p>
+<h3 id="85-工程应用">8.5 工程应用</h3>
+<h4 id="851-无人机从姿态解算到全源融合">8.5.1 无人机：从姿态解算到全源融合</h4>
+<p><strong>姿态解算</strong>（8.3 的工程放大版）：陀螺做预测，加速度计修正横滚/俯仰（重力方向），磁力计修正偏航（地磁方向）。工程细节直接决定成败：加速度计只有在"合加速度 = 重力"时才可靠指示姿态，剧烈机动时该假设失效，因此 ESKF 中加速度计测量的 $R$ 会按机动强度动态放大（等效于降低其权重）。</p>
+<p><strong>全状态估计（PX4 EKF2 / ArduPilot EKF3）</strong>：24 状态的 ESKF，典型状态包括姿态四元数（4）、NED 速度（3）、位置（3）、陀螺零偏（3）、加速度计零偏（3）、地磁场（3+3）、风速（2）。多传感器各司其职：</p>
+<table>
+<thead>
+<tr>
+<th>传感器</th>
+<th>提供什么</th>
+<th>特点与坑</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>陀螺仪</td>
+<td>高频角速率（预测源）</td>
+<td>1–8 kHz，有零偏，振动敏感</td>
+</tr>
+<tr>
+<td>加速度计</td>
+<td>重力方向 + 惯性积分</td>
+<td>机动时重力假设失效；二次积分漂移快</td>
+</tr>
+<tr>
+<td>GPS</td>
+<td>位置 + 速度（10 Hz 量级）</td>
+<td><strong>滞后数百毫秒</strong>，必须做时间对齐</td>
+</tr>
+<tr>
+<td>气压计</td>
+<td>高度</td>
+<td>相对量，受气流/螺旋桨下洗干扰</td>
+</tr>
+<tr>
+<td>磁力计</td>
+<td>航向</td>
+<td>易被电机电流/机体铁磁材料干扰</td>
+</tr>
+</tbody>
+</table>
+<p><strong>时间对齐</strong>是工程上最容易被忽视的正确性问题：GPS 数据滞后 200 ms 才到达，滤波器必须把测量与"200 ms 前的历史状态"配对（缓存状态历史做滞后对齐），否则融合结果是系统性错位——表现为悬停"画 8 字"。PX4 的实现里这是一整块缓冲管理代码，代码量不亚于 KF 公式本身。</p>
+<h4 id="852-自动驾驶目标跟踪与自车定位">8.5.2 自动驾驶：目标跟踪与自车定位</h4>
+<p><strong>目标跟踪</strong>（雷达/相机/激光融合）是"预测—更新"的另一个宇宙：每个被跟踪目标维护一条 KF 轨迹，运动模型常用 <strong>CTRV</strong>（恒定转弯率恒速）：</p>
+<p>$$x_{k+1} = x_k + \frac{v}{\omega}\big[\sin(\psi + \omega T_s) - \sin\psi\big], \quad y_{k+1} = y_k + \frac{v}{\omega}\big[\cos\psi - \cos(\psi + \omega T_s)\big]$$</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+<th>单位</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$x, y$</td>
+<td>目标位置（地面坐标系）</td>
+<td>m</td>
+</tr>
+<tr>
+<td>$v$</td>
+<td>目标速度</td>
+<td>m/s</td>
+</tr>
+<tr>
+<td>$\psi$</td>
+<td>航向角</td>
+<td>rad</td>
+</tr>
+<tr>
+<td>$\omega$</td>
+<td>横摆角速度（转弯率）</td>
+<td>rad/s</td>
+</tr>
+</tbody>
+</table>
+<p>（$\omega \to 0$ 时退化为匀速直线模型 CV，实现中必须处理这个奇点。）</p>
+<p>融合利用传感器互补性：<strong>雷达径向速度准（多普勒原理，±0.1 m/s 级）而横向位置弱；相机位置/类别强而速度弱</strong>——$H$ 矩阵按传感器不同取不同行，新息按 $S_k$ 加权。轨迹管理三件套：<strong>关联</strong>（新量测属于哪条轨迹：马氏距离门限 + 匈牙利算法全局最优）、<strong>轨迹生命周期</strong>（连续命中才确认、连续丢失才删除，防误报）、<strong>模型切换</strong>（IMM：CV/CTRV 两个模型并行跑按概率加权，应对匀速与转弯切换）。</p>
+<p><strong>自车定位</strong>：GPS-INS 松耦合是 ESKF（同无人机）；隧道/城市峡谷 GPS 失效时，轮速计 + IMU 航位推算、激光/视觉与高精地图配准接棒——现代方案走向因子图（把各时刻状态与约束建成为图优化问题），可以理解为"批量全局一致性意义上的卡尔曼思想延伸"。</p>
+<h4 id="853-bmssoc-估计卡尔曼滤波在电池上的标准应用">8.5.3 BMS：SOC 估计（卡尔曼滤波在电池上的标准应用）</h4>
+<p>SOC（State of Charge，荷电状态，0–100%）<strong>没有任何传感器能直接测量</strong>，只能估计。两条传统路线各有硬伤：</p>
+<ul>
+<li><strong>安时积分</strong>：$SOC(t) = SOC(0) + \dfrac{1}{C_N} \int \eta\, i\, dt$（$C_N$：额定容量，Ah；$\eta$：库仑效率）。电流传感器的<strong>零点漂移被积分累积</strong>，长时间不回正就漂移，且初值 SOC(0) 未知；</li>
+<li><strong>开路电压法</strong>：OCV-SOC 是单调曲线，但<strong>OCV 只在静置、极化消退后等于端电压</strong>，工作时端电压被内阻压降与极化污染，动态工况下读不准。</li>
+</ul>
+<p>EKF 把两条路缝起来——状态取 $x = [SOC,\; V_1,\; V_2]^T$（一阶/二阶 RC 等效电路模型的极化电压）：</p>
+<ul>
+<li>预测：$SOC_k = SOC_{k-1} - \dfrac{\eta\, T_s\, i_k}{3600\, C_N}$（安时积分即预测方程）；$V_{1,2}$ 按一阶电路差分方程递推；</li>
+<li>更新：测量为端电压 $z = V_t = OCV(SOC) - V_1 - V_2 - R_0\, i$，观测行 $H = \left[ \dfrac{\partial OCV}{\partial SOC},\; -1,\; -1 \right]$。</li>
+</ul>
+<p>工作机理与 KF 理论严丝合缝：电流积分有漂移 → $Q_{SOC}$ 适设；电压准但被极化污染 → $R$ 由模型自动剥离（$V_1, V_2$ 把极化"解释"掉）。副产品：$P$ 矩阵给出 SOC 置信区间（BMS 可以上报"85% ± 3%"），$C_N$ 可作为第四个状态联合估计 → SOH。进阶话题：LFP 化学体系 OCV 曲线极平（$\partial OCV/\partial SOC$ 趋零 → $H$ 第一个元素趋零 → <strong>SOC 不可观</strong>），需要静置窗口检测 + 滞回建模，或用 UKF/多假设；TI 的 Impedance Track 等商用量产算法与 EKF 同属"模型 + 安时 + OCV 融合"思想族。</p>
+<h3 id="86-代码实现姿态角-陀螺零偏卡尔曼滤波c">8.6 代码实现：姿态角 + 陀螺零偏卡尔曼滤波（C）</h3>
+<p>8.3 节两状态模型的完整可用实现（2×2 手写矩阵，无库依赖，可直接进 MCU）。预测吃陀螺，更新吃加速度计解算的角度：</p>
+
+<pre><code class="language-c">/* 最小卡尔曼滤波: 状态 x = [θ rad, 陀螺零偏 rad/s]
+ * 预测: θ⁻ = θ + (gyro - b)·ts (陀螺积分);  更新: z = 加速度计重力方向角 */
+typedef struct {
+    float theta, bias;      /* 状态 */
+    float P[2][2];          /* 估计协方差 */
+    float q_angle, q_bias;  /* 过程噪声: 角度模型方差 / 零偏随机游走方差 */
+    float r_acc;            /* 测量噪声: 加速度计角度方差 */
+} kf_att_t;
+
+void kf_att_predict(kf_att_t *k, float gyro, float ts)
+{
+    k-&gt;theta += (gyro - k-&gt;bias) * ts;
+    /* P⁻ = F·P·Fᵀ + Q,  F = [[1,-ts],[0,1]] */
+    float p00 = k-&gt;P[0][0] - ts*(k-&gt;P[1][0] + k-&gt;P[0][1]) + ts*ts*k-&gt;P[1][1] + k-&gt;q_angle*ts;
+    float p01 = k-&gt;P[0][1] - ts * k-&gt;P[1][1];
+    float p10 = k-&gt;P[1][0] - ts * k-&gt;P[1][1];
+    float p11 = k-&gt;P[1][1] + k-&gt;q_bias * ts;
+    k-&gt;P[0][0] = p00; k-&gt;P[0][1] = p01; k-&gt;P[1][0] = p10; k-&gt;P[1][1] = p11;
+}
+
+void kf_att_update(kf_att_t *k, float z_acc)
+{
+    /* H = [1 0]: S = P00 + R,  K = P·Hᵀ/S */
+    float s  = k-&gt;P[0][0] + k-&gt;r_acc;
+    float k0 = k-&gt;P[0][0] / s;
+    float k1 = k-&gt;P[1][0] / s;
+    float y  = z_acc - k-&gt;theta;               /* 新息 */
+    k-&gt;theta += k0 * y;
+    k-&gt;bias  += k1 * y;
+    /* P = (I - K·H)·P */
+    float p00 = (1.0f - k0) * k-&gt;P[0][0];
+    float p01 = (1.0f - k0) * k-&gt;P[0][1];
+    float p10 = k-&gt;P[1][0] - k1 * k-&gt;P[0][0];
+    float p11 = k-&gt;P[1][1] - k1 * k-&gt;P[0][1];
+    k-&gt;P[0][0] = p00; k-&gt;P[0][1] = p01; k-&gt;P[1][0] = p10; k-&gt;P[1][1] = p11;
+}
+</code></pre>
+
+<h3 id="87-实践要点实现-checklist-与调参直觉">8.7 实践要点（实现 checklist 与调参直觉）</h3>
+<p><strong>$Q/R$ 调参直觉表</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>症状</th>
+<th>诊断</th>
+<th>处置</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>估计滞后、跟得慢，转向/加速时掉队</td>
+<td>$R$ 相对过大（太信模型）</td>
+<td>增大 $Q$ 或减小 $R$</td>
+</tr>
+<tr>
+<td>估计毛刺多、被单帧野值带跑</td>
+<td>$Q$ 相对过大（太信传感器）</td>
+<td>增大 $R$ 或减小 $Q$</td>
+</tr>
+<tr>
+<td>GPS/电压修正"拉不动"状态</td>
+<td>$Q$ 调太小，增益趋零</td>
+<td>增大对应状态的过程噪声</td>
+</tr>
+<tr>
+<td>姿态机动后回中慢</td>
+<td>加速度计权重未随机机动调整</td>
+<td>$R$ 做成机动检测的函数</td>
+</tr>
+<tr>
+<td>静止时输出缓慢漂移</td>
+<td>零偏/漂移状态未建模</td>
+<td>增加零偏状态（能观的条件下）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>数值与工程 checklist</strong>：</p>
+<ul>
+<li>协方差对称性：每若干拍强制 $P = (P + P^T)/2$，防数值漂移；更稳的是 Joseph 形式 $P = (I - KH) P (I - KH)^T + K R K^T$；</li>
+<li>$P$ 下限保护：对角元小于阈值时置阈值，防止除零与滤波器"假收敛"；</li>
+<li><strong>野值门控</strong>：新息 $y_k^T S_k^{-1} y_k > \chi^2$ 门限（自由度 = 测量维数）时丢弃该测量——一颗坏 GPS 点不应把位置估计拽走；</li>
+<li>时间戳对齐：测量到达时刻 ≠ 状态时刻，滞后对齐必须做（8.5.1）；</li>
+<li>单位与坐标系：姿态用 rad，位置注意坐标系定义（NED/ENU）与坐标变换次序——融合类代码过半的 bug 在这里而非滤波公式；</li>
+<li>可观测性自检：设计前问"这个状态有没有测量能看到它"（LFP 的 SOC、持续转弯中的陀螺零偏都是反例）。</li>
+</ul>
+<hr />
+<h2 id="9-系统辨识从数据到模型">9. 系统辨识：从数据到模型</h2>
+<h3 id="91-背景">9.1 背景</h3>
+<p>第 3–8 章的所有设计方法都假设"有模型"，而工程模型的来源只有两条：机理推导（牛顿方程、基尔霍夫方程）与数据辨识。真实系统的参数几乎总在漂移——电机绕组电阻温度系数约 +0.4%/°C，电池内阻随老化可翻倍，车辆轮胎侧偏刚度随载荷与胎压变化——因此辨识不仅是建模初期的工具，更是控制器长期保持性能的在线手段。本章给出最小二乘（含递推形式）这两个基本估计算法，以及阶跃、频域两类辨识试验方法；它们是第 3、5 章模型参数与第 11 章 MPC 预测模型的直接供给者。</p>
+<h3 id="92-数学定义">9.2 数学定义</h3>
+<h4 id="921-最小二乘least-squares-ls">9.2.1 最小二乘（Least Squares, LS）</h4>
+<p>把待估参数写成线性回归形式：</p>
+<p>$$z_k = \boldsymbol{\varphi}_k^T \boldsymbol{\theta} + e_k \;\;\Rightarrow\;\; \boldsymbol{z} = \boldsymbol{\Phi}\boldsymbol{\theta} + \mathbf{e}, \qquad \hat{\boldsymbol{\theta}} = (\boldsymbol{\Phi}^T \boldsymbol{\Phi})^{-1} \boldsymbol{\Phi}^T \boldsymbol{z}$$</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$z_k$</td>
+<td>第 $k$ 拍的输出测量</td>
+</tr>
+<tr>
+<td>$\boldsymbol{\varphi}_k$</td>
+<td>回归向量：由历史输入输出构造，例如一阶模型取 $[ -y_{k-1},\; u_{k-1} ]^T$</td>
+</tr>
+<tr>
+<td>$\boldsymbol{\theta}$</td>
+<td>待估参数向量（如 $[a, b]$ 对应 $y_k = a y_{k-1} + b u_{k-1}$ 的差分方程系数）</td>
+</tr>
+<tr>
+<td>$\mathbf{e}$</td>
+<td>残差向量</td>
+</tr>
+<tr>
+<td>$\boldsymbol{\Phi}$</td>
+<td>各拍回归向量按行堆叠的矩阵</td>
+</tr>
+</tbody>
+</table>
+<p>性质：高斯白噪声假设下 LS 估计无偏且方差最小；几何意义是把测量向量正交投影到回归向量张成的空间。任何能写成"输出对参数线性"的模型（差分方程系数、多项式、线性化曲线拟合）都可直接套用。</p>
+<h4 id="922-递推最小二乘rls">9.2.2 递推最小二乘（RLS）</h4>
+<p>批量 LS 需要"存全部数据再算"，在线场景用递推形式逐拍更新：</p>
+<p>$$K_k = \frac{P_{k-1}\, \boldsymbol{\varphi}_k}{\lambda + \boldsymbol{\varphi}_k^T P_{k-1} \boldsymbol{\varphi}_k}$$</p>
+<p>$$\hat{\boldsymbol{\theta}}_k = \hat{\boldsymbol{\theta}}_{k-1} + K_k \left( z_k - \boldsymbol{\varphi}_k^T \hat{\boldsymbol{\theta}}_{k-1} \right)$$</p>
+<p>$$P_k = \frac{1}{\lambda} \left( I - K_k \boldsymbol{\varphi}_k^T \right) P_{k-1}$$</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$P_k$</td>
+<td>参数估计协方差（参数"还有多不确定"，$P$ 小说明已收敛）</td>
+</tr>
+<tr>
+<td>$K_k$</td>
+<td>增益：本拍数据对参数的修正强度</td>
+</tr>
+<tr>
+<td>$\lambda \in (0, 1]$</td>
+<td><strong>遗忘因子</strong>：$\lambda = 1$ 为普通 LS；$\lambda < 1$ 时旧数据指数遗忘，用于跟踪时变参数（典型 0.98–0.999）</td>
+</tr>
+</tbody>
+</table>
+<p>注意 RLS 与卡尔曼滤波的血缘关系：把参数本身当作缓变状态，RLS 就是标量观测 KF 的特例——两者共享同一套数学骨架。</p>
+<h4 id="923-两类试验方法">9.2.3 两类试验方法</h4>
+<p><strong>阶跃两点法（Smith 法）</strong>：对近似一阶加纯延时对象 $G(s) = \dfrac{K e^{-Ls}}{\tau s + 1}$，从阶跃响应读取两个时刻：</p>
+<p>$$K = \frac{\Delta y_\infty}{\Delta u}, \qquad L = 2 t_{28.3} - t_{63.2}, \qquad \tau = 2 \left( t_{63.2} - t_{28.3} \right)$$</p>
+<p>其中 $t_{28.3}, t_{63.2}$ 为输出到达终值 28.3% 与 63.2% 的时刻（两点法比单点 63.2% 法抗噪声）。</p>
+<p><strong>频域扫频</strong>：逐点（或用 chirp 连续）注入单频正弦，量稳态幅值比与相位差，直接得到 $G(j\omega)$ 上的采样点，再用第 5 章方法拟合连续/离散模型。PRBS（伪随机二值序列）激励等价于同时激发多个频率，功率放大器饱和风险低，是伺服出厂自整定的常用选择。模型阶次选择用交叉验证或 AIC 准则，并用残差白性检验判断"模型是否已解释完数据"。</p>
+<h3 id="93-工程应用">9.3 工程应用</h3>
+<ul>
+<li><strong>电机参数辨识</strong>：$R$ 用直流锁定法（堵转加直流，$R = V/I$）；$L$ 用电流阶跃（$\tau_e = L/R$）或交流注入；$J$ 用恒转矩加速试验 $J = (T_e - B\omega)/\dot{\omega}$。第 6.4.3 节 FOC 电流环整定公式 $K_p = L\omega_c,\ K_i = R\omega_c$ 所需的 $L, R$ 全部来自这组试验——商用伺服的"一键自整定"本质就是辨识 + 带宽整定的自动化。</li>
+<li><strong>电池</strong>：RLS 在线估计欧姆内阻 $R_0$（利用电流跃变时的端电压突变 $\Delta V = R_0 \Delta I$），直接服务于 SOP（功率状态）限值与 SOH 跟踪；离线 EIS（第 2.4.3 节）建立全频段阻抗模型。</li>
+<li><strong>车辆</strong>：RLS 在线更新侧偏刚度、整车质量与转动惯量，让第 3.3.3 节自行车模型的 $A, B$ 矩阵跟随载荷与路面变化，供给 LQR/MPC 使用。</li>
+<li><strong>无人机</strong>：悬停状态下辨识推力/扭矩系数（$T = c_T \omega^2$，$Q = c_M \omega^2$，$\omega$ 为电机转速），得到油门-推力曲线，直接写入混控矩阵；多旋翼改造载荷后必须重做这组辨识。</li>
+</ul>
+<h3 id="94-代码实现两参数-rls-在线辨识c">9.4 代码实现：两参数 RLS 在线辨识（C）</h3>
+<p>9.2.2 节递推公式的完整实现——在线辨识一阶差分模型 $y[k] = a\, y[k-1] + b\, u[k-1]$，换算回连续域即得时间常数与增益（$\tau \approx -T_s / \ln a$，$K = b/(1-a)$）：</p>
+
+<pre><code class="language-c">/* 两参数 RLS: 在线跟踪时变对象 (如电机绕组电阻随温度漂移)
+ * lambda_ &lt; 1 时旧数据指数遗忘; 1.0 = 普通递推最小二乘 */
+typedef struct {
+    float theta[2];     /* 参数估计 [a, b] */
+    float P[2][2];      /* 参数协方差: 对角元大 = &quot;还没估准&quot; */
+    float lambda_;      /* 遗忘因子, 典型 0.98 ~ 0.999 */
+} rls2_t;
+
+void rls2_step(rls2_t *r, float y_prev, float u_prev, float y_meas)
+{
+    float phi[2] = { y_prev, u_prev };         /* 回归向量 φ_k */
+
+    /* K = P·φ / (λ + φᵀ·P·φ) */
+    float Pphi[2] = { r-&gt;P[0][0]*phi[0] + r-&gt;P[0][1]*phi[1],
+                      r-&gt;P[1][0]*phi[0] + r-&gt;P[1][1]*phi[1] };
+    float denom = r-&gt;lambda_ + phi[0]*Pphi[0] + phi[1]*Pphi[1];
+    float K[2]  = { Pphi[0] / denom, Pphi[1] / denom };
+
+    /* θ̂ += K·(z - φᵀ·θ̂) */
+    float resid = y_meas - (phi[0]*r-&gt;theta[0] + phi[1]*r-&gt;theta[1]);
+    r-&gt;theta[0] += K[0] * resid;
+    r-&gt;theta[1] += K[1] * resid;
+
+    /* P = (I - K·φᵀ)·P / λ */
+    float newP[2][2];
+    for (int i = 0; i &lt; 2; i++)
+        for (int j = 0; j &lt; 2; j++)
+            newP[i][j] = (r-&gt;P[i][j]
+                        - K[i] * (phi[0]*r-&gt;P[0][j] + phi[1]*r-&gt;P[1][j]))
+                        / r-&gt;lambda_;
+    for (int i = 0; i &lt; 2; i++)
+        for (int j = 0; j &lt; 2; j++)
+            r-&gt;P[i][j] = newP[i][j];
+}
+</code></pre>
+
+<h3 id="95-实践要点">9.5 实践要点</h3>
+<ul>
+<li><strong>持续激励（PE）条件</strong>：数据不"晃动"则参数不可唯一确定，$P$ 矩阵不收敛。RLS 加遗忘因子后要防"数据饥饿"——长时间无激励 + 小 $\lambda$ 会让参数漂移爆炸，工程上加 $P$ 上限或"激励不足时冻结更新"。</li>
+<li><strong>量纲归一化</strong>：回归向量各元素量纲不同时先归一化，否则 $\boldsymbol{\Phi}^T\boldsymbol{\Phi}$ 病态。</li>
+<li><strong>慢变量当回归项</strong>：电阻随温度漂移就把温度放进回归向量，而不是指望 $\lambda$ 去追。</li>
+<li><strong>闭环辨识注意</strong>：在闭环下辨识会被反馈"掩蔽"，需要外部激励或改用间接法；简单做法是叠加小幅度 PRBS 到控制量上。</li>
+</ul>
+<hr />
+<h2 id="10-观测器与无传感器估计">10. 观测器与无传感器估计</h2>
+<h3 id="101-背景">10.1 背景</h3>
+<p>卡尔曼滤波不是唯一的估计器。当噪声统计特性未知或不追求统计最优、只需要"稳定地把测不到的状态重构出来"时，Luenberger 观测器以小得多的计算与标定代价完成任务。它最典型的应用是<strong>无传感器（sensorless）电机控制</strong>：不装编码器/霍尔，仅凭电压电流观测转子位置——省成本、省空间、提高可靠性，在家电压缩机、电动工具、云台电机上已是主流方案。</p>
+<h3 id="102-数学定义">10.2 数学定义</h3>
+<h4 id="1021-luenberger-观测器">10.2.1 Luenberger 观测器</h4>
+<p>在状态空间模型（第 7 章）基础上复制一份系统，并用输出误差做反馈修正：</p>
+<p>$$\dot{\hat{x}} = A\hat{x} + Bu + L\,(y - C\hat{x})$$</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$\hat{x}$</td>
+<td>状态估计值</td>
+</tr>
+<tr>
+<td>$L$</td>
+<td>观测器增益矩阵（设计对象）</td>
+</tr>
+<tr>
+<td>$y - C\hat{x}$</td>
+<td>输出残差：测量与"模型认为应该测到的值"之差</td>
+</tr>
+</tbody>
+</table>
+<p>估计误差 $e = x - \hat{x}$ 的动态为 $\dot{e} = (A - LC)e$——<strong>估计误差收敛与否只取决于 $A - LC$ 的特征值</strong>，因此设计问题与控制器极点配置完全同构（对偶性：给 $(A, C)$ 配观测器极点 = 给 $(A^T, C^T)$ 配控制器极点）。<strong>分离原理</strong>进一步指出：观测器与控制器可以独立设计，组合后闭环稳定性不受影响——这是"先估计、后控制"两段式设计的理论 license。</p>
+<p>与卡尔曼滤波的关系一览：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Luenberger 观测器</th>
+<th>卡尔曼滤波</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>增益</td>
+<td>定常 $L$（离线配置极点）</td>
+<td>时变 $K_k$（在线由 $P, Q, R$ 算出）</td>
+</tr>
+<tr>
+<td>假设</td>
+<td>无噪声统计要求</td>
+<td>高斯白噪声 + 已知 $Q, R$</td>
+</tr>
+<tr>
+<td>最优性</td>
+<td>无（稳定即可）</td>
+<td>高斯假设下最小方差</td>
+</tr>
+<tr>
+<td>代价</td>
+<td>极低</td>
+<td>较高（协方差传播）</td>
+</tr>
+</tbody>
+</table>
+<p>经验配置：观测器极点比闭环主导极点快 3–5 倍——太慢估计滞后拖累控制，太快则放大测量噪声。</p>
+<h4 id="1022-锁相环pll角度跟踪的专用观测器">10.2.2 锁相环（PLL）：角度跟踪的专用观测器</h4>
+<p>PLL 是"相位检测 + 环路滤波 + 积分器"的二阶跟踪环。用于平滑反正切解算的转子角度时，相位检测器输出 $\varepsilon = \sin(\hat{\theta} - \theta) \approx \hat{\theta} - \theta$（小角度线性化），环路滤波用 PI，闭环等效为二阶系统：</p>
+<p>$$K_p = 2\zeta\omega_n, \qquad K_i = \omega_n^2$$</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+<th>典型值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$\omega_n$</td>
+<td>PLL 自然频率（跟踪带宽）</td>
+<td>被跟踪信号频率的 1/10 量级</td>
+</tr>
+<tr>
+<td>$\zeta$</td>
+<td>阻尼比</td>
+<td>0.7–1.0</td>
+</tr>
+</tbody>
+</table>
+<p>白送的副产品：积分器的状态就是频率估计——PLL 同时给出角度与角速度。</p>
+<h4 id="1023-滑模观测器smo无感-foc-的标准前端">10.2.3 滑模观测器（SMO）：无感 FOC 的标准前端</h4>
+<p>用电流观测器的误差<strong>切换项</strong>重构反电动势（反电动势里藏着转子角度）：</p>
+<p>$$\frac{d\hat{i}}{dt} = \frac{1}{L}(u - R\hat{i} - z), \qquad z = k \cdot \mathrm{sign}(\hat{i} - i)$$</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$\hat{i}$</td>
+<td>电流估计值</td>
+</tr>
+<tr>
+<td>$z$</td>
+<td>切换项：强制 $\hat{i}$ 逼近真实 $i$，其低频分量即反电动势 $e$</td>
+</tr>
+<tr>
+<td>$k$</td>
+<td>切换增益（需大于模型不确定性上界）</td>
+</tr>
+</tbody>
+</table>
+<p>对 $z$ 低通滤波取出 $e_\alpha, e_\beta$，由 $e_\alpha = -\psi \omega_e \sin\theta_e$、$e_\beta = \psi\omega_e\cos\theta_e$（$\psi$ 为磁链，$\omega_e$ 为电角速度）得 $\theta_e = \mathrm{atan2}(-e_\alpha, e_\beta)$，再接一个 PLL 平滑。$\mathrm{sign}$ 切换会引起抖振，工程上用饱和函数 $\mathrm{sat}(s/\phi)$（边界层法）或超螺旋（super-twisting）算法替代。</p>
+<h3 id="103-工程应用">10.3 工程应用</h3>
+<ul>
+<li><strong>无感电机驱动</strong>：SMO + PLL 是低成本 FOC 的标准链路。适用转速受反电动势幅值限制（$e \propto \omega_e$，零低速时信号淹没）——高速段好用，零低速失效；低速段补用<strong>高频注入</strong>（HFI，向电机注入高频小信号，利用凸极性解算位置）。启动普遍采用"开环 I/F 电流-频率启动 → 转速达标后切闭环"，切换瞬间的扰动抑制是无感驱动的头号工程难点。</li>
+<li><strong>机器人碰撞检测与拖动示教</strong>：De Luca 动量观测器用广义动量 $p = M(q)\dot{q}$ 的模型预测与实际失配构造残差 $r$（无碰撞时 $r \approx 0$，碰撞时 $r$ 突增），<strong>免力传感器</strong>实现碰撞检测；反过来把残差作为驱动信号即是拖动示教（人手把着机械臂走）的实现基础。</li>
+<li><strong>车辆</strong>：坡度估计观测器（融合纵向加速度与轮速，输出路面坡度），ACC 起步防溜坡、自动驻坡都依赖它；横摆角速度与侧偏角观测器为 ESC 提供测不到的量。</li>
+<li><strong>BMS</strong>：极化电压的 Luenberger 观测是 EKF-SOC 的确定性替身——当噪声统计特性难以标定时，定增益观测器反而更稳、更易审计。</li>
+</ul>
+<h3 id="104-代码实现二阶锁相环c">10.4 代码实现：二阶锁相环（C）</h3>
+<p>10.2.2 节 PLL 的固件实现——输入反正切解算的原始角度，输出平滑角度 + 白送的角速度估计。$\sin$ 检相器以 $2\pi$ 为周期，<code>atan2</code> 输出在 ±π 处的跳变不会引起失锁：</p>
+
+<pre><code class="language-c">/* 二阶 PLL: Kp = 2·ζ·ωn, Ki = ωn²  (10.2.2 节公式)
+ * ωn 取被跟踪信号频率的 1/10 量级, ζ 取 0.7~1.0 */
+typedef struct {
+    float theta;    /* 输出: 平滑角度 rad */
+    float omega;    /* 输出: 估计角速度 rad/s (I 支路状态, 白送) */
+    float kp, ki;
+} pll_t;
+
+void pll_step(pll_t *p, float theta_atan, float ts)
+{
+    float eps = sinf(p-&gt;theta - theta_atan);   /* 相位检测 ≈ 角度差(小角度) */
+
+    p-&gt;omega += p-&gt;ki * eps * ts;              /* 环路滤波 I 支路: 频率状态 */
+    p-&gt;theta += (p-&gt;omega + p-&gt;kp * eps) * ts; /* P 支路 + VCO 积分 */
+
+    if (p-&gt;theta &gt;  3.14159265f) p-&gt;theta -= 2.0f * 3.14159265f;  /* 归一化 */
+    if (p-&gt;theta &lt; -3.14159265f) p-&gt;theta += 2.0f * 3.14159265f;
+}
+</code></pre>
+
+<h3 id="105-实践要点">10.5 实践要点</h3>
+<ul>
+<li>$\mathrm{sign}$ 类切换项必须连续化（边界层 / super-twisting），否则观测值抖动直接打进 PWM。</li>
+<li>观测器输出要做限幅与合理性门限（如转子角度变化率不超过电频率上限），故障时快速降级到开环。</li>
+<li>观测器依赖的模型参数（$R, L$）会漂移，配合第 9 章 RLS 在线更新可显著扩展无感运行包络。</li>
+<li>定增益观测器整定后务必做参数摄动扫描（±30% 的 $R, L, J$），确认误差动态仍然收敛。</li>
+</ul>
+<hr />
+<h2 id="11-模型预测控制与现代控制谱系">11. 模型预测控制与现代控制谱系</h2>
+<h3 id="111-背景">11.1 背景</h3>
+<p>PID 处理不了约束，LQR 处理不了约束，而真实系统的约束无处不在：电机有转矩上限、电池有温度上限、方向盘有转速上限、无人机有推力上限。<strong>模型预测控制（MPC）</strong>把约束显式写进优化问题，每个周期求解一次有限时域的最优控制序列，执行第一步然后滚动重复——它是约束系统控制的事实标准，也是自动驾驶行业横向控制的主流选择。算力曾是其瓶颈，2010 年代后高效 QP（二次规划）求解器出现，MPC 已能跑进 kHz 级嵌入式循环。</p>
+<h3 id="112-数学定义">11.2 数学定义</h3>
+<h4 id="1121-优化问题">11.2.1 优化问题</h4>
+<p>$$\min_{u_0, \dots, u_{N_c-1}} \; \sum_{i=1}^{N_p} \lVert x_i - x_{ref,i} \rVert_Q^2 + \sum_{i=0}^{N_c-1} \left( \lVert u_i \rVert_R^2 + \lVert \Delta u_i \rVert_S^2 \right)$$</p>
+<p>约束条件：</p>
+<p>$$x_{i+1} = F x_i + G u_i, \qquad u_{min} \le u_i \le u_{max}, \quad \lvert \Delta u_i \rvert \le \Delta u_{max}, \quad x_{min} \le x_i \le x_{max}$$</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$N_p$</td>
+<td>预测时域（向前看多少拍，决定"远见"）</td>
+</tr>
+<tr>
+<td>$N_c$</td>
+<td>控制时域（优化多少拍控制量，$N_c \le N_p$；其后控制量保持不变以降维）</td>
+</tr>
+<tr>
+<td>$Q$</td>
+<td>状态跟踪权重（同 LQR）</td>
+</tr>
+<tr>
+<td>$R$</td>
+<td>控制量权重</td>
+</tr>
+<tr>
+<td>$S$</td>
+<td>控制增量权重（惩罚猛打，平顺性来源）</td>
+</tr>
+<tr>
+<td>$x_{ref,i}$</td>
+<td>参考轨迹（规划层给出）</td>
+</tr>
+</tbody>
+</table>
+<p>求解结构：把全部 $u_0 \dots u_{N_{c}-1}$ 堆成一个大决策向量，等式约束消元后化为<strong>QP 问题</strong>（OSQP、HPIPM、qpOASES 等嵌入式求解器），解出序列后<strong>只执行 $u_0$</strong>，下一拍用新测量重新求解——"滚动时域"是 MPC 的反馈机制：每拍重解 = 闭环纠偏。与 LQR 的关系：无限时域、无约束的 MPC 就是 LQR；MPC 的全部增量价值 = 约束 + 时域 + 参考轨迹预处理。</p>
+<p>稳定性在理论上由<strong>终端代价/终端约束</strong>保证（时域末端加一个 LQR 式终端代价），工程上"时域足够长 + 软约束"更常见。约束不可行时用松弛变量（slack）软化，但要给松弛量加大权重并报警。</p>
+<h4 id="1122-工程形态">11.2.2 工程形态</h4>
+<table>
+<thead>
+<tr>
+<th>形态</th>
+<th>说明</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>显式 MPC（explicit）</td>
+<td>离线把参数空间划分成区域、预解出分段线性解；运行时只查表</td>
+<td>小系统（2–4 状态）、高频回路</td>
+</tr>
+<tr>
+<td>隐式 MPC（在线 QP）</td>
+<td>每拍在线求解</td>
+<td>状态多、约束多，100 Hz 级回路</td>
+</tr>
+<tr>
+<td>warm start</td>
+<td>用上一拍解做初值，迭代次数骤降</td>
+<td>一切在线 MPC 的默认技巧</td>
+</tr>
+</tbody>
+</table>
+<h3 id="113-工程应用">11.3 工程应用</h3>
+<ul>
+<li><strong>自动驾驶横向控制</strong>：Autoware（MPC follower）、Apollo 均提供 MPC 转向控制器——状态取横向偏差、航向偏差及变化率，约束方向盘转角/转速（舒适性与执行器物理限制），参考轨迹来自规划层。纵向常用 PID/多多项式配速，与横向 MPC 组合是量产常见架构。</li>
+<li><strong>无人机</strong>：轨迹跟踪 MPC（ETH Zurich 敏捷飞行）、吊挂载荷/变体构型的强耦合控制；"边飞边优化轨迹"的快速凸优化与 MPC 同属一族（SpaceX 火箭着陆的在线制导亦为此思想的工程化）。</li>
+<li><strong>四足/人形机器人</strong>：全身控制（WBC）本质是带接触约束（摩擦锥）的 QP/MPC，把质心、摆腿、姿态多任务按优先级分配到关节力矩；人形步行的鼻祖 ZMP 预观控制（Kajita）就是早期 MPC。</li>
+<li><strong>BMS（应用探索）</strong>：快充功率调度——把温升、析锂电位、SOC 终值都写成约束，优化整条充电电流曲线，比"查表限流"更贴近物理极限。</li>
+</ul>
+<h3 id="114-现代控制谱系速览">11.4 现代控制谱系速览</h3>
+<p>MPC 之外，工程中还活跃着一批方法，按"要解决什么"归类：</p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>核心思想</th>
+<th>关键公式</th>
+<th>典型应用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>滑模控制 SMC</strong></td>
+<td>把状态压到设计好的滑模面上滑行，对匹配不确定性完全免疫</td>
+<td>滑模面 $s = \lambda e + \dot{e}$；$u = u_{eq} + k\,\mathrm{sat}(s/\phi)$</td>
+<td>无人机姿态鲁棒控制、电机调速</td>
+</tr>
+<tr>
+<td><strong>自抗扰控制 ADRC</strong></td>
+<td>把模型未知部分统一当作"总扰动"实时观测并抵消——韩京清提出，不依赖精确模型</td>
+<td>见下方 ESO 公式</td>
+<td>电机调速、无人机、液压、磁悬浮</td>
+</tr>
+<tr>
+<td><strong>反步法 / 几何控制</strong></td>
+<td>Lyapunov 递归设计；SE(3) 几何控制直接在旋转流形上设计，大姿态不失效</td>
+<td>$u$ 由 Lyapunov 函数导数负定条件反推</td>
+<td>四旋翼激进飞行（UPenn 系）</td>
+</tr>
+<tr>
+<td><strong>模型参考自适应 MRAC / L1</strong></td>
+<td>让被控对象跟踪一个参考模型的响应，增益在线自适应</td>
+<td>MIT 规则 $\dot{\theta} = -\gamma e \,\partial \hat{y}/\partial\theta$</td>
+<td>舵面损伤后飞机自适应；L1 为其现代变体</td>
+</tr>
+<tr>
+<td><strong>H∞ 鲁棒控制</strong></td>
+<td>最小化最坏情况下的灵敏度峰值，为模型不确定性上"保险"</td>
+<td>$\min \lVert W_S S \rVert_\infty$</td>
+<td>航空舵回路、硬盘磁头（历史经典）</td>
+</tr>
+<tr>
+<td><strong>增益调度</strong></td>
+<td>非线性系统按工作点切换线性控制器（第 7 章已述）</td>
+<td>各工作点分别设计 $K$，运行时插值</td>
+<td>车辆随车速、飞控随空速</td>
+</tr>
+</tbody>
+</table>
+<p><strong>ADRC 展开一段</strong>（近年国产工程界用得最多）：对二阶对象 $\ddot{y} = f + b_0 u$（$f$ 为总扰动 = 模型误差 + 外扰），扩张状态观测器把 $f$ 也当作一个状态实时估计：</p>
+<p>$$\dot{z}_1 = z_2 + \beta_1 (y - z_1), \qquad \dot{z}_2 = z_3 + \beta_2 (y - z_1) + b_0 u, \qquad \dot{z}_3 = \beta_3 (y - z_1)$$</p>
+<p>控制量 $u = \big[ k_p (r - z_1) - k_d z_2 - z_3 \big] / b_0$：$z_3$ 项把总扰动直接抵消，剩下的名义对象用 PD 就够。增益带宽参数化（Gao, 2003）给出 $\beta_1 = 3\omega_o,\ \beta_2 = 3\omega_o^2,\ \beta_3 = \omega_o^3$（$\omega_o$ 为观测器带宽），整定只剩 $\omega_o$ 与 $b_0$ 两个旋钮——这是它在现场好用的直接原因。</p>
+<h3 id="115-代码实现滚动时域-mpcpython">11.5 代码实现：滚动时域 MPC（Python）</h3>
+<p>11.2.1 节的批处理形式实现：把 $N_p$ 步预测堆成矩阵（$X = S_x x_0 + S_u U$），无约束时一步解析求解，<strong>只执行 $u_0$，下一拍重解</strong>——滚动时域的反馈机制一目了然。带约束版本把解析解换成 OSQP 调用即可，其余不变：</p>
+
+<pre><code class="language-python">&quot;&quot;&quot;双积分器 MPC: min Σ||x-xref||²_Q + Σ||u||²_R, s.t. x_{k+1}=F·x+G·u (11.2.1 节)
+   无约束批处理解: U* = (Suᵀ·Q̄·Su + R̄)⁻¹ · Suᵀ·Q̄·(Xref - Sx·x0)&quot;&quot;&quot;
+import numpy as np
+
+Ts, Np = 0.1, 20                          # 采样周期 s / 预测时域拍数
+F = np.array([[1, Ts], [0, 1]])           # x = [位置, 速度]
+G = np.array([[Ts**2/2], [Ts]])
+
+# 预测矩阵: X = Sx·x0 + Su·U (把 Np 步状态/控制堆成向量)
+Sx = np.zeros((2*Np, 2)); Su = np.zeros((2*Np, Np))
+for i in range(Np):
+    Sx[2*i:2*i+2] = np.linalg.matrix_power(F, i + 1)
+    for j in range(i + 1):
+        Su[2*i:2*i+2, j] = np.linalg.matrix_power(F, i - j) @ G[:, 0]
+
+Qbar = np.kron(np.eye(Np), np.diag([10.0, 1.0]))   # 每步状态权重
+Rbar = 0.1 * np.eye(Np)                            # 每步控制权重
+
+x = np.array([2.0, 0.0])                  # 初始: 偏离目标 2 m
+for _ in range(50):                       # 滚动 5 s: 每拍重解, 只执行 u0
+    U = np.linalg.solve(Su.T @ Qbar @ Su + Rbar,
+                        Su.T @ Qbar @ (np.zeros(2*Np) - Sx @ x))
+    x = F @ x + G[:, 0] * U[0]
+print(f&quot;5 s 后状态 = {x.round(4)}&quot;)        # 收敛到原点; 加 |u|≤amax 约束 → 换 OSQP
+</code></pre>
+
+<h3 id="116-实践要点">11.6 实践要点</h3>
+<ul>
+<li><strong>MPC 调参顺序</strong>：先定 $N_p$（覆盖主要动态 + 延迟），再调 $Q/R$ 定响应，最后用 $S$ 和约束磨平顺性；不要一上来就动模型。</li>
+<li><strong>实时预算</strong>：先测单次 QP 耗时 × 迭代次数再定周期；FOC 的 1 kHz 电流环不用 MPC（用 PI），MPC 适合 50–500 Hz 的外环。</li>
+<li><strong>模型质量分层</strong>：MPC 对短时域内模型精度敏感，第 9 章辨识 + 第 7 章增益调度是它的标准配套。</li>
+<li><strong>什么时候仍然选 PID</strong>：约束不紧、对象近似一/二阶、现场需要人工整定——MPC 的复杂度必须换来明确收益（约束、耦合、预见性）才值得。</li>
+</ul>
+<hr />
+<h2 id="12-概率定位与-slam粒子滤波与因子图">12. 概率定位与 SLAM：粒子滤波与因子图</h2>
+<h3 id="121-背景">12.1 背景</h3>
+<p>卡尔曼滤波有两个隐含前提：噪声高斯、初始不确定度单峰。机器人定位经常违反这两条——全局定位（"机器人绑架问题"：被搬走后不知道自己在哪）的不确定度天然多峰；走廊两侧对称时 belief 也是双峰。<strong>粒子滤波（Particle Filter, PF）</strong>用一群离散采样点表示任意形状的概率分布，绕开了高斯假设；<strong>SLAM</strong>（Simultaneous Localization and Mapping，同步定位与建图）则解决"定位需要地图、建图需要定位"的鸡生蛋问题。两者合起来构成机器人自主导航（第 14 章）的定位地基。</p>
+<h3 id="122-数学定义">12.2 数学定义</h3>
+<h4 id="1221-贝叶斯滤波统一框架">12.2.1 贝叶斯滤波：统一框架</h4>
+<p>所有递归估计器都是贝叶斯滤波的特例——预测与更新两步在概率语言下的通式：</p>
+<p>$$bel^-(x_k) = \int p(x_k \mid u_k, x_{k-1})\, bel(x_{k-1})\, dx_{k-1} \qquad \text{（预测：沿运动模型传播）}$$</p>
+<p>$$bel(x_k) = \eta\, p(z_k \mid x_k)\, bel^-(x_k) \qquad \text{（更新：用观测模型修正，} \eta \text{ 为归一化常数）}$$</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$bel(x_k)$</td>
+<td>状态 $x_k$ 的置信分布（belief）</td>
+</tr>
+<tr>
+<td>$p(x_k \mid u_k, x_{k-1})$</td>
+<td>运动模型：给定控制/里程计输入 $u$，状态怎么变</td>
+</tr>
+<tr>
+<td>$p(z_k \mid x_k)$</td>
+<td>观测模型：在位置 $x$ 处"应该看到什么"（地图上激光/视觉的似然）</td>
+</tr>
+</tbody>
+</table>
+<p>不同估计器 = 对 $bel$ 的不同表示方式：</p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>belief 表示</th>
+<th>假设</th>
+<th>复杂度</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>KF / EKF / UKF</td>
+<td>高斯（均值 + 协方差）</td>
+<td>线性/弱非线性 + 高斯</td>
+<td>低</td>
+</tr>
+<tr>
+<td>直方图滤波</td>
+<td>离散栅格</td>
+<td>状态空间有限维</td>
+<td>随栅格数</td>
+</tr>
+<tr>
+<td><strong>粒子滤波</strong></td>
+<td><strong>加权采样点集</strong></td>
+<td><strong>几乎无</strong></td>
+<td>随粒子数</td>
+</tr>
+</tbody>
+</table>
+<h4 id="1222-粒子滤波sir">12.2.2 粒子滤波（SIR）</h4>
+<p>用 $N$ 个带权粒子 $\{x^{(i)}, w^{(i)}\}_{i=1}^N$ 逼近 belief：</p>
+<ul>
+<li>预测：每个粒子按运动模型 + 噪声采样前推一步；</li>
+<li>更新（重要性加权）：$w^{(i)} \leftarrow w^{(i)} \cdot p(z_k \mid x_k^{(i)})$，归一化；</li>
+<li><strong>重采样</strong>：按权重重新抽 $N$ 个粒子（系统重采样为常用实现），淘汰低权粒子、复制高权粒子。</li>
+</ul>
+<p>权重退化的度量是<strong>有效粒子数</strong> $N_{eff} = 1 / \sum_i (w^{(i)})^2$，$N_{eff}$ 低于阈值（如 $N/2$）触发重采样。粒子数随状态维度指数增长（维度灾难），所以 PF 用于低维状态（平面定位 3 维：$x, y, \theta$）游刃有余，用于高维状态则退化。</p>
+<h4 id="1223-扫描匹配与-icp">12.2.3 扫描匹配与 ICP</h4>
+<p>激光定位的核心几何问题是"两帧点云怎么对齐"——迭代最近点（ICP）：每次迭代给每个点找最近邻配对，解刚性变换</p>
+<p>$$(R, t) = \arg\min_{R, t} \sum_i \lVert R\, p_i + t - q_i \rVert^2$$</p>
+<p>该问题有 SVD 闭式解（去质心 → 协方差 SVD → 拼 R、t）；迭代至收敛。NDT（正态分布变换）把点云表示成局部高斯栅格再优化，对稀疏/噪声更鲁棒。</p>
+<h4 id="1224-slam-三代">12.2.4 SLAM 三代</h4>
+<table>
+<thead>
+<tr>
+<th>代际</th>
+<th>表示</th>
+<th>关键点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>EKF-SLAM</td>
+<td>地标地图 + 全协方差</td>
+<td>协方差 $O(n^2)$，只适合小地图</td>
+</tr>
+<tr>
+<td>FastSLAM</td>
+<td>粒子 + 每粒子独立地标 EKF（RBPF）</td>
+<td>假设地标条件独立，规模提升</td>
+</tr>
+<tr>
+<td><strong>图优化 SLAM</strong>（现代主流）</td>
+<td><strong>因子图</strong>：位姿为节点、里程计/回环/观测为因子</td>
+<td>后端解非线性最小二乘</td>
+</tr>
+</tbody>
+</table>
+<p>图优化的后端问题：</p>
+<p>$$X^* = \arg\min_X \sum_{(i,j) \in \mathcal{C}} \lVert r_{ij}(X) \rVert_{\Omega_{ij}}^2$$</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$X$</td>
+<td>全部待估状态（各时刻位姿等）</td>
+</tr>
+<tr>
+<td>$r_{ij}(X)$</td>
+<td>残差：约束两节点间观测值与模型预测之差</td>
+</tr>
+<tr>
+<td>$\Omega_{ij}$</td>
+<td>该约束的信息矩阵（不确定度的倒数）</td>
+</tr>
+<tr>
+<td>求解器</td>
+<td>Gauss-Newton / Levenberg-Marquardt；工程库 GTSAM、g2o、Ceres</td>
+</tr>
+</tbody>
+</table>
+<p><strong>回环检测</strong>（识别"回到来过的地方"）是图优化的灵魂：没有回环约束，里程计误差只会单调累积；词袋（BoW）、Scan Context 等方法负责识别回环，检测错误会造成地图扭曲，工程上必须做几何一致性校验。前端里程计两条技术路线：视觉惯性 VIO（IMU 预积分理论 + 滑窗优化；代表 VINS-Mono、ORB-SLAM3）与激光（LOAM 的边缘/平面特征、LIO-SAM、Cartographer；早期 gmapping 即 RBPF 思想）。</p>
+<h3 id="123-工程应用">12.3 工程应用</h3>
+<ul>
+<li><strong>仓储/商用 AMR</strong>：先离线建图，运行时 AMCL（自适应蒙特卡洛定位 = 粒子滤波 + likelihood field 观测模型 + KLD 自适应粒子数）在已有地图上定位，ROS Navigation 栈（Nav2）的标准定位件。</li>
+<li><strong>扫地机器人</strong>：低成本相机 VSLAM（含回环）+ 简化地图管理，是消费级 SLAM 最大的落地场景。</li>
+<li><strong>无人机（GPS 拒止）</strong>：室内/桥下/隧道巡检靠 VIO 维持位姿估计，本质是第 8 章 ESKF 与视觉因子的组合；光照剧变是 VIO 第一杀手，视觉-激光融合（如 LVI-SAM 类方案）是工程对策。</li>
+<li><strong>自动驾驶</strong>：激光里程计 + 高精地图匹配定位（比 SLAM 轻：地图先验存在，只做定位）；隧道/城市峡谷 GPS 失效时的降级链"GNSS → 激光地图匹配 → 轮速+IMU 航位推算"按置信度切换。</li>
+</ul>
+<h3 id="124-代码实现一维粒子滤波定位python">12.4 代码实现：一维粒子滤波定位（Python）</h3>
+<p>12.2.2 节 SIR 三步（预测 → 加权 → 重采样）的最小实现。机器人只知道"里程计走了多少"（有噪声）和"离最近路标多远"（有噪声），从均匀分布的盲目状态收敛到真实位置：</p>
+
+<pre><code class="language-python">&quot;&quot;&quot;1D 粒子滤波: 10 m 走廊, 两个测距路标; 里程计预测 + 似然更新 + 重采样&quot;&quot;&quot;
+import numpy as np
+
+rng = np.random.default_rng(0)
+N = 1000
+particles = rng.uniform(0, 10, N)         # 初始: 均匀撒点 (对位置一无所知)
+weights = np.ones(N) / N
+landmarks = np.array([2.0, 7.0])          # 地图: 两个测距路标
+x_true = 2.5                              # 真实位置 (机器人不知道)
+
+for step in range(5):
+    # 1) 预测: 里程计读数 = 真实位移 + 读数噪声; 每个粒子按运动模型+噪声前推
+    x_true += 0.4
+    u = 0.4 + rng.normal(0, 0.05)
+    particles += u + rng.normal(0, 0.1, N)
+
+    # 2) 更新: 向两个路标测距 (各自带噪), 按高斯似然乘积重新加权
+    #    双路标测距联合解算位置 (三边定位思想), 单路标会存在左右镜像歧义
+    z = np.abs(x_true - landmarks) + rng.normal(0, 0.1, 2)
+    z_pred = np.abs(particles[:, None] - landmarks)      # N×2: 每粒子的预测距离
+    weights = np.prod(np.exp(-0.5 * ((z - z_pred) / 0.1) ** 2), axis=1)
+    weights /= weights.sum()
+
+    # 3) 重采样: N_eff 低于阈值时按权重重抽 (系统重采样简化版)
+    Neff = 1.0 / np.sum(weights ** 2)
+    if Neff &lt; N / 2:
+        particles = rng.choice(particles, size=N, p=weights)
+        weights = np.ones(N) / N
+
+    est = np.sum(particles * weights)      # 估计 = 加权均值 (权重已归一化, 勿再除 N)
+    print(f&quot;step {step}: 真实 x = {x_true:.2f}, 估计 x = {est:.2f}, Neff = {Neff:.0f}&quot;)
+</code></pre>
+
+<h3 id="125-实践要点">12.5 实践要点</h3>
+<ul>
+<li><strong>运动模型打滑</strong>：轮速里程计在打滑/爬坡时不可信，PF 的运动模型应优先用 IMU 积分或降权处理。</li>
+<li><strong>粒子数预算</strong>：从几千起调，看 $N_{eff}$ 曲线与 CPU 占用；KLD 采样让粒子数随不确定度自适应（收敛后自动减）。</li>
+<li><strong>回环误检的代价</strong>大于漏检：所有回环候选必须过几何一致性验证。</li>
+<li><strong>评估指标</strong>：绝对轨迹误差 ATE 与相对位姿误差 RPE（evo 工具是事实标准），任何定位改动都用它们回归。</li>
+<li><strong>在线后端</strong>：长时间运行用滑窗优化或增量平滑（iSAM2）控制算力，而不是无限增长的问题规模。</li>
+</ul>
+<hr />
+<h2 id="13-机器人运动学与动力学控制">13. 机器人运动学与动力学控制</h2>
+<h3 id="131-背景">13.1 背景</h3>
+<p>前八章的"被控对象"都是单自由度或低维物理系统，而机器人是多刚体链：机械臂的"手要到那个位置"（任务空间）与"各关节转多少度"（关节空间）之间隔着一层几何映射，移动底盘的"轮子转速"与"车体速度"之间也是。运动学回答几何映射（不涉及力），动力学回答力与运动的映射，两者共同构成机器人控制（第 14 章规划给出"去哪"，本章给出"怎么动"）的模型底座。</p>
+<h3 id="132-位姿描述与旋转">13.2 位姿描述与旋转</h3>
+<p>刚体位姿用齐次变换矩阵描述：</p>
+<p>$$T = \begin{bmatrix} R & p \\ 0 & 1 \end{bmatrix}, \qquad R \in SO(3)$$</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$R$</td>
+<td>3×3 旋转矩阵（正交，$R^T R = I$，$\det R = 1$）</td>
+</tr>
+<tr>
+<td>$p$</td>
+<td>平移向量</td>
+</tr>
+<tr>
+<td>$T$</td>
+<td>齐次变换：连乘实现坐标系级联，$T_{0n} = T_{01} T_{12} \cdots T_{n-1,n}$</td>
+</tr>
+</tbody>
+</table>
+<p>旋转的三种表示各有坑：欧拉角直观但存在<strong>万向锁</strong>（两轴重合丢失一个自由度）；旋转矩阵无奇点但 9 个数表达 3 自由度、数值漂移后需正交化；<strong>四元数</strong> $q = [w, x, y, z]^T$（单位约束 $\lVert q \rVert = 1$）无奇点、4 个数、插值方便（slerp），是姿态解算（第 8 章）与 SLAM（第 12 章）的标准表示。相邻角度插值、微分等运算库齐全（Eigen/EigenGeometry、Sophus）。</p>
+<h3 id="133-运动学">13.3 运动学</h3>
+<h4 id="1331-机械臂正逆解与雅可比">13.3.1 机械臂：正逆解与雅可比</h4>
+<p><strong>正运动学</strong>（关节角 → 末端位姿）由 DH 参数（Denavit–Hartenberg：每关节 4 个几何参数）链乘得到，唯一且稳定。<strong>逆运动学</strong>（末端位姿 → 关节角）是控制真正需要的方向，两类解法：</p>
+<ul>
+<li>解析解：结构特殊（球腕，Pieper 定理）的 6 轴工业臂存在闭式解，快但只对特定构型；</li>
+<li>数值解（通用）：雅可比伪逆迭代 $\Delta\theta = J^{+} \Delta x$，$J^{+} = J^T (J J^T)^{-1}$。</li>
+</ul>
+<p><strong>雅可比矩阵</strong> $J(q)$ 把关节速度映射为末端速度：$\dot{x} = J(q)\, \dot{\theta}$。</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$q, \dot{\theta}$</td>
+<td>关节位置、关节速度向量（$n$ 维）</td>
+</tr>
+<tr>
+<td>$\dot{x}$</td>
+<td>末端线速度 + 角速度（6 维）</td>
+</tr>
+<tr>
+<td>$J^{+}$</td>
+<td>雅可比伪逆（最小范数解）</td>
+</tr>
+<tr>
+<td>奇异位形</td>
+<td>$\det J \to 0$：某方向速度不可生成，伪逆发散，数值解爆冲</td>
+</tr>
+<tr>
+<td>冗余自由度</td>
+<td>$n > 6$（如 7 轴臂）时解不唯一，零空间 $(I - J^{+}J)z$ 内可同时优化次要目标（避奇异、避障、关节限位）</td>
+</tr>
+</tbody>
+</table>
+<p>奇异附近的数值稳定解法是<strong>阻尼最小二乘（DLS）</strong>：$J^{+} = J^T (J J^T + \lambda^2 I)^{-1}$——牺牲一点精度换取远离奇异时的有限解。</p>
+<h4 id="1332-移动底盘差速驱动运动学">13.3.2 移动底盘：差速驱动运动学</h4>
+<p>两轮差速底盘（AMR/扫地机最常见构型）的运动学：</p>
+<p>$$v = \frac{r(\omega_r + \omega_l)}{2}, \qquad \omega = \frac{r(\omega_r - \omega_l)}{b}$$</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+<th>单位</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$v, \omega$</td>
+<td>车体线速度、角速度</td>
+<td>m/s, rad/s</td>
+</tr>
+<tr>
+<td>$r$</td>
+<td>驱动轮半径</td>
+<td>m</td>
+</tr>
+<tr>
+<td>$\omega_r, \omega_l$</td>
+<td>右/左轮角速度</td>
+<td>rad/s</td>
+</tr>
+<tr>
+<td>$b$</td>
+<td>两轮间距</td>
+<td>m</td>
+</tr>
+</tbody>
+</table>
+<p>车体位姿积分 $\dot{x} = v\cos\theta,\ \dot{y} = v\sin\theta,\ \dot{\theta} = \omega$ 得到<strong>轮式里程计</strong>——打滑与轮径误差使其误差单调累积，这正是第 12 章说"定位不能只靠里程计"的原因。阿克曼转向（汽车构型）用第 3 章自行车模型描述；麦克纳姆轮/全向轮的映射矩阵同理可推。</p>
+<h3 id="134-动力学与力控">13.4 动力学与力控</h3>
+<h4 id="1341-多体动力学与计算力矩控制">13.4.1 多体动力学与计算力矩控制</h4>
+<p>关节空间动力学方程（拉格朗日形式）：</p>
+<p>$$M(q)\ddot{q} + C(q, \dot{q})\dot{q} + g(q) = \tau + J^T F_{ext}$$</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$M(q)$</td>
+<td>惯性矩阵（随构型变化，正定）</td>
+</tr>
+<tr>
+<td>$C(q,\dot{q})\dot{q}$</td>
+<td>科氏力与离心力</td>
+</tr>
+<tr>
+<td>$g(q)$</td>
+<td>重力项</td>
+</tr>
+<tr>
+<td>$\tau$</td>
+<td>关节力矩</td>
+</tr>
+<tr>
+<td>$F_{ext}$</td>
+<td>末端外力</td>
+</tr>
+</tbody>
+</table>
+<p><strong>计算力矩控制（computed torque）</strong>把模型项全部前馈抵消：</p>
+<p>$$\tau = M(q)\left( \ddot{q}_d + K_d \dot{e} + K_p e \right) + C(q,\dot{q})\dot{q} + g(q)$$</p>
+<p>理想模型下误差动态精确线性化为 $\ddot{e} + K_d \dot{e} + K_p e = 0$——强耦合的多体系统被解耦成 $n$ 个独立二阶环节，每个关节等效一个 PD，第 3 章二阶系统的全部调参经验直接适用。模型误差由 PD 的鲁棒性兜底。</p>
+<h4 id="1342-阻抗导纳控制与环境交互的正确姿势">13.4.2 阻抗/导纳控制：与环境交互的正确姿势</h4>
+<p>位置控制在接触任务（装配、打磨、拖动示教）中会与刚性环境打架，必须控制"力-位关系"。阻抗控制把末端表现为一个可调的质量-阻尼-弹簧：</p>
+<p>$$M_d \ddot{x} + D_d \dot{x} + K_d (x - x_0) = F_{ext}$$</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+<th>工程意义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$M_d, D_d, K_d$</td>
+<td>期望惯量/阻尼/刚度</td>
+<td>调"手感"：装配要软顺、打磨要稳</td>
+</tr>
+<tr>
+<td>$x_0$</td>
+<td>虚拟平衡位置</td>
+<td>位置环的"零点"</td>
+</tr>
+<tr>
+<td>$F_{ext}$</td>
+<td>外力（力传感器估计或观测器，见第 10 章）</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p>实现上区分<strong>阻抗</strong>（测力出力矩，内环是力矩）与<strong>导纳</strong>（测力改位置指令，叠加在位置环上）：刚性执行器（谐波减速工业臂）常用导纳，力矩透明度好的协作臂（关节力矩控制，如 UR）用阻抗。拖动示教 = 纯阻抗模式 + 重力/摩擦补偿，人手即外力。四足/人形机器人站立行走的全身控制（WBC）是同一思想的进阶：QP 把质心、摆动腿、姿态多个任务按优先级分配为接触力与关节力矩（第 11.3 节）。</p>
+<h3 id="135-工程应用">13.5 工程应用</h3>
+<ul>
+<li><strong>工业机械臂</strong>：MoveIt 等运动规划框架的 IK 求解（数值 + DLS + 零空间优化）是标准件；轨迹执行层用计算力矩或增益调度 PD。</li>
+<li><strong>协作机器人</strong>：UR 系列的拖动示教、力控装配（轴孔插接：位置环 + 阻抗柔顺 + 螺旋搜索）。</li>
+<li><strong>移动机器人</strong>：底盘运动学 + 里程计（第 12 章定位输入）；航迹跟踪控制器把第 14 章的参考轨迹转成 $(v, \omega)$ 指令。</li>
+<li><strong>四足/人形</strong>：模型预测 + WBC（如 MIT Cheetah、ANYmal）或第 15 章 RL 策略。</li>
+</ul>
+<h3 id="136-代码实现二连杆逆运动学python">13.6 代码实现：二连杆逆运动学（Python）</h3>
+<p>13.3.1 节数值逆解的最小实现：正运动学算末端位置 → 雅可比伪逆把位置误差换算为关节增量 → 迭代逼近。工业臂的 IK 求解器（如 MoveIt 中）就是在这个骨架上加了阻尼最小二乘、零空间优化与关节限位：</p>
+
+<pre><code class="language-python">&quot;&quot;&quot;二连杆平面机械臂: 雅可比伪逆迭代求逆运动学 (13.3.1 节)&quot;&quot;&quot;
+import numpy as np
+
+L1, L2 = 1.0, 0.8                          # 连杆长度 m
+
+def fk(q):
+    &quot;&quot;&quot;正运动学: 关节角 -&gt; 末端位置&quot;&quot;&quot;
+    x = L1*np.cos(q[0]) + L2*np.cos(q[0] + q[1])
+    y = L1*np.sin(q[0]) + L2*np.sin(q[0] + q[1])
+    return np.array([x, y])
+
+def jacobian(q):
+    &quot;&quot;&quot;2x2 雅可比: 关节角速度 -&gt; 末端线速度 ẋ = J·q̇&quot;&quot;&quot;
+    s0, c0 = np.sin(q[0]), np.cos(q[0])
+    s01, c01 = np.sin(q[0] + q[1]), np.cos(q[0] + q[1])
+    return np.array([[-L1*s0 - L2*s01, -L2*s01],
+                     [ L1*c0 + L2*c01,  L2*c01]])
+
+q = np.array([0.3, 0.5])                   # 初始关节角
+target = np.array([1.2, 0.9])              # 期望末端位置 (可达: |target| ≤ L1+L2)
+for _ in range(50):
+    dx = target - fk(q)
+    q += np.linalg.pinv(jacobian(q)) @ dx  # Δq = J⁺·Δx
+print(f&quot;末端 = {fk(q).round(4)}, 目标 = {target}&quot;)
+print(f&quot;关节角 = {q.round(3)}&quot;)
+</code></pre>
+
+<h3 id="137-实践要点">13.7 实践要点</h3>
+<ul>
+<li><strong>补偿先行</strong>：重力补偿 + 摩擦补偿（库仑 + 粘滞模型）做完，PD 才有"小增益大效果"；摩擦建模精度决定了零速换向的平滑度。</li>
+<li><strong>任务空间增益的单位意识</strong>：阻抗参数是物理单位（N/m、N·s/m），与关节空间 PD 增益之间隔着 $J^T$，换算时注意映射的非对角耦合。</li>
+<li><strong>奇异保护是安全项</strong>：DLS 的 $\lambda$ 按雅可比条件数自适应，接近奇异时加大阻尼并限速。</li>
+<li><strong>力控链路带宽</strong>：力传感器噪声大，阻抗控制内环带宽受采样与滤波限制——力控回路的相位预算方法与第 3 章完全一致。</li>
+</ul>
+<hr />
+<h2 id="14-路径规划与轨迹生成">14. 路径规划与轨迹生成</h2>
+<h3 id="141-背景">14.1 背景</h3>
+<p>控制回答"如何稳定地到达"，规划回答"到哪里去、走哪条路"。工程系统的规划普遍分层：<strong>全局规划</strong>（地图级，秒级/事件触发）→ <strong>局部规划</strong>（滚动避障与平滑，10–50 Hz）→ <strong>轨迹生成</strong>（把几何路径变成带时间戳的参考）→ <strong>路径跟踪</strong>（第 6/7/11 章的控制器消费参考）。自动驾驶的"感知-预测-规划-控制"分层、机器人导航栈（Nav2）的全局/局部双规划器，都是这个骨架的实例。</p>
+<h3 id="142-全局规划">14.2 全局规划</h3>
+<h4 id="1421-图搜索a-及家族">14.2.1 图搜索：A* 及家族</h4>
+<p>地图先离散为图（栅格/拓扑）。Dijkstra 保证最优但盲目扩散；<strong>A*</strong> 用启发式引导搜索方向：</p>
+<p>$$f(n) = g(n) + h(n)$$</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$g(n)$</td>
+<td>起点到节点 $n$ 的已走代价</td>
+</tr>
+<tr>
+<td>$h(n)$</td>
+<td>启发函数：$n$ 到目标的估计代价</td>
+</tr>
+<tr>
+<td>$f(n)$</td>
+<td>估计总代价，每次扩展 $f$ 最小的节点</td>
+</tr>
+</tbody>
+</table>
+<p><strong>可采纳性</strong>（$h$ 不高估，$h \le h^*$）保证 A<em> 找到最优解；$h$ 取欧氏距离/对角距离是栅格地图的常规选择；$h = 0$ 退化为 Dijkstra。变体：JPS（跳点搜索，栅格加速）、D</em> Lite（动态重规划，环境变化只局部修复——火星车探路的历史经典）。</p>
+<h4 id="1422-采样式规划rrt-家族">14.2.2 采样式规划：RRT 家族</h4>
+<p>高维空间（机械臂 7 轴、动态系统状态空间）建图不现实，改用采样：PRM（概率路线图，先建图后多次查询，适合静态环境）；<strong>RRT</strong>（快速探索随机树，从起点向随机采样点生长，天然处理运动学约束）；<strong>RRT*</strong>（重接线机制，树保持渐近最优，代价是更多近邻计算）；Informed RRT*（已知解后把采样限制在椭球内加速收敛）。RRT 家族是机械臂运动规划的默认选择（OMPL 库的标准内容）。</p>
+<h4 id="1423-考虑运动学约束的搜索hybrid-a">14.2.3 考虑运动学约束的搜索：Hybrid A*</h4>
+<p>车辆不能横移、有最小转弯半径，栅格 A<em> 的路径车辆走不了。Hybrid A</em> 在搜索节点上直接用<strong>连续车辆状态</strong>（位置 + 航向），扩展时用运动学可行基元（Reeds-Shepp 曲线：可前进可倒车），再用解析扩展（到目标的完整 RS 曲线）提前收敛——<strong>自动泊车的标配算法</strong>（Dolgov 等，DARPA 城市挑战赛 Stanford Junior）。State Lattice 是同思想的栅格化版本。</p>
+<h3 id="143-局部规划与避障">14.3 局部规划与避障</h3>
+<ul>
+<li><strong>DWA</strong>（动态窗口法）：在速度空间采样可达的 $(v, \omega)$ 轨迹，按目标朝向 + 障碍间隙 + 速度打分择优——ROS1 的经典局部规划器，简单可靠。</li>
+<li><strong>TEB</strong>（时间弹性带）：把轨迹表示为可优化的时间图（g2o 求解），同时优化路径长度、时间、与障碍距离、运动学可行性——质量高于 DWA，算力亦然。</li>
+<li><strong>人工势场法 APF</strong>：目标引力 + 障碍斥力的合力驱动：</li>
+</ul>
+<p>$$U = \underbrace{\tfrac{1}{2} k_{att} \lVert x - x_{goal} \rVert^2}_{\text{引力}} + \underbrace{\tfrac{1}{2} k_{rep} \left( \tfrac{1}{d} - \tfrac{1}{d_0} \right)^2}_{\text{斥力}（d < d_0 \text{ 时生效}）}$$</p>
+<p>控制量取负梯度 $u = -\nabla U$。优点是 O(障碍数) 极快、可写成连续控制律直接进控制回路（无人机避障常用）；致命缺点是<strong>局部极小</strong>（合力为零的死点，如凹形障碍），工程上必须配逃逸机制或与搜索法组合。</p>
+<h3 id="144-自动驾驶规划专用件">14.4 自动驾驶规划专用件</h3>
+<ul>
+<li><strong>Frenet 坐标系</strong>：把笛卡尔坐标投影到参考线的（纵向 $s$，横向 $l$）坐标——道路是细长的，把二维规划降为两个耦合较弱的低维问题，是车道内行驶规划的通用预处理。</li>
+<li><strong>Lattice 采样规划</strong>：在 Frenet 空间对终端状态撒样（横纵向各用多项式连接），每条轨迹按<strong>安全（碰撞）/舒适（加速度、加加速度）/效率（速度保持）</strong>代价打分择优——Apollo 的lattice planner 思路。</li>
+<li><strong>EM Planner</strong>（Apollo）：路径-速度迭代优化 + 凸空间生成，代表"优化式"路线；Autoware 走类似路线。</li>
+<li><strong>行为决策</strong>：变道/让行/超车用有限状态机（FSM）或行为树（Behavior Tree，可组合、可调试，机器人界的事实标准）；POMDP 是理论完备但算力昂贵的参考系。</li>
+</ul>
+<h3 id="145-轨迹生成">14.5 轨迹生成</h3>
+<p>路径（几何）与轨迹（几何 + 时间）的区分是工程关键——控制器需要的是"第 $t$ 秒在哪"。</p>
+<ul>
+<li><strong>五次多项式</strong>：给定起末点的位置、速度、加速度（6 个边界条件唯一确定），分段拼接是最小可行方案；</li>
+<li><strong>Minimum jerk</strong>（Flash–Hogan，1985）：$\min \int \lVert \dddot{p}(t) \rVert^2 dt$——与人手臂运动一致，平滑性的经典度量；</li>
+<li><strong>Minimum snap</strong>（Mellinger &amp; Kumar，2011）：四旋翼的推力近似正比于加速度、力矩正比于 jerk 以下各项，故以四阶导数为代价 $\min \int \lVert p^{(4)}(t) \rVert^2 dt$——差异化平坦性（differential flatness）使四旋翼轨迹优化变成 QP，是四旋翼轨迹规划的理论基石；</li>
+<li><strong>B 样条 / Bezier</strong>：曲线被控制点包络（凸包性质），便于构造"保证不撞"的安全走廊（四足落脚点、无人机走廊规划常用）；</li>
+<li><strong>速度规划</strong>：给定几何路径，按加速度/加加速度（jerk）限制分配时间——梯形速度曲线（无 jerk 限制）到 S 曲线（jerk 限制，伺服标配），理论最优解即 TOPP（时间最优路径参数化）。</li>
+</ul>
+<h3 id="146-路径跟踪几何法三件套">14.6 路径跟踪：几何法三件套</h3>
+<p>规划输出的路径要交给控制器跟踪。几何法不需要模型，工程中用量最大：</p>
+<p><strong>Pure Pursuit</strong>（纯追踪）：瞄准前方 $l_d$ 处的预瞄点，折算前轮转角：</p>
+<p>$$\delta = \arctan \frac{2 L \sin\alpha}{l_d}$$</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$L$</td>
+<td>轴距</td>
+</tr>
+<tr>
+<td>$\alpha$</td>
+<td>预瞄点相对车头的方位角</td>
+</tr>
+<tr>
+<td>$l_d$</td>
+<td>预瞄距离（速度的函数：$l_d = k v$，越快看得越远）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Stanley</strong>（斯坦福 DARPA 冠军队）：前轴中心到路径的横向偏差 + 航向偏差联合反馈。几何法简单稳定但带宽低、不处理约束；<strong>要求精度与舒适度时上 MPC</strong>（第 11 章）——量产方案常见"低速泊车 pure pursuit/hybrid A* 内建跟踪 + 行车 MPC"的组合。</p>
+<h3 id="147-工程应用">14.7 工程应用</h3>
+<ul>
+<li><strong>机器人（Nav2）</strong>：全局 SMAC/NavFn + 局部 DWB/TEB/MPPI 的组合即分层骨架的教科书实现；扫地机等低成本平台用"局部规划器瘦身版"。</li>
+<li><strong>四旋翼</strong>：min-snap/走廊优化生成全局轨迹 + 差速平坦性转换 + MPC 或几何 SE(3) 控制器跟踪（Fast-Planner、EGO-Planner 为开源代表，思想即 14.4–14.6 的组合）。</li>
+<li><strong>自动驾驶</strong>：泊车 = Hybrid A* + 样条平滑 + 速度规划；行车 = Frenet lattice/EM Planner + MPC 跟踪；变道决策在行为树层。</li>
+</ul>
+<h3 id="148-代码实现栅格-apython">14.8 代码实现：栅格 A*（Python）</h3>
+<p>14.2.1 节 A* 的最小实现。启发函数用曼哈顿距离（4 邻域下不高估，保证最优性）；把邻域扩成 8 连通、启发换成对角距离，就得到栅格地图的通用版本：</p>
+
+<pre><code class="language-python">&quot;&quot;&quot;栅格 A*: f(n) = g(n) + h(n); '1' 为障碍 (14.2.1 节)&quot;&quot;&quot;
+import heapq
+
+grid = [
+    [0, 0, 0, 0, 0, 0, 0],
+    [0, 1, 1, 1, 0, 1, 0],
+    [0, 0, 0, 1, 0, 1, 0],
+    [1, 1, 0, 1, 0, 0, 0],
+    [0, 0, 0, 0, 0, 1, 0],
+]
+start, goal = (0, 0), (4, 6)
+
+def h(a, b):
+    &quot;&quot;&quot;启发: 曼哈顿距离 (4 邻域下不高估 → 最优性保证, 14.2.1 节)&quot;&quot;&quot;
+    return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+open_set = [(h(start, goal), 0, start)]    # 小顶堆: (f, g, 节点), 每次弹 f 最小
+came_from, g_best = {}, {start: 0}
+path = None
+while open_set:
+    f, g, cur = heapq.heappop(open_set)
+    if cur == goal:                        # 回溯得到完整路径
+        path = [cur]
+        while path[-1] in came_from:
+            path.append(came_from[path[-1]])
+        break
+    for d in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+        nxt = (cur[0] + d[0], cur[1] + d[1])
+        if (0 &lt;= nxt[0] &lt; len(grid) and 0 &lt;= nxt[1] &lt; len(grid[0])
+                and grid[nxt[0]][nxt[1]] == 0):
+            ng = g + 1                     # 已走代价 +1
+            if ng &lt; g_best.get(nxt, 1e9):  # 找到更优到达方式才入队
+                g_best[nxt] = ng
+                came_from[nxt] = cur
+                heapq.heappush(open_set, (ng + h(nxt, goal), ng, nxt))
+
+print(&quot;A* 路径:&quot;, path[::-1] if path else &quot;不可达&quot;)
+</code></pre>
+
+<h3 id="149-实践要点">14.9 实践要点</h3>
+<ul>
+<li><strong>分层频率预算</strong>：全局事件触发、局部 10–50 Hz、跟踪控制 100 Hz–1 kHz，层间用时间戳对齐的参考接口衔接（与第 8 章 GPS 延迟对齐同理）。</li>
+<li><strong>重规划一致性</strong>：重规划的起点必须用"当前实际状态 + 执行延迟外推"，否则每次重规划都会造成抖动。</li>
+<li><strong>安全走廊</strong>：约束优化前先算凸走廊，比在优化器里硬塞非凸避障约束便宜且稳定。</li>
+<li><strong>仿真先行</strong>：CARLA/Isaac/Gazebo 里跑通再上车/上机，规划算法的边角情况（死锁、振荡）只有仿真批量回归才暴露得全。</li>
+</ul>
+<hr />
+<h2 id="15-前沿学习型控制与强化学习">15. 前沿：学习型控制与强化学习</h2>
+<h3 id="151-背景">15.1 背景</h3>
+<p>前十四章的共同前提是"有模型"。接触丰富（四足足底）、形变体（绳索、织物）、流体耦合（游动）场景下白盒建模极其昂贵——<strong>强化学习（RL）</strong>绕开建模，让策略在（主要是仿真里的）试错中从奖励信号学出来。2018 年后算力与仿真器（MuJoCo、Isaac Sim，GPU 上并行数万环境）成熟，RL 运动控制从论文走进量产：四足机器人 trot/跳跃/负载鲁棒行走的商业版本大量采用 RL 策略；2023 年 ETH Zurich 的 Swift 系统以 RL + 真机微调在无人机竞速中击败人类世界冠军（Nature 封面），证明了超越人工调参的上限。</p>
+<h3 id="152-数学定义">15.2 数学定义</h3>
+<p>序贯决策建模为马尔可夫决策过程 MDP $(S, A, P, R, \gamma)$：</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$S, A$</td>
+<td>状态空间、动作空间</td>
+</tr>
+<tr>
+<td>$P(s' \mid s, a)$</td>
+<td>环境转移（未知，靠采样）</td>
+</tr>
+<tr>
+<td>$R(s, a)$</td>
+<td>奖励函数（<strong>工程师真正设计的东西</strong>）</td>
+</tr>
+<tr>
+<td>$\gamma \in [0, 1)$</td>
+<td>折扣因子（远期奖励权重）</td>
+</tr>
+<tr>
+<td>$\pi(a \mid s)$</td>
+<td>策略：状态到动作的映射（通常是个神经网络）</td>
+</tr>
+</tbody>
+</table>
+<p>目标是最大化期望折扣回报 $G_t = \sum_{k} \gamma^k r_{t+k}$。策略梯度类算法直接对 $\pi$ 求梯度，代表 PPO 的裁剪目标：</p>
+<p>$$L(\theta) = \mathbb{E}\left[ \min\left( \rho_t A_t,\; \mathrm{clip}(\rho_t, 1-\epsilon, 1+\epsilon) A_t \right) \right], \qquad \rho_t = \frac{\pi_\theta(a_t \mid s_t)}{\pi_{\theta_{old}}(a_t \mid s_t)}$$</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$\rho_t$</td>
+<td>新旧策略的概率比（限制单次更新步长，训练稳定性来源）</td>
+</tr>
+<tr>
+<td>$A_t$</td>
+<td>优势函数：该动作比平均好多少</td>
+</tr>
+<tr>
+<td>SAC</td>
+<td>另一主流：最大熵 RL，鼓励探索，对超参更鲁棒</td>
+</tr>
+</tbody>
+</table>
+<p>on-policy（PPO，数据用一次就丢）与 off-policy（SAC，回放池复用数据）是工程选型的第一分叉。</p>
+<h3 id="153-sim-to-real从仿真到真机">15.3 Sim-to-Real：从仿真到真机</h3>
+<p>纯仿真训练的策略直接上真机会败于"现实差距"（动力学误差、延迟、噪声）。三大工程手段：</p>
+<ol>
+<li><strong>域随机化</strong>：训练时随机化质量、摩擦、延迟、传感器噪声等参数，策略被迫学出对参数不敏感的鲁棒行为——本质是"用数据分布换模型精度"；</li>
+<li><strong>执行器网络</strong>（ANYmal，Science Robotics 2019）：不用理想力矩模型，而用网络学习电机真实的电流-力矩-速度非线性，消除 sim-to-real 的最大单项误差；</li>
+<li><strong>师生蒸馏</strong>：教师策略用特权信息（真实外力、地形真值）训练，学生策略只用机载传感器蒸馏模仿——部署端便宜且鲁棒。</li>
+</ol>
+<h3 id="154-模仿学习与-vla">15.4 模仿学习与 VLA</h3>
+<p>RL 之外的第二条学习路线是<strong>模仿学习</strong>：从人类示教数据直接学策略（行为克隆 BC 最简，DAgger 处理分布漂移）。2022 年后演进为 <strong>VLA</strong>（视觉-语言-动作大模型）：以视觉语言大模型为骨干，端到端输出机器人动作（Google RT-2、Physical Intelligence π0、NVIDIA GR00T），目标是"看懂指令 → 泛化到没见过物体"的通用操作。目前泛化能力与可靠性仍是主要缺口，处于产业早期。</p>
+<h3 id="155-学习型-vs-模型驱动工程决策">15.5 学习型 vs 模型驱动：工程决策</h3>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>模型驱动（PID/LQR/MPC）</th>
+<th>学习型（RL/IL）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>前提</td>
+<td>可建模</td>
+<td>可仿真/可采集大量数据</td>
+</tr>
+<tr>
+<td>安全与认证</td>
+<td>可分析（裕度、稳定性）</td>
+<td>难以证明，靠测试覆盖</td>
+</tr>
+<tr>
+<td>极限性能</td>
+<td>受设计者水平限制</td>
+<td>可能超越（Swift 案例）</td>
+</tr>
+<tr>
+<td>现场可维护性</td>
+<td>参数可解释、可手工干预</td>
+<td>重训依赖管线与数据</td>
+</tr>
+<tr>
+<td>适用</td>
+<td>电机、电池、车辆、常规飞行</td>
+<td>接触丰富运动、难建模技能</td>
+</tr>
+</tbody>
+</table>
+<p><strong>混合架构是当前工程主流</strong>：RL 出参考/处理难建模部分，模型法（MPC/PID/安全滤波）在底层兜底——"学习层提性能，控制层保安全"。典型如 RL 步态策略外层仍套速度限幅与姿态保护，四旋翼 RL 控制器配合安全滤波器（CBF 类）做避障约束。</p>
+<h3 id="156-代码实现表格-q-learningpython">15.6 代码实现：表格 Q-Learning（Python）</h3>
+<p>15.2 节价值迭代思想的最小实现：2×3 网格世界，右上格是坑，从左上走到右下，奖励设计（到达 +10、落坑 −10、每步 −0.1）让策略学出"绕开坑、最快到终点"。深度 RL（PPO/SAC）换的是函数逼近器与梯度方法，"奖励设计决定行为"这条不变：</p>
+
+<pre><code class="language-python">&quot;&quot;&quot;表格 Q-Learning: 2×3 网格世界, 格 1 是坑, 从左上走到右下 (15.2 节)&quot;&quot;&quot;
+import numpy as np
+
+n_rows, n_cols = 2, 3
+n_states, n_actions = n_rows * n_cols, 4   # 动作: 0上 1下 2左 3右
+Q = np.zeros((n_states, n_actions))
+start, pit, goal = 0, 1, 5                 # 布局:  [S][坑][2]
+gamma, alpha, eps = 0.9, 0.5, 0.2          #        [3][4][G]
+
+def env_step(s, a):
+    r, c = divmod(s, n_cols)
+    r += (a == 1) - (a == 0)               # 上/下
+    c += (a == 3) - (a == 2)               # 左/右
+    r = max(0, min(n_rows - 1, r))         # 边界夹紧
+    c = max(0, min(n_cols - 1, c))
+    s2 = r * n_cols + c
+    if s2 == goal: return s2, +10.0, True
+    if s2 == pit:  return s2, -10.0, True
+    return s2, -0.1, False                 # 步数惩罚 → 鼓励走快
+
+rng = np.random.default_rng(0)
+for ep in range(500):
+    s, done = start, False
+    while not done:
+        a = int(rng.integers(n_actions)) if rng.random() &lt; eps else int(np.argmax(Q[s]))
+        s2, rew, done = env_step(s, a)
+        Q[s, a] += alpha * (rew + gamma * (0 if done else Q[s2].max()) - Q[s, a])
+        s = s2
+
+arrows = np.array([&quot;上&quot;, &quot;下&quot;, &quot;左&quot;, &quot;右&quot;])
+print(&quot;学到的策略:&quot;)
+print(arrows[np.argmax(Q, axis=1)].reshape(n_rows, n_cols))
+# 期望: S-&gt;下, 3-&gt;右, 4-&gt;右 (绕开坑直奔目标); 坑格与终止格的策略无意义
+</code></pre>
+
+<h3 id="157-实践要点">15.7 实践要点</h3>
+<ul>
+<li><strong>奖励设计是主战场</strong>：目标项 + 平滑项 + 能耗项 + 约束惩罚的加权；警惕 reward hacking（策略钻奖励空义，如靠抖动刷奖励）——每个权重都对应一类行为退化。</li>
+<li><strong>sim-to-real 验证流程</strong>：先在"保留测试域随机化"的未见仿真参数上过测，再上真机低速/限幅渐进放权；真机回归用例要覆盖随机化的边界参数。</li>
+<li><strong>部署算力</strong>：策略网络推理延迟（Jetson 级毫秒内）要与控制频率匹配；量化（INT8）常用于压延迟。</li>
+<li><strong>可观测性与可解释性</strong>：RL 策略的输入观测与第 8 章估计器输出对接（姿态、速度都来自 ESKF），估计质量直接决定策略表现——学习的引入没有取消本文前十四章，反而加重了它们。</li>
+</ul>
+<hr />
+<h2 id="16-mcu-实现工程学从算法到固件">16. MCU 实现工程学：从算法到固件</h2>
+<h3 id="161-背景算法对-跑得好">16.1 背景：算法对 ≠ 跑得好</h3>
+<p>前十五章解决"算什么"，本章解决"怎么在 MCU 上算好"。同一段算法，PC 上验证正确、进固件后行为漂移、抖动、跑不满实时——问题几乎从不在理论，而在四个工程域：</p>
+<table>
+<thead>
+<tr>
+<th>问题域</th>
+<th>典型症状</th>
+<th>本章小节</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>数值表示</td>
+<td>PC 与固件输出对不上；定点实现精度差；偶发 NaN</td>
+<td>16.2</td>
+</tr>
+<tr>
+<td>实时时序</td>
+<td>控制周期抖动；一开调试打印就振荡；中断互相拖延</td>
+<td>16.3</td>
+</tr>
+<tr>
+<td>数据通路</td>
+<td>传感器取数慢；通信偶发卡死；总线负载失控</td>
+<td>16.4</td>
+</tr>
+<tr>
+<td>工程化</td>
+<td>参数掉电丢失；故障无保护；调试只能靠 printf 盲猜</td>
+<td>16.5–16.8</td>
+</tr>
+</tbody>
+</table>
+<h3 id="162-数值表示浮点与定点">16.2 数值表示：浮点与定点</h3>
+<p><strong>选型第一问：内核有没有 FPU（浮点运算单元）。</strong></p>
+<table>
+<thead>
+<tr>
+<th>Cortex-M 内核</th>
+<th>浮点能力</th>
+<th>对控制算法的含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>M0/M0+</td>
+<td>无 FPU，软浮点</td>
+<td>float 运算慢 20–100 倍，滤波器级数要省着用</td>
+</tr>
+<tr>
+<td>M3</td>
+<td>无 FPU</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>M4F / M7</td>
+<td>单精度硬件 FPU</td>
+<td>float 全速；<strong>double 是软仿，慢一个数量级</strong></td>
+</tr>
+<tr>
+<td>M33 / M55 / M85</td>
+<td>单精度（可选双精度）</td>
+<td>新项目默认选型</td>
+</tr>
+</tbody>
+</table>
+<p>三条铁律：</p>
+<ol>
+<li><strong>一律用 float，禁用 double</strong>（除非精度确实不够）：所有字面量带 <code>f</code> 后缀——<code>3.14159265f</code> 不带后缀按 double 编译，M4F 上每次运算都退回软浮点；</li>
+<li><strong>CMSIS-DSP 优先</strong>：<code>arm_math.h</code> 提供滤波器/矩阵/变换/控制器全套优化实现（<code>arm_biquad_cascade_df1_f32</code>、<code>arm_rfft_fast_f32</code>、<code>arm_mat_xxx</code>、<code>arm_pid_f32</code>），先查库再手写；</li>
+<li><strong>无 FPU 或极致算力场景用定点 Q15/Q31</strong>：Q15 用 16 位整数表示 $[-1, 1)$（满量程 32768）；乘法结果在 Q30，右移 15 位回 Q15，饱和用 <code>__SSAT</code> 指令。</li>
+</ol>
+<p>Q15 与浮点一阶低通对照（连续原型与浮点实现见 5.2.3 节）：</p>
+
+<pre><code class="language-c">/* Q15 定点一阶低通: y += α·(x - y)
+ * alpha 为 Q15 定点系数 = round(32768·Ts/(τ+Ts)), 由 PC 离线算好 */
+#include &quot;arm_math.h&quot;
+
+void lpf_q15(q15_t *y, q15_t x, q15_t alpha)
+{
+    q31_t acc = (q31_t)(x - *y) * alpha;             /* Q15×Q15 → Q30, 32 位不溢出 */
+    q15_t delta = (q15_t)((acc + (1 &lt;&lt; 14)) &gt;&gt; 15);  /* 四舍五入回 Q15 */
+    *y = __SSAT(*y + delta, 16);                     /* 饱和限幅, 防溢出翻转 */
+}
+</code></pre>
+
+<p>浮点侧同样有坑：<strong>非规格化数</strong>（denormal，幅值小于约 $10^{-38}$ 的数）会让部分 FPU 降速数十倍——滤波器状态长期衰减到极小值时可能踩中，加下限保护（<code>if (fabsf(s) &lt; 1e-30f) s = 0;</code>）。<strong><code>-ffast-math</code> 慎用</strong>：它允许编译器重排浮点运算并破坏 NaN/Inf 语义，控制与估计代码宁慢勿乱。</p>
+<p><strong>系数量化</strong>：PC 上设计好的滤波器（截止频率、Q 值），系数写进固件后实际响应因 float 截断略有偏离——float 时代通常可忽略，但"低截止频率 + 低采样率"的极端小系数（α → 0）仍要专门对拍验证（16.8 节工作流）。</p>
+<h3 id="163-实时结构让算法踩准节拍">16.3 实时结构：让算法踩准节拍</h3>
+<p>控制算法的实时性要求不是"跑得快"，而是<strong>每拍的执行时刻精确可复现</strong>。第 3 章讲过纯延时吃相位裕度；采样时刻的抖动（jitter）等效于随机延时，控制环的经验红线是 <strong>jitter &lt; 5%·Ts</strong>（1 kHz 环即 &lt; 50 µs）。</p>
+<p>保证节拍的关键是<strong>硬件触发链</strong>，而不是"定时器中断里再启动 ADC"：</p>
+
+<pre><code>TIM (PWM/定时器) ──硬件触发──→ ADC 同步采样 ──DMA 搬运──→ 完成中断 → 控制算法 → 写 PWM
+     ① 采样时刻由硬件决定：软件永远迟到，但永远一致
+     ② 中断里只做：读结果 → 算 → 写输出；其余全部排队给主循环/低优先级任务
+</code></pre>
+
+
+<pre><code class="language-c">/* 控制中断骨架 (1 kHz 电流环风格): 只做这五件事 */
+void dwt_init(void)                 /* DWT 周期计数器: 测耗时/抖动的标准工具 */
+{
+    CoreDebug-&gt;DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+    DWT-&gt;CYCCNT = 0;
+    DWT-&gt;CTRL  |= DWT_CTRL_CYCCNTENA_Msk;
+}
+static inline uint32_t cycles(void) { return DWT-&gt;CYCCNT; }
+
+void ADC_IRQHandler(void)           /* ADC 转换完成(由 TIM 硬件触发) */
+{
+    uint32_t t0 = cycles();
+    float iu = adc_to_amp(adc_read(CH_IU));        /* ① 读采样结果(或 DMA 缓冲) */
+    float iv = adc_to_amp(adc_read(CH_IV));
+    float duty = foc_current_loop(iu, iv, g_id_ref, g_iq_ref);  /* ② 纯算法 */
+    pwm_set_duty(duty);                             /* ③ 写输出寄存器 */
+    g_cost_cycles = cycles() - t0;                  /* ④ 耗时统计(调试期常开) */
+    if (g_iu &gt; OC_LIMIT) fault_enter(FAULT_OC);     /* ⑤ 保护判据 */
+    iwdg_refresh();                                 /*    喂狗: 环卡死即复位 */
+}
+</code></pre>
+
+<p>工程规则清单：</p>
+<ul>
+<li><strong>中断优先级显式规划</strong>：最高优先级留给节拍最硬的控制环；CAN/日志/通信放低；NVIC 抢占优先级分组不要全用默认。</li>
+<li><strong>中断里禁止</strong>：printf/日志（毫秒级阻塞）、动态内存、I2C 等慢速事务（挪到主循环或 DMA）。</li>
+<li><strong>前后台 or RTOS</strong>：单一硬实时环用"中断 + 主循环"足够；多速率任务（1 kHz 电流环 + 200 Hz 速度环 + 10 Hz 监控 + 通信）用 RTOS 按速率单调（RMS）分配——周期越短优先级越高。</li>
+<li><strong>测量优先</strong>：控制环耗时与抖动用 DWT 每拍统计、调试期经遥测上报（16.8 节），数字说话再谈优化。</li>
+</ul>
+<h3 id="164-外设数据通路uart-spi-i2c-can-fd-dma">16.4 外设数据通路：UART / SPI / I2C / CAN-FD / DMA</h3>
+<p>控制算法的输入输出最终都落在通信与采集外设上——传感器数据进来（SPI/I2C/ADC），指令与遥测出去（UART/CAN），而让这些搬运不占 CPU 节拍的引擎是 DMA。对控制系统而言，各接口的<strong>使用位置与实时性影响</strong>比协议本身的教科书差异更重要：</p>
+<table>
+<thead>
+<tr>
+<th>接口</th>
+<th>速率量级</th>
+<th>拓扑</th>
+<th>控制系统中的典型角色</th>
+<th>头号工程坑</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>UART</td>
+<td>115200 bps–数 Mbps</td>
+<td>点对点</td>
+<td>调试遥测、GPS（NMEA/UBX）、数传</td>
+<td>阻塞式发送挤占控制环</td>
+</tr>
+<tr>
+<td>SPI</td>
+<td>10–50 MHz</td>
+<td>一主多从</td>
+<td>高速 IMU 读取、ADC、Flash</td>
+<td>CPOL/CPHA 配错读出全 0</td>
+</tr>
+<tr>
+<td>I2C</td>
+<td>100 k–1 MHz</td>
+<td>两线多从</td>
+<td>低速传感器（磁力计/气压计/温度）、EEPROM</td>
+<td>从机拉死总线；不进实时路径</td>
+</tr>
+<tr>
+<td>CAN / CAN-FD</td>
+<td>仲裁 1 Mbps，FD 数据段至 8 Mbps</td>
+<td>多主差分总线</td>
+<td>电调指令、BMS 组内通信、整车/整机信号</td>
+<td>bus-off 后无恢复策略</td>
+</tr>
+<tr>
+<td>DMA</td>
+<td>与源同速</td>
+<td>存储器↔外设搬运</td>
+<td>ADC 采样流、UART/SPI 收发后台化</td>
+<td>M7 上 D-Cache 一致性</td>
+</tr>
+</tbody>
+</table>
+<p><strong>数据面 / 控制面分离</strong>是总原则：</p>
+<ul>
+<li><strong>实时数据面</strong>（控制环的输入输出）：硬件定时触发 + DMA + 中断登记（16.3 的链路），永不让 CPU 轮询等待；</li>
+<li><strong>非实时控制面</strong>（配置、低速传感器、参数读写、日志）：主循环/低优先级任务执行，一律带超时与重试；</li>
+<li><strong>通信到达时刻 ≠ 数据采样时刻</strong>：传感器内部转换、总线传输、协议解析各占一段延迟——凡进估计器的量都打硬件时间戳。第 8 章 GPS 延迟对齐（8.5.1）就是这条原则的放大版。</li>
+</ul>
+<p>各接口工程要点：</p>
+<ul>
+<li><strong>UART</strong>：发送走 DMA，中断里绝不 printf；接收用循环 DMA 环形缓冲（代码见下）；帧协议 = 帧头魔数 + 长度 + payload + CRC，帧头用于乱流重同步；GPS 模块优先选 UBX 二进制协议（带观测时间信息，可做延迟估计）而非 NMEA 文本。</li>
+<li><strong>SPI</strong>：读 IMU 是控制回路内最高频总线事务（1–8 kHz）。事务要短（陀螺 6 字节地址自增连读），用 DMA/中断完成、绝不忙等；"读出全 0x00 / 全 0xFF / 字节错位"先查 CPOL/CPHA 与片选时序——这是 SPI 的头号 bug 来源。</li>
+<li><strong>I2C</strong>：定位是"低速、非实时"——磁力计/气压计/温度全部放控制环外。必配超时与 NACK 重试；总线被从机拉死的标准解法是 SCL 手工打 9 个时钟 + STOP 解锁；上拉电阻按总线电容取 2.2–4.7 kΩ。</li>
+<li><strong>CAN / CAN-FD</strong>：硬件过滤器先筛 ID，不进 CPU 的帧不算负载；发送用 mailbox/FIFO + 完成中断；错误处理三件套——错误计数器监控（TEC/REC）、error passive 告警、bus-off 后受控恢复（重新初始化 + 延迟重入，防重入风暴）。FD 相比 CAN 2.0：数据段 8→64 字节、数据段提速至 8 Mbps、CRC 增强，一帧可携带完整传感器簇。多节点系统还要应用层心跳与超时判定——任何"在线/离线"结论都必须有超时回退。</li>
+<li><strong>DMA</strong>：三种常用形态——循环模式 + 计数器换算写指针（UART 环形缓冲，见下）、双缓冲乒乓（ADC 帧流，半满/全满中断流水处理）、内存到内存（搬运标定表）。M7 核带 D-Cache：DMA 直写内存后 CPU 可能读到缓存旧值，共享缓冲区要配 Cache 失效/清理，或放非缓存区——H7 上"DMA 数据偶尔是旧值"几乎都源于此。</li>
+</ul>
+
+<pre><code class="language-c">/* UART RX 循环 DMA 环形缓冲: DMA 后台搬运零拷贝, 中断零处理, 主循环按需取新数据 */
+static uint8_t  rxbuf[512];
+static uint16_t rd_idx;                       /* 软件读指针 */
+
+void uart_dma_rx_start(void)
+{
+    HAL_UART_Receive_DMA(&amp;huart1, rxbuf, sizeof rxbuf);   /* DMA 循环模式 */
+}
+
+/* 主循环每圈调用: 取走新字节喂帧解析状态机 (帧协议见 16.8) */
+void uart_rx_poll(void)
+{
+    uint16_t wr = sizeof rxbuf - __HAL_DMA_GET_COUNTER(huart1.hdmarx);
+    while (rd_idx != wr) {                    /* 写指针追上读指针的区间即新数据 */
+        frame_feed(rxbuf[rd_idx]);
+        rd_idx = (rd_idx + 1) % sizeof rxbuf;
+    }
+}
+</code></pre>
+
+<p>通用规则：中断里只登记（置标志/入队），解析与处理放任务层；每条链路必有超时与错误计数器（计入遥测）；数据完整性用硬件 CRC 外设；采集时刻用硬件时间戳，不用"处理到它"的时刻。</p>
+<hr />
+<h3 id="165-查表与近似计算">16.5 查表与近似计算</h3>
+<p>三角函数、开方、曲线插值在控制回路里高频出现，通用库函数又慢又占空间。工程三板斧：</p>
+<ol>
+<li><strong>CMSIS-DSP 快速函数</strong>：<code>arm_sqrt_f32</code>（M4F 上是 VSQRT 指令包装，十几个周期）、<code>arm_sin_f32</code>/<code>arm_cos_f32</code>（查表 + 插值，几十周期）；</li>
+<li><strong>硬件加速器</strong>：STM32G4/H7 等带 CORDIC（三角函数硬件）与 FMAC（滤波器硬件，可脱核跑 IIR/FIR），近乎零 CPU 占用；</li>
+<li><strong>自制 LUT（查找表）+ 线性插值</strong>：传感器特性曲线、OCV-SOC、电机参数-温度曲线的标准做法——标定数据进表，运行时插值：</li>
+</ol>
+
+<pre><code class="language-c">/* 一维 LUT 线性插值: xs 单调递增。等间隔表可用 (x-x0)/dx 直算下标 O(1) */
+float lut1d_eval(const float *xs, const float *ys, int n, float x)
+{
+    if (x &lt;= xs[0])     return ys[0];            /* 两侧钳位: 外推是误差来源 */
+    if (x &gt;= xs[n - 1]) return ys[n - 1];
+    int i = 0;
+    while (xs[i + 1] &lt; x) i++;                   /* 短表顺序扫即可, 长表二分 */
+    float t = (x - xs[i]) / (xs[i + 1] - xs[i]);
+    return ys[i] + t * (ys[i + 1] - ys[i]);
+}
+</code></pre>
+
+<p>BMS 实例：OCV-SOC 曲线按 SOC 等间隔 5% 建表（21 点），SOC-EKF（8.5.3 节）每拍的 <code>OCV(SOC)</code> 与 $\partial OCV/\partial SOC$（相邻表项差分）都从表里取——比每拍算多项式快且标定流程简单。8.5.3 提到过 LFP 平坦段问题：等 SOC 间隔表在平坦段分辨率不足，改等电压间隔建表更好。</p>
+<h3 id="166-参数管理掉电保存与单一真相源">16.6 参数管理：掉电保存与单一真相源</h3>
+<p>控制参数（PID 增益、滤波截止、保护门限、标定系数）必须掉电保存，且<strong>同一参数只允许有一个定义处</strong>（默认值表）——默认值散落代码各处是"改一个漏三个"的根源。标准结构：参数块 = 数据 + 魔数（识别合法块）+ 版本号（结构迁移依据）+ CRC（完整性校验）：</p>
+
+<pre><code class="language-c">typedef struct {
+    float    kp, ki, kd;      /* 控制参数 */
+    float    fc_lpf;          /* 低通截止 Hz */
+    uint32_t oc_limit;        /* 过流门限 */
+} params_t;
+
+typedef struct {
+    params_t p;
+    uint16_t magic;           /* 0x4250 = 'PB', 合法块标识 */
+    uint16_t version;         /* 结构版本号, 字段增删时 +1 */
+    uint32_t crc;             /* CRC32, 覆盖前面全部字节 */
+} params_block_t;
+
+bool params_load(params_t *out)
+{
+    params_block_t b;
+    flash_read(PARAM_ADDR, &amp;b, sizeof b);
+    if (b.magic != 0x4250 || crc32((uint8_t *)&amp;b, sizeof b - 4) != b.crc)
+    {
+        *out = params_defaults();   /* 首次上电/写入中断电/Flash 坏块: 回默认 */
+        return false;
+    }
+    if (b.version != PARAMS_VERSION) params_migrate(&amp;b);  /* 老版本字段迁移 */
+    *out = b.p;
+    return true;
+}
+</code></pre>
+
+<p>Flash 侧注意：擦除按扇区（几 KB 起，毫秒级耗时且寿命有限，约 1 万–10 万次）、写入按字/双字对齐——参数保存放主循环/低优先级任务，<strong>绝不在控制中断里擦 Flash</strong>；高频写入用双区乒乓或日志式追加（模拟 EEPROM）。</p>
+<h3 id="167-故障防护与状态机">16.7 故障防护与状态机</h3>
+<p>玩具与产品的分水岭在故障路径。控制器顶层是一个显式状态机：</p>
+<table>
+<thead>
+<tr>
+<th>状态</th>
+<th>行为</th>
+<th>退出条件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BOOT</td>
+<td>时钟/外设初始化，参数加载（16.6）</td>
+<td>自检通过</td>
+</tr>
+<tr>
+<td>SELFTEST</td>
+<td>传感器静默检查、执行器小信号动作、CRC 校验</td>
+<td>全部通过</td>
+</tr>
+<tr>
+<td>STANDBY</td>
+<td>输出封锁，等待指令</td>
+<td>收到使能</td>
+</tr>
+<tr>
+<td>RUN</td>
+<td>正常闭环，保护判据在线监视</td>
+<td>任一保护触发 / 收到停机</td>
+</tr>
+<tr>
+<td>FAULT</td>
+<td><strong>输出封锁（最高优先级）</strong>，记录故障码，闭锁重使能</td>
+<td>特定条件清除（如过温冷却）</td>
+</tr>
+</tbody>
+</table>
+<p>保护判据是 16.3 中断骨架里 <code>fault_enter()</code> 的展开——过流/过压/欠压/超温/超速/反馈断线，每条判据都要有<strong>去抖</strong>（连续 N 拍越限才动作，防单点毛刺误触发）与<strong>分级</strong>（先降额后封波）。数值侧防 NaN 污染：传感器入口做 <code>isnan</code> 检查——一次 NaN 会顺着滤波器积分器污染全部状态且永不自愈（5.4 节"滤波器状态复位"要求针对的就是这类事故）；第 8 章的新息门控（8.7 节 checklist）是统计版的野值防护。看门狗喂狗点放在控制环最末端——任何一环卡死都会触发复位而不是静默失控。</p>
+<h3 id="168-调试与验证数据回传与定浮点对拍">16.8 调试与验证：数据回传与定浮点对拍</h3>
+<p>MCU 算法调试的核心工作流是<strong>把每拍中间量完整送出来，在 PC 端还原分析</strong>。printf 文本又慢又挤实时性，标准做法是定长二进制帧（帧头魔数 + CRC 即 16.4 节的帧协议）：</p>
+
+<pre><code class="language-c">typedef struct __attribute__((packed)) {   /* 16 字节遥测帧: 1 kHz 即 16 KB/s */
+    uint32_t tick;                         /* 控制拍计数, 时序对齐锚点 */
+    float ref, meas, out;                  /* 参考/测量/输出 */
+} telem_frame_t;
+/* UART DMA 后台发送 (16.4), 不进中断路径; 耗时/抖动统计与帧号同帧上报 */
+</code></pre>
+
+<p>PC 端解析与可视化：</p>
+
+<pre><code class="language-python">&quot;&quot;&quot;UART 二进制遥测流解析: '&lt;Ifff' = 小端 uint32 + 3×float (与 C 结构体逐字节对应)&quot;&quot;&quot;
+import serial, struct
+FRAME = struct.Struct('&lt;Ifff')
+buf = b''
+with serial.Serial('COM5', 921600) as ser:
+    while True:
+        buf += ser.read(4096)
+        while len(buf) &gt;= FRAME.size:
+            tick, ref, meas, out = FRAME.unpack(buf[:FRAME.size])
+            buf = buf[FRAME.size:]
+            # 送入 numpy 环形缓冲 → 画阶跃响应/Bode/FFT, 衔接 3.4 与 2.5 节的分析工具
+</code></pre>
+
+<p><strong>对拍（regression against reference）</strong>是验证数值实现的标准方法：同一份输入数据分别跑 PC 高精度参考（Python double）与固件实现（C float），逐拍比对输出。前提是<strong>算法层与硬件层解耦</strong>——控制算法写成纯函数（输入数组、输出数组，不碰寄存器），硬件交互隔离在薄薄一层接口里；这样算法能在 PC 上用录制的实机数据离线重放调试，改完再回灌固件。HIL（硬件在环，实时仿真器扮演被控对象）是量产控制器的大杀器，思路相同：把被控对象从调试循环里抽出来。</p>
+<h3 id="169-资源与性能预算">16.9 资源与性能预算</h3>
+<p>量级参考（Cortex-M4F @168 MHz、单精度、<code>-O2</code>；<strong>只作决策参考，一切以 DWT 实测为准</strong>）：</p>
+<table>
+<thead>
+<tr>
+<th>算法（每拍）</th>
+<th>耗时量级</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>一阶低通 / PID</td>
+<td>&lt; 1 µs</td>
+<td>几十次乘加</td>
+</tr>
+<tr>
+<td>Biquad（每节）</td>
+<td>~0.5 µs</td>
+<td>CMSIS-DSP 更快</td>
+</tr>
+<tr>
+<td>2 状态 KF（8.6 节）</td>
+<td>1–2 µs</td>
+<td>2×2 手写矩阵</td>
+</tr>
+<tr>
+<td>24 状态 ESKF 全流程</td>
+<td>100–500 µs</td>
+<td>高阶矩阵乘已上万周期；PX4 EKF2 跑在更高主频的 F7/H7</td>
+</tr>
+<tr>
+<td>256 点 FFT</td>
+<td>数十 µs</td>
+<td><code>arm_rfft_fast_f32</code></td>
+</tr>
+</tbody>
+</table>
+<p>工程结论：<strong>内环（µs 级预算）只放 PID/低通/biquad；EKF、FFT、规划放外环、低速率或专用外设</strong>。其他预算项：优化 <code>-O2</code> 起步并核对浮点行为；大表与常系数放 Flash（<code>const</code>），热代码可拷入 RAM 执行；中断栈深度用水印（watermark）实测；<code>volatile</code> 用于中断与主循环共享的标志，多字节共享数据用关中断或双缓冲保护。</p>
+<h3 id="1610-实践要点固件落地检查清单">16.10 实践要点：固件落地检查清单</h3>
+<ul>
+<li>[ ] 所有浮点字面量带 <code>f</code> 后缀；工程内 grep 无 <code>double</code></li>
+<li>[ ] 滤波器/控制器系数由 PC 工具离线生成，脚本与系数版本受控（单一真相源）</li>
+<li>[ ] 采样由硬件触发，jitter 实测 &lt; 5%·Ts</li>
+<li>[ ] 控制中断内无 IO / 内存分配 / 慢速外设事务</li>
+<li>[ ] SPI 片选与 CPOL/CPHA 与 datasheet 核对过；I2C 全部带超时</li>
+<li>[ ] UART 收发走 DMA；总线上有错误计数器并计入遥测</li>
+<li>[ ] DMA 共享缓冲区处理过 Cache 一致性（M7）</li>
+<li>[ ] DWT 耗时与抖动统计在调试版固件常开</li>
+<li>[ ] 每条保护判据有去抖与分级；NaN 门控在传感器入口</li>
+<li>[ ] 看门狗喂狗点在控制环最末端</li>
+<li>[ ] 参数块有 magic + version + CRC，损坏回默认并可告警</li>
+<li>[ ] 遥测帧定长二进制 + 帧头，PC 端可完整还原中间量</li>
+<li>[ ] 算法层为纯函数，PC 端可用录制数据离线重放</li>
+<li>[ ] 定浮点/双精度对拍通过（误差门限事先定义）</li>
+<li>[ ] 故障码可读出（CAN/Flash），FAULT 状态输出封锁优先级最高</li>
+</ul>
+<hr />
+<h2 id="17-工程选型速查与延伸阅读">17. 工程选型速查与延伸阅读</h2>
+<h3 id="171-症状-工具速查表">17.1 症状 → 工具速查表</h3>
+<table>
+<thead>
+<tr>
+<th>现场症状 / 需求</th>
+<th>首选工具</th>
+<th>章节</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>抖动来源不明，频谱上找不到嫌疑</td>
+<td>傅里叶变换查混叠（先核对采样率）</td>
+<td>2、4</td>
+</tr>
+<tr>
+<td>机架振动污染陀螺，PID 越调越抖</td>
+<td>FFT 定位振源 + RPM/动态陷波器</td>
+<td>2、5</td>
+</tr>
+<tr>
+<td>稳态误差消不掉、负载一变就偏</td>
+<td>PID 加强 I 项（配抗饱和）</td>
+<td>6</td>
+</tr>
+<tr>
+<td>提高增益就振荡</td>
+<td>拉氏域查相位裕度，排查延时与滤波相位损失</td>
+<td>3</td>
+</tr>
+<tr>
+<td>设定值阶跃时执行器被打满后大超调</td>
+<td>积分抗饱和（钳位/反算）</td>
+<td>6.3</td>
+</tr>
+<tr>
+<td>陀螺静止漂移，姿态缓慢爬升</td>
+<td>陀螺零偏状态 + 卡尔曼/互补滤波</td>
+<td>8</td>
+</tr>
+<tr>
+<td>SOC 越用越偏，静置后跳变</td>
+<td>EKF + 等效电路模型（安时预测 + OCV 更新）</td>
+<td>8.5</td>
+</tr>
+<tr>
+<td>目标跟踪延迟明显、转弯就丢</td>
+<td>CTRV 模型 EKF + IMM + 轨迹生命周期管理</td>
+<td>8.5</td>
+</tr>
+<tr>
+<td>电流 RMS 与温升对不上</td>
+<td>采样率不足混叠/欠采样，改同步采样</td>
+<td>4</td>
+</tr>
+<tr>
+<td>多变量耦合回路互相打架</td>
+<td>状态空间 + LQR（或串级解耦）</td>
+<td>7</td>
+</tr>
+<tr>
+<td>执行器饱和导致大超调、约束频繁顶格</td>
+<td>模型预测控制 MPC</td>
+<td>11</td>
+</tr>
+<tr>
+<td>模型不准但要求强鲁棒</td>
+<td>滑模控制 / ADRC</td>
+<td>11.4</td>
+</tr>
+<tr>
+<td>电机不装编码器，要求低成本</td>
+<td>SMO + PLL 无感（低速加 HFI）</td>
+<td>10</td>
+</tr>
+<tr>
+<td>机械臂碰人/撞机无法感知</td>
+<td>动量观测器碰撞检测 / 阻抗控制</td>
+<td>10.3、13.4</td>
+</tr>
+<tr>
+<td>参数随温度/老化漂移，性能衰退</td>
+<td>RLS 在线辨识 + 增益调度</td>
+<td>9</td>
+</tr>
+<tr>
+<td>机器人"不知道自己在哪"（多峰/绑架）</td>
+<td>粒子滤波 AMCL</td>
+<td>12</td>
+</tr>
+<tr>
+<td>室内/隧道无 GPS，航迹发散</td>
+<td>VIO / 激光 SLAM + 地图匹配</td>
+<td>12</td>
+</tr>
+<tr>
+<td>机械臂接近某姿态就失控抖动</td>
+<td>雅可比奇异，DLS 阻尼 + 零空间规避</td>
+<td>13.3</td>
+</tr>
+<tr>
+<td>装配/打磨一接触就顶死或弹开</td>
+<td>阻抗/导纳控制</td>
+<td>13.4</td>
+</tr>
+<tr>
+<td>泊车路径车辆走不了（转弯半径）</td>
+<td>Hybrid A* + Reeds-Shepp</td>
+<td>14.2</td>
+</tr>
+<tr>
+<td>轨迹跟踪低速可以、高速晃</td>
+<td>pure pursuit 预瞄距离自适应，或换 MPC</td>
+<td>14.6</td>
+</tr>
+<tr>
+<td>四足/接触场景建模无从下手</td>
+<td>强化学习 + 域随机化，模型法兜底</td>
+<td>15</td>
+</tr>
+<tr>
+<td>串口一开日志，控制环就抖</td>
+<td>阻塞发送挤占实时性 → DMA + 二进制遥测</td>
+<td>16.3、16.8</td>
+</tr>
+<tr>
+<td>固件滤波器特性与 PC 设计不符</td>
+<td>系数量化/定点截断 → 定浮点对拍</td>
+<td>16.2、16.8</td>
+</tr>
+<tr>
+<td>采样时刻不稳，提增益就怪异振荡</td>
+<td>硬件触发采样 + 中断优先级梳理，DWT 实测 jitter</td>
+<td>16.3</td>
+</tr>
+<tr>
+<td>I2C 偶发总线卡死、传感器失联</td>
+<td>9 时钟解锁 + 超时重试，挪出实时路径</td>
+<td>16.4</td>
+</tr>
+<tr>
+<td>CAN bus-off 后通信全断</td>
+<td>错误计数监控 + 受控恢复状态机</td>
+<td>16.4</td>
+</tr>
+<tr>
+<td>DMA 采到的数据偶尔是旧值</td>
+<td>M7 D-Cache 一致性（失效/清理/非缓存区）</td>
+<td>16.4</td>
+</tr>
+</tbody>
+</table>
+<h3 id="172-学习路线建议">17.2 学习路线建议</h3>
+<p>按"先用起来 → 再懂原理 → 最后会设计"的顺序，比从头啃理论快得多：</p>
+<ol>
+<li><strong>第一轮（动手）</strong>：在一阶系统（温度、RC 电路、电机转速）上实现离散 PID 与一阶低通，用串口绘图观察阶跃响应；给陀螺仪数据做 FFT 找振动峰；跑通一个互补滤波姿态解算。</li>
+<li><strong>第二轮（原理）</strong>：带着第一轮的现象读第 3、5、8 章的公式，重点搞懂 $s$ 平面/ $z$ 平面稳定性对应、卡尔曼增益的 $Q/R$ 行为。</li>
+<li><strong>第三轮（设计）</strong>：完整实现一个 ESKF（姿态 + 陀螺零偏起步），或电池 EKF-SOC（需要可编程电子负载/源）；读开源飞控的估计与控制代码对照本文。</li>
+<li><strong>第四轮（扩展）</strong>：在仿真（Gazebo/Isaac、CARLA）中跑通一个导航栈（Nav2）或横向 MPC；复现 min-snap 轨迹规划或一个四足 RL locomotion 策略；把第 9–16 章的算法逐个在真实硬件上"疼"一遍。</li>
+</ol>
+<h3 id="173-延伸阅读">17.3 延伸阅读</h3>
+<p><strong>教材（按阅读顺序）</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>书</th>
+<th>定位</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Oppenheim《Signals and Systems》（信号与系统）</td>
+<td>第 2–5 章的完整数学基础</td>
+</tr>
+<tr>
+<td>胡寿松《自动控制原理》</td>
+<td>中文经典，经典控制（传递函数/频域/PID）全覆盖</td>
+</tr>
+<tr>
+<td>Franklin《Feedback Control of Dynamic Systems》</td>
+<td>与本文第 3、6、7 章对应的最小闭环教材</td>
+</tr>
+<tr>
+<td>Åström &amp; Murray《Feedback Systems》（官网有免费 PDF）</td>
+<td>现代控制入门最友好</td>
+</tr>
+<tr>
+<td>Dan Simon《Optimal State Estimation》</td>
+<td>卡尔曼家族（KF/EKF/UKF）最佳单本</td>
+</tr>
+<tr>
+<td>Thrun《Probabilistic Robotics》</td>
+<td>估计理论在机器人/自动驾驶的落地</td>
+</tr>
+<tr>
+<td>Bar-Shalom《Estimation with Applications to Tracking and Fusion》</td>
+<td>目标跟踪（第 8.5.2）的专门教材</td>
+</tr>
+<tr>
+<td>Barfoot《State Estimation for Robotics》</td>
+<td>估计理论现代统一定义（含 SLAM 后端）</td>
+</tr>
+<tr>
+<td>LaValle《Planning Algorithms》（官网免费）</td>
+<td>第 14 章规划算法的完整教材</td>
+</tr>
+<tr>
+<td>Lynch &amp; Park《Modern Robotics》（官网免费）</td>
+<td>第 13 章机器人运动学/动力学的现代教材</td>
+</tr>
+<tr>
+<td>Rawlings《MPC: Theory, Computation, and Design》</td>
+<td>MPC 理论与数值方法的权威参考</td>
+</tr>
+<tr>
+<td>韩京清《自抗扰控制技术》</td>
+<td>ADRC 原始思想的系统阐述</td>
+</tr>
+<tr>
+<td>Sutton &amp; Barto《Reinforcement Learning》</td>
+<td>第 15 章 RL 的标准入门</td>
+</tr>
+</tbody>
+</table>
+<p><strong>开源代码（最好的"活文档"）</strong>：</p>
+<ul>
+<li>PX4 EKF2（<code>ECL</code> 库）：24 状态 ESKF 的工业级实现，含时间对齐、多传感器融合；</li>
+<li>Betaflight：角速率串级 PID + 动态陷波的完整通路，代码短、注释密，适合对照第 2、5、6 章；</li>
+<li>ArduPilot EKF3、AP_ServoRelay 等控制库：与 PX4 互相印证；</li>
+<li>Autoware（自动驾驶开源栈）：跟踪器（EKF + 关联）、横向 LQR/MPC 控制器实现；</li>
+<li>ROS 2 Nav2 + OMPL：导航分层骨架与运动规划算法库（第 14 章的直接代码对应）；</li>
+<li>GTSAM / g2o / Ceres：因子图与非线性最小二乘后端（第 12 章 SLAM）；VINS-Fusion、LIO-SAM：VIO 与激光惯性里程计参考实现；</li>
+<li>OSQP / HPIPM / qpOASES：嵌入式 QP 求解器（第 11 章 MPC）；</li>
+<li>MuJoCo / Isaac Sim / Pinocchio / Drake：多体动力学仿真与 rigid body 库（第 13、15 章）；</li>
+<li>ARM CMSIS-DSP（<code>arm_math.h</code>）：滤波器/矩阵/FFT/控制器的优化实现与官方文档（第 16 章的算法底座）。</li>
+</ul>
+<p><strong>应用笔记</strong>：TI 的电池电量计系列（Impedance Track 技术概述）、ST 的 FOC 4.x 库文档（电流环整定）、ADI/TDK 的 IMU 应用笔记（抗混叠与振动）。</p>
+<hr />
+<h2 id="附录符号总表按章节首次出现排序">附录：符号总表（按章节首次出现排序）</h2>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+<th>单位</th>
+<th>首见</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$x(t), x[k]$</td>
+<td>连续/离散信号</td>
+<td>物理量</td>
+<td>1</td>
+</tr>
+<tr>
+<td>$h(t), h[k]$</td>
+<td>冲激响应</td>
+<td>—</td>
+<td>1</td>
+</tr>
+<tr>
+<td>$T_s$</td>
+<td>采样/控制周期</td>
+<td>s</td>
+<td>1</td>
+</tr>
+<tr>
+<td>$f_s$</td>
+<td>采样频率，$f_s = 1/T_s$</td>
+<td>Hz</td>
+<td>1</td>
+</tr>
+<tr>
+<td>$\omega = 2\pi f$</td>
+<td>角频率</td>
+<td>rad/s</td>
+<td>1</td>
+</tr>
+<tr>
+<td>$X[k], N, \Delta f$</td>
+<td>DFT 结果、点数、频率分辨率</td>
+<td>—, 点, Hz</td>
+<td>2</td>
+</tr>
+<tr>
+<td>$s = \sigma + j\omega$</td>
+<td>拉氏复频率变量</td>
+<td>1/s</td>
+<td>3</td>
+</tr>
+<tr>
+<td>$G(s)$</td>
+<td>传递函数</td>
+<td>—</td>
+<td>3</td>
+</tr>
+<tr>
+<td>$\tau, K$</td>
+<td>一阶时间常数、稳态增益</td>
+<td>s, —</td>
+<td>3</td>
+</tr>
+<tr>
+<td>$\omega_n, \zeta$</td>
+<td>自然频率、阻尼比</td>
+<td>rad/s, —</td>
+<td>3</td>
+</tr>
+<tr>
+<td>GM, PM</td>
+<td>增益/相位裕度</td>
+<td>dB, °</td>
+<td>3</td>
+</tr>
+<tr>
+<td>$z$</td>
+<td>Z 变换复变量，$z = e^{sT_s}$</td>
+<td>—</td>
+<td>5</td>
+</tr>
+<tr>
+<td>$\alpha$</td>
+<td>一阶低通/互补滤波系数</td>
+<td>—</td>
+<td>5</td>
+</tr>
+<tr>
+<td>$e(t), u(t), r(t), y(t)$</td>
+<td>误差、控制量、设定值、测量值</td>
+<td>物理量</td>
+<td>6</td>
+</tr>
+<tr>
+<td>$K_p, K_i, K_d$（$T_i, T_d$）</td>
+<td>PID 增益（时间常数式）</td>
+<td>见 6.2</td>
+<td>6</td>
+</tr>
+<tr>
+<td>$K_u, T_u$</td>
+<td>临界增益、临界振荡周期</td>
+<td>—, s</td>
+<td>6.4</td>
+</tr>
+<tr>
+<td>$x, u, y$（向量）</td>
+<td>状态、输入、输出向量</td>
+<td>—</td>
+<td>7</td>
+</tr>
+<tr>
+<td>$A/B/C/D$, $F/G/H$</td>
+<td>状态空间矩阵（连续/离散）</td>
+<td>—</td>
+<td>7</td>
+</tr>
+<tr>
+<td>$Q, R$（LQR）</td>
+<td>状态权重、控制权重</td>
+<td>—</td>
+<td>7</td>
+</tr>
+<tr>
+<td>$\hat{x}, P$</td>
+<td>状态估计、估计协方差</td>
+<td>—</td>
+<td>8</td>
+</tr>
+<tr>
+<td>$Q, R$（KF）</td>
+<td>过程/测量噪声协方差</td>
+<td>—</td>
+<td>8</td>
+</tr>
+<tr>
+<td>$K_k, y_k, S_k$</td>
+<td>卡尔曼增益、新息、新息协方差</td>
+<td>—</td>
+<td>8</td>
+</tr>
+<tr>
+<td>$C_N, \eta, R_0$, OCV</td>
+<td>电池额定容量、库仑效率、欧姆内阻、开路电压</td>
+<td>Ah, —, Ω, V</td>
+<td>8.5</td>
+</tr>
+</tbody>
+</table>
+<h3 id="扩展篇新增符号第-915-章">扩展篇新增符号（第 9–15 章）</h3>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+<th>首见</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$\boldsymbol{\theta},\ \boldsymbol{\varphi}_k$, $P$, $\lambda$</td>
+<td>待估参数、回归向量、参数协方差、遗忘因子</td>
+<td>9</td>
+</tr>
+<tr>
+<td>$L$（观测器）</td>
+<td>Luenberger 观测器增益</td>
+<td>10</td>
+</tr>
+<tr>
+<td>$\omega_n, \zeta$（PLL）</td>
+<td>锁相环自然频率与阻尼比</td>
+<td>10.2</td>
+</tr>
+<tr>
+<td>$z$（切换项）</td>
+<td>SMO 电流观测切换项</td>
+<td>10.2</td>
+</tr>
+<tr>
+<td>$N_p, N_c, S$</td>
+<td>MPC 预测/控制时域、控制增量权重</td>
+<td>11</td>
+</tr>
+<tr>
+<td>$s, \lambda, k, \phi$</td>
+<td>滑模面、滑模斜率、切换增益、边界层</td>
+<td>11.4</td>
+</tr>
+<tr>
+<td>$z_{1,2,3},\ b_0,\ \omega_o$</td>
+<td>ADRC 扩张状态、输入增益、观测器带宽</td>
+<td>11.4</td>
+</tr>
+<tr>
+<td>$bel(x)$, $w^{(i)}$, $N_{eff}$</td>
+<td>置信分布、粒子权重、有效粒子数</td>
+<td>12</td>
+</tr>
+<tr>
+<td>$R, t$（ICP）</td>
+<td>扫描匹配的旋转与平移</td>
+<td>12.2</td>
+</tr>
+<tr>
+<td>$r_{ij},\ \Omega_{ij}$</td>
+<td>因子图残差、信息矩阵</td>
+<td>12.2</td>
+</tr>
+<tr>
+<td>$T, R, p$（位姿）</td>
+<td>齐次变换、旋转矩阵、平移</td>
+<td>13</td>
+</tr>
+<tr>
+<td>$q = [w,x,y,z]$</td>
+<td>单位四元数</td>
+<td>13.2</td>
+</tr>
+<tr>
+<td>$J, J^{+}, \lambda_{DLS}$</td>
+<td>雅可比、伪逆、DLS 阻尼</td>
+<td>13.3</td>
+</tr>
+<tr>
+<td>$v, \omega, r, b$</td>
+<td>底盘线/角速度、轮半径、轮距</td>
+<td>13.3</td>
+</tr>
+<tr>
+<td>$M(q), C, g(q), \tau$</td>
+<td>惯性阵、科氏项、重力项、关节力矩</td>
+<td>13.4</td>
+</tr>
+<tr>
+<td>$M_d, D_d, K_d$</td>
+<td>阻抗控制期望惯量/阻尼/刚度</td>
+<td>13.4</td>
+</tr>
+<tr>
+<td>$g(n), h(n)$</td>
+<td>A* 已走代价、启发估计</td>
+<td>14</td>
+</tr>
+<tr>
+<td>$l_d, \alpha, L$（跟踪）</td>
+<td>pure pursuit 预瞄距离、方位角、轴距</td>
+<td>14.6</td>
+</tr>
+<tr>
+<td>$S, A, R, \gamma, \pi$</td>
+<td>MDP 状态/动作/奖励/折扣/策略</td>
+<td>15</td>
+</tr>
+<tr>
+<td>$\rho_t, A_t$</td>
+<td>PPO 概率比、优势函数</td>
+<td>15</td>
+</tr>
+</tbody>
+</table>
+<h3 id="mcu-篇新增符号第-16-章">MCU 篇新增符号（第 16 章）</h3>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>含义</th>
+<th>首见</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>q15_t / Q15</td>
+<td>16 位定点格式，表示 $[-1, 1)$，满量程 32768</td>
+<td>16.2</td>
+</tr>
+<tr>
+<td><code>__SSAT</code></td>
+<td>ARM 饱和指令（有符号饱和到指定位宽）</td>
+<td>16.2</td>
+</tr>
+<tr>
+<td><code>DWT-&gt;CYCCNT</code></td>
+<td>内核周期计数器，耗时/抖动测量的标准工具</td>
+<td>16.3</td>
+</tr>
+<tr>
+<td>jitter</td>
+<td>采样/执行时刻的抖动，控制环经验红线 &lt; 5%·Ts</td>
+<td>16.3</td>
+</tr>
+<tr>
+<td>LUT</td>
+<td>查找表（lookup table），标定曲线的运行时形态</td>
+<td>16.5</td>
+</tr>
+<tr>
+<td>CRC</td>
+<td>循环冗余校验，参数块与通信帧的完整性保障</td>
+<td>16.6</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<blockquote>
+<p><strong>一句话总结</strong>：傅里叶变换看清信号里有什么，拉普拉斯变换看清系统稳不稳，采样定理划定数字化的边界，Z 变换把设计写进固件，PID 用最朴素的三项撑起九成闭环，状态空间是这一切的现代语言，卡尔曼滤波在模型与测量的不确定度之间做出最优折中；进阶篇里，辨识供给模型，观测器重构看不见的状态，MPC 把约束写进优化，SLAM 回答"我在哪"，规划回答"去哪里"，运动学与动力学回答"怎么动"，强化学习则在模型失效的地方接过接力棒，第 16 章回答最后一公里——如何把这一切装进 MCU 毫秒级的节拍、有限的数值精度与故障安全的工程约束里：全部工具贯穿同一条主线：<strong>对不确定世界的建模、观测、反馈与决策。</strong></p>
+</blockquote>
+</body>
+</html>
